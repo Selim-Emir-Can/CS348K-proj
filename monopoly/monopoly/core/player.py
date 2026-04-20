@@ -71,6 +71,18 @@ class Player:
 
         return net_worth
 
+    def _should_buy(self, property_to_buy) -> bool:
+        """Return True if this player wants to buy an unowned property.
+        Subclasses can override to implement different buying strategies.
+        """
+        if self.money - property_to_buy.cost_base < self.settings.unspendable_cash:
+            return False
+        if property_to_buy.cost_base > self.money:
+            return False
+        if property_to_buy.group in self.settings.ignore_property_groups:
+            return False
+        return True
+
     def make_a_move(self, board, players, dice, log) -> MoveResult:
         """ Main function for a player to make a move
         Receives:
@@ -182,8 +194,8 @@ class Player:
 
     def handle_salary(self, board, log):
         """ Adding Salary to the player's money, according to the game's settings """
-        self.money += board.settings.mechanics.salary
-        log.add(f" {self.name} receives salary ${board.settings.mechanics.salary}")
+        self.money += board.mechanics.salary
+        log.add(f" {self.name} receives salary ${board.mechanics.salary}")
 
     def handle_going_to_jail(self, message, log):
         """ Start the jail time
@@ -449,25 +461,7 @@ class Player:
         """ Landing on property: either buy it or pay rent
         """
 
-        def is_willing_to_buy_property(property_to_buy):
-            """ Check if the player is willing to buy an unowned property
-            """
-            # Player has money lower than unspendable minimum
-            if self.money - property_to_buy.cost_base < self.settings.unspendable_cash:
-                return False
-
-            # Player does not have enough money
-            # If unspendable_cash >= 0 this check is redundant
-            # However we'll need to think if a "mortgage to buy" situation
-            if property_to_buy.cost_base > self.money:
-                return False
-
-            # Property is in one of the groups, player chose to ignore
-            if property_to_buy.group in self.settings.ignore_property_groups:
-                return False
-
-            # Nothing stops the player from making a purchase
-            return True
+        is_willing_to_buy_property = self._should_buy
 
         def buy_property(property_to_buy):
             """ Player buys the property

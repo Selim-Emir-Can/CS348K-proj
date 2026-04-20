@@ -83,3 +83,59 @@ class Analyzer:
             print(f"  - {player_name}: {survivals} " +
                   f"({survival_rate * 100:.1f} "
                   f"+- {margin * 100:.1f}%)")
+
+
+class AnalyzerFromConfig(Analyzer):
+    """Analyzer variant that uses player list and counts from a GameConfig + SimulationSettings instance."""
+
+    def __init__(self, game_config, sim_settings):
+        super().__init__()
+        # Player names from config if set, otherwise fall back to GameSettings class defaults
+        if game_config.players:
+            self.player_names = [p['name'] for p in game_config.players]
+        else:
+            self.player_names = [p[0] for p in GameSettings.players_list]
+        self.n_games = sim_settings.n_games
+        self.n_moves = sim_settings.n_moves
+
+    def remaining_players(self):
+        grouped = self.df.groupby('game_number').size().reset_index(name='Losers')
+        result = grouped['Losers'].value_counts().reset_index()
+        result.columns = ['Losers', 'count']
+
+        remaining_players = {len(self.player_names) - row['Losers']: row['count']
+                             for index, row in result.iterrows()}
+        remaining_players[len(self.player_names)] = \
+            self.n_games - sum(remaining_players.values())
+
+        clear_winner = remaining_players.get(1, 0)
+        print(f"Games that had clear winner: {clear_winner} / {self.n_games} "
+              f"({100 * clear_winner / self.n_games:.1f}%)")
+
+        print(f"Number of remaining players after: {self.n_moves} turns:")
+        for remaining, count in sorted(remaining_players.items()):
+            print(f"  - {remaining}: {count} ({count * 100 / self.n_games:.1f}%)")
+
+    def game_length(self):
+        grouped = self.df.groupby('game_number')
+        filtered_groups = grouped.filter(lambda x: len(x) == len(self.player_names) - 1)
+        lengths_df = filtered_groups.groupby('game_number')['turn'].max().reset_index()
+        lengths = sorted(lengths_df["turn"].tolist())
+        all_lengths = lengths + [self.n_moves for _ in range(self.n_games - len(lengths))]
+        if lengths:
+            print(f"Median game length (for finished games): {lengths[len(lengths) // 2]}")
+        print(f"Median game length (for all games): {all_lengths[len(all_lengths) // 2]}")
+        survival_average = lengths_df["turn"].mean()
+        print(f"Average survival time (for bankrupt players): {survival_average:.1f} turns")
+
+    def winning_rate(self):
+        loses_counts = self.df.groupby('player_bankrupt').size().reset_index(name='count')
+        loses_dict = {row['player_bankrupt']: row['count'] for index, row in loses_counts.iterrows()}
+        print("Players' survival rate:")
+        for player_name in self.player_names:
+            loses = loses_dict.get(player_name, 0)
+            survivals = self.n_games - loses
+            survival_rate = survivals / self.n_games
+            margin = 1.96 * (survival_rate * (1 - survival_rate) / self.n_games) ** 0.5
+            print(f"  - {player_name}: {survivals} "
+                  f"({survival_rate * 100:.1f} +- {margin * 100:.1f}%)")
