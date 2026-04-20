@@ -77,6 +77,8 @@ class Board:
         # when the "Free Parking" rule is active, Keep track of the amount of money at the "Free parking money"
         self.free_parking_money = 0
 
+        # Mechanics reference (class-level defaults; overridden to an instance by _apply_config)
+        self.mechanics = GameMechanics
         # Available houses and hotels
         self.available_houses = GameMechanics.available_houses
         self.available_hotels = GameMechanics.available_hotels
@@ -125,6 +127,25 @@ class Board:
             "You inherit $100"
         ])
 
+    @classmethod
+    def from_config(cls, settings, game_config) -> 'Board':
+        """Construct a Board and apply property params + supply limits from a GameConfig."""
+        board = cls(settings)
+        board._apply_config(game_config)
+        return board
+
+    def _apply_config(self, config):
+        """Rebuild cells, decks, and supply limits from a GameConfig."""
+        from config import _fresh_cell
+        from monopoly.core.deck import Deck
+        self.cells = [_fresh_cell(cell) for cell in config.cells]
+        self.groups = self.create_property_groups()
+        self.chance = Deck(list(config.chance.cards))
+        self.chest = Deck(list(config.chest.cards))
+        self.mechanics = config.settings.mechanics
+        self.available_houses = config.settings.mechanics.available_houses
+        self.available_hotels = config.settings.mechanics.available_hotels
+
     def create_property_groups(self):
         """ self.groups is a convenient way to group cells by color/type,
         so we don't have to check all properties on the board, to, for example,
@@ -144,7 +165,7 @@ class Board:
         """ Log the current state of the houses/hotels, free parking money
         """
         log.add(f"Available houses/hotels: {self.available_houses}/{self.available_hotels}")
-        if GameMechanics.free_parking_money:
+        if self.mechanics.free_parking_money:
             log.add(f"Free Parking Money: ${self.free_parking_money}")
 
     def log_current_map(self, log):

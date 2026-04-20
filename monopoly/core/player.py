@@ -182,8 +182,8 @@ class Player:
 
     def handle_salary(self, board, log):
         """ Adding Salary to the player's money, according to the game's settings """
-        self.money += board.settings.mechanics.salary
-        log.add(f" {self.name} receives salary ${board.settings.mechanics.salary}")
+        self.money += board.mechanics.salary
+        log.add(f" {self.name} receives salary ${board.mechanics.salary}")
 
     def handle_going_to_jail(self, message, log):
         """ Start the jail time

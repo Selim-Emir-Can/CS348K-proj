@@ -1,0 +1,80 @@
+- type: Cell
+  name: GO
+- type: Property
+  name: A1 Mediterranean Avenue
+- type: CommunityChest
+  name: COM1 Community Chest
+- type: Property
+  name: A2 Baltic Avenue
+- type: IncomeTax
+  name: IT Income Tax
+- type: Property
+  name: R1 Reading Railroad
+- type: Property
+  name: B1 Oriental Avenue
+- type: Chance
+  name: CH1 Chance
+- type: Property
+  name: B2 Vermont Avenue
+- type: Property
+  name: B3 Connecticut Avenue
+- type: Cell
+  name: JL Jail
+- type: Property
+  name: C1 St. Charles Place
+- type: Property
+  name: U1 Electric Company
+- type: Property
+  name: C2 States Avenue
+- type: Property
+  name: C3 Virginia Avenue
+- type: Property
+  name: R2 Pennsylvania Railroad
+- type: Property
+  name: D1 St. James Place
+- type: CommunityChest
+  name: COM2 Community Chest
+- type: Property
+  name: D2 Tennessee Avenue
+- type: Property
+  name: D3 New York Avenue
+- type: FreeParking
+  name: FP Free Parking
+- type: Property
+  name: E1 Kentucky Avenue
+- type: Chance
+  name: CH2 Chance
+- type: Property
+  name: E2 Indiana Avenue
+- type: Property
+  name: E3 Illinois Avenue
+- type: Property
+  name: R3 B&O Railroad
+- type: Property
+  name: F1 Atlantic Avenue
+- type: Property
+  name: F2 Ventnor Avenue
+- type: Property
+  name: U2 Waterworks
+- type: Property
+  name: F3 Marvin Gardens
+- type: GoToJail
+  name: GTJ Go To Jail
+- type: Property
+  name: G1 Pacific Avenue
+- type: Property
+  name: G2 North Carolina Avenue
+- type: CommunityChest
+  name: COM3 Community Chest
+- type: Property
+  name: G3 Pennsylvania Avenue
+- type: Property
+  name: R4 Short Line
+- type: Chance
+  name: CH3 Chance
+- type: Property
+  name: H1 Park Place
+- type: LuxuryTax
+  name: LT Luxury Tax
+- type: Property
+  name: H2 Boardwalk

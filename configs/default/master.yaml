@@ -1,0 +1,7 @@
+mechanics: mechanics.yaml
+players: players/players.yaml
+layout: board/layout.yaml
+properties: properties/properties.yaml
+chance_deck: decks/chance.yaml
+chest_deck: decks/chest.yaml
+optimization: optimization.yaml

@@ -83,6 +83,79 @@ def setup_players(board, dice):
     return players
 
 
+def monopoly_game_from_config(game_number_and_seeds: Tuple[int, int], game_config) -> None:
+    """Variant of monopoly_game that runs a game from a GameConfig instance."""
+    game_number, game_seed = game_number_and_seeds
+    board, dice, events_log, bankruptcies_log = setup_game_from_config(game_number, game_seed, game_config)
+    players = setup_players_from_config(board, dice, game_config)
+
+    for turn_n in range(1, SimulationSettings.n_moves + 1):
+        events_log.add(f"\n== GAME {game_number} Turn {turn_n} ===")
+        log_players_and_board_state(board, events_log, players)
+        board.log_board_state(events_log)
+        events_log.add("")
+
+        if _check_end_conditions(players, events_log, game_number, turn_n):
+            break
+
+        for player in players:
+            if player.is_bankrupt:
+                continue
+            move_result = player.make_a_move(board, players, dice, events_log)
+            if move_result == MoveResult.BANKRUPT:
+                bankruptcies_log.add(f"{game_number}\t{player}\t{turn_n}")
+
+    board.log_current_map(events_log)
+    events_log.save()
+    if bankruptcies_log.content:
+        bankruptcies_log.save()
+
+
+def setup_players_from_config(board, dice, game_config):
+    from config import _PLAYER_SETTINGS_CLASSES
+
+    if game_config.players:
+        players = [Player(p['name'], _PLAYER_SETTINGS_CLASSES[p['settings']]())
+                   for p in game_config.players]
+        if game_config.settings.shuffle_players:
+            dice.shuffle(players)
+        for player in players:
+            player.money = next(p['starting_money'] for p in game_config.players
+                                if p['name'] == player.name)
+    else:
+        settings = game_config.settings
+        players = [Player(player_name, player_setting)
+                   for player_name, player_setting in settings.players_list]
+        if settings.shuffle_players:
+            dice.shuffle(players)
+        starting_money = settings.starting_money
+        if isinstance(starting_money, dict):
+            for player in players:
+                player.money = starting_money.get(player.name, 0)
+        else:
+            for player in players:
+                player.money = starting_money
+        for player in players:
+            property_indices = settings.starting_properties.get(player.name, [])
+            for cell_index in property_indices:
+                assign_property(player, board.cells[cell_index], board)
+
+    return players
+
+
+def setup_game_from_config(game_number, game_seed, game_config):
+    events_log = Log(LogSettings.EVENTS_LOG_PATH, disabled=not LogSettings.KEEP_GAME_LOG)
+    events_log.add(f"= GAME {game_number} of {SimulationSettings.n_games} (seed = {game_seed}) =")
+    bankruptcies_log = Log(LogSettings.BANKRUPTCIES_PATH)
+
+    board = Board.from_config(game_config.settings, game_config)
+    mechanics = game_config.settings.mechanics
+    dice = Dice(game_seed, mechanics.dice_count, mechanics.dice_sides, events_log)
+    dice.shuffle(board.chance.cards)
+    dice.shuffle(board.chest.cards)
+    return board, dice, events_log, bankruptcies_log
+
+
 def setup_game(game_number, game_seed):
     events_log = Log(LogSettings.EVENTS_LOG_PATH, disabled=not LogSettings.KEEP_GAME_LOG)
     events_log.add(f"= GAME {game_number} of {SimulationSettings.n_games} (seed = {game_seed}) =")

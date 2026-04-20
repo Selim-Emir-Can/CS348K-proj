@@ -1,0 +1,308 @@
+- name: A1 Mediterranean Avenue
+  cost_base: 60
+  rent_base: 2
+  cost_house: 50
+  rent_house:
+  - 10
+  - 30
+  - 90
+  - 160
+  - 250
+  group: Brown
+- name: A2 Baltic Avenue
+  cost_base: 60
+  rent_base: 4
+  cost_house: 50
+  rent_house:
+  - 20
+  - 60
+  - 180
+  - 320
+  - 450
+  group: Brown
+- name: R1 Reading Railroad
+  cost_base: 200
+  rent_base: 25
+  cost_house: 0
+  rent_house:
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  group: Railroads
+- name: B1 Oriental Avenue
+  cost_base: 100
+  rent_base: 6
+  cost_house: 50
+  rent_house:
+  - 30
+  - 90
+  - 270
+  - 400
+  - 550
+  group: Lightblue
+- name: B2 Vermont Avenue
+  cost_base: 100
+  rent_base: 6
+  cost_house: 50
+  rent_house:
+  - 30
+  - 90
+  - 270
+  - 400
+  - 550
+  group: Lightblue
+- name: B3 Connecticut Avenue
+  cost_base: 120
+  rent_base: 8
+  cost_house: 50
+  rent_house:
+  - 40
+  - 100
+  - 300
+  - 450
+  - 600
+  group: Lightblue
+- name: C1 St. Charles Place
+  cost_base: 140
+  rent_base: 10
+  cost_house: 100
+  rent_house:
+  - 50
+  - 150
+  - 450
+  - 625
+  - 750
+  group: Pink
+- name: U1 Electric Company
+  cost_base: 150
+  rent_base: 0
+  cost_house: 0
+  rent_house:
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  group: Utilities
+- name: C2 States Avenue
+  cost_base: 140
+  rent_base: 10
+  cost_house: 100
+  rent_house:
+  - 50
+  - 150
+  - 450
+  - 625
+  - 750
+  group: Pink
+- name: C3 Virginia Avenue
+  cost_base: 160
+  rent_base: 12
+  cost_house: 100
+  rent_house:
+  - 60
+  - 180
+  - 500
+  - 700
+  - 900
+  group: Pink
+- name: R2 Pennsylvania Railroad
+  cost_base: 200
+  rent_base: 25
+  cost_house: 0
+  rent_house:
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  group: Railroads
+- name: D1 St. James Place
+  cost_base: 180
+  rent_base: 14
+  cost_house: 100
+  rent_house:
+  - 70
+  - 200
+  - 550
+  - 700
+  - 950
+  group: Orange
+- name: D2 Tennessee Avenue
+  cost_base: 180
+  rent_base: 14
+  cost_house: 100
+  rent_house:
+  - 70
+  - 200
+  - 550
+  - 700
+  - 950
+  group: Orange
+- name: D3 New York Avenue
+  cost_base: 200
+  rent_base: 16
+  cost_house: 100
+  rent_house:
+  - 80
+  - 220
+  - 600
+  - 800
+  - 1000
+  group: Orange
+- name: E1 Kentucky Avenue
+  cost_base: 220
+  rent_base: 18
+  cost_house: 150
+  rent_house:
+  - 90
+  - 250
+  - 700
+  - 875
+  - 1050
+  group: Red
+- name: E2 Indiana Avenue
+  cost_base: 220
+  rent_base: 18
+  cost_house: 150
+  rent_house:
+  - 90
+  - 250
+  - 700
+  - 875
+  - 1050
+  group: Red
+- name: E3 Illinois Avenue
+  cost_base: 240
+  rent_base: 20
+  cost_house: 150
+  rent_house:
+  - 100
+  - 300
+  - 750
+  - 925
+  - 1100
+  group: Red
+- name: R3 B&O Railroad
+  cost_base: 200
+  rent_base: 25
+  cost_house: 0
+  rent_house:
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  group: Railroads
+- name: F1 Atlantic Avenue
+  cost_base: 260
+  rent_base: 22
+  cost_house: 150
+  rent_house:
+  - 110
+  - 330
+  - 800
+  - 975
+  - 1150
+  group: Yellow
+- name: F2 Ventnor Avenue
+  cost_base: 260
+  rent_base: 22
+  cost_house: 150
+  rent_house:
+  - 110
+  - 330
+  - 800
+  - 975
+  - 1150
+  group: Yellow
+- name: U2 Waterworks
+  cost_base: 150
+  rent_base: 0
+  cost_house: 0
+  rent_house:
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  group: Utilities
+- name: F3 Marvin Gardens
+  cost_base: 280
+  rent_base: 24
+  cost_house: 150
+  rent_house:
+  - 120
+  - 360
+  - 850
+  - 1025
+  - 1200
+  group: Yellow
+- name: G1 Pacific Avenue
+  cost_base: 300
+  rent_base: 26
+  cost_house: 200
+  rent_house:
+  - 130
+  - 390
+  - 900
+  - 1100
+  - 1275
+  group: Green
+- name: G2 North Carolina Avenue
+  cost_base: 300
+  rent_base: 26
+  cost_house: 200
+  rent_house:
+  - 130
+  - 390
+  - 900
+  - 1100
+  - 1275
+  group: Green
+- name: G3 Pennsylvania Avenue
+  cost_base: 320
+  rent_base: 28
+  cost_house: 200
+  rent_house:
+  - 150
+  - 450
+  - 1000
+  - 1200
+  - 1400
+  group: Green
+- name: R4 Short Line
+  cost_base: 200
+  rent_base: 25
+  cost_house: 0
+  rent_house:
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  group: Railroads
+- name: H1 Park Place
+  cost_base: 350
+  rent_base: 35
+  cost_house: 200
+  rent_house:
+  - 175
+  - 500
+  - 1100
+  - 1300
+  - 1500
+  group: Indigo
+- name: H2 Boardwalk
+  cost_base: 400
+  rent_base: 50
+  cost_house: 200
+  rent_house:
+  - 200
+  - 600
+  - 1400
+  - 1700
+  - 2000
+  group: Indigo

@@ -1,0 +1,12 @@
+- name: Hero
+  settings: HeroPlayerSettings
+  starting_money: 1500
+- name: Alice
+  settings: StandardPlayerSettings
+  starting_money: 1500
+- name: Bob
+  settings: StandardPlayerSettings
+  starting_money: 1500
+- name: Charly
+  settings: StandardPlayerSettings
+  starting_money: 1500

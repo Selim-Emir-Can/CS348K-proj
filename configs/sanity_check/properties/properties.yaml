@@ -1,0 +1,44 @@
+- name: A1 Mediterranean Avenue
+  cost_base: 60
+  rent_base: 2
+  cost_house: 50
+  rent_house:
+  - 10
+  - 30
+  - 90
+  - 160
+  - 250
+  group: Brown
+- name: A2 Baltic Avenue
+  cost_base: 60
+  rent_base: 4
+  cost_house: 50
+  rent_house:
+  - 20
+  - 60
+  - 180
+  - 320
+  - 450
+  group: Brown
+- name: H1 Park Place
+  cost_base: 350
+  rent_base: 35
+  cost_house: 200
+  rent_house:
+  - 175
+  - 500
+  - 1100
+  - 1300
+  - 1500
+  group: Indigo
+- name: H2 Boardwalk
+  cost_base: 400
+  rent_base: 50
+  cost_house: 200
+  rent_house:
+  - 200
+  - 600
+  - 1400
+  - 1700
+  - 2000
+  group: Indigo
