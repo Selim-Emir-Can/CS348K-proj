@@ -1,6 +1,7 @@
 """ Config file for monopoly simulation """
 from dataclasses import dataclass, field
 from typing import Any, FrozenSet
+from player_settings import StandardPlayerSettings, HeroPlayerSettings
 
 HERO = "Hero"
 PLAYER_2 = "Alice"
@@ -38,23 +39,6 @@ class SimulationSettings:
     # will last forever. https://www.researchgate.net/publication
     # /224123876_Estimating_the_probability_that_the_game_of_Monopoly_never_ends
     never_bankrupt_cash: int = 5000
-
-
-@dataclass(frozen=True)
-class StandardPlayerSettings:
-    unspendable_cash: int = 200  # Amount of money the player wants to keep unspent (money safety pillow)
-    ignore_property_groups: FrozenSet[str] = frozenset()  # Group of properties do not buy, i.e.{"RED", "GREEN"}
-    
-    is_willing_to_make_trades: bool = True
-    # agree to trades if the value difference is within these limits:
-    trade_max_diff_absolute: int = 200  # More expensive - less expensive
-    trade_max_diff_relative: float = 2.0  # More expensive / less expensive
-
-
-@dataclass(frozen=True)
-class HeroPlayerSettings(StandardPlayerSettings):
-    """ here you can change the settings of the hero (the Experimental Player) """
-    # ignore_property_groups: FrozenSet[str] = frozenset({"GREEN"})
 
 
 @dataclass(frozen=True)

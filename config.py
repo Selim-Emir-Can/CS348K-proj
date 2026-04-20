@@ -13,12 +13,23 @@ from pathlib import Path
 from typing import Dict, List, Any, Tuple
 import yaml
 
-from settings import GameSettings, GameMechanics, StandardPlayerSettings, HeroPlayerSettings
+from settings import GameSettings, GameMechanics
+from player_settings import (StandardPlayerSettings, HeroPlayerSettings,
+                              RuleBasedPlayerSettings, RandomPlayerSettings)
+from agents import RandomPlayer, DQNPlayer
 
 # Maps settings class name -> class, for YAML player deserialization
 _PLAYER_SETTINGS_CLASSES = {
     'StandardPlayerSettings': StandardPlayerSettings,
     'HeroPlayerSettings': HeroPlayerSettings,
+    'RuleBasedPlayerSettings': RuleBasedPlayerSettings,
+    'RandomPlayerSettings': RandomPlayerSettings,
+}
+
+# Maps optional player_class name -> constructor, for non-default Player subclasses
+_PLAYER_CLASSES = {
+    'RandomPlayer': RandomPlayer,
+    'DQNPlayer':    DQNPlayer,
 }
 from monopoly.core.cell import (
     Cell, GoToJail, LuxuryTax, IncomeTax, FreeParking,

@@ -112,16 +112,21 @@ def monopoly_game_from_config(game_number_and_seeds: Tuple[int, int], game_confi
 
 
 def setup_players_from_config(board, dice, game_config):
-    from config import _PLAYER_SETTINGS_CLASSES
+    from config import _PLAYER_SETTINGS_CLASSES, _PLAYER_CLASSES
 
     if game_config.players:
-        players = [Player(p['name'], _PLAYER_SETTINGS_CLASSES[p['settings']]())
-                   for p in game_config.players]
+        players = []
+        for p in game_config.players:
+            settings = _PLAYER_SETTINGS_CLASSES[p['settings']]()
+            cls = _PLAYER_CLASSES.get(p.get('player_class'), Player)
+            players.append(cls(p['name'], settings))
         if game_config.settings.shuffle_players:
             dice.shuffle(players)
         for player in players:
-            player.money = next(p['starting_money'] for p in game_config.players
-                                if p['name'] == player.name)
+            p_cfg = next(p for p in game_config.players if p['name'] == player.name)
+            player.money = p_cfg['starting_money']
+            for cell_index in p_cfg.get('starting_properties', []):
+                assign_property(player, board.cells[cell_index], board)
     else:
         settings = game_config.settings
         players = [Player(player_name, player_setting)
