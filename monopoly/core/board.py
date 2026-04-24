@@ -74,6 +74,11 @@ class Board:
         # Board fields, grouped by group self.groups["Green"] - list of all greens
         self.groups = self.create_property_groups()
 
+        # Landmark indices (GO / Jail / GoToJail / FreeParking) — computed
+        # from self.cells so they stay correct when the board is shorter than
+        # the default 40 cells (e.g. after DesignSpace mask-based shrinkage).
+        self._recompute_landmarks()
+
         # when the "Free Parking" rule is active, Keep track of the amount of money at the "Free parking money"
         self.free_parking_money = 0
 
@@ -145,6 +150,66 @@ class Board:
         self.mechanics = config.settings.mechanics
         self.available_houses = config.settings.mechanics.available_houses
         self.available_hotels = config.settings.mechanics.available_hotels
+        # Recompute landmark indices since cells may now be shorter than 40.
+        self._recompute_landmarks()
+
+    def _recompute_landmarks(self):
+        """Cache the indices of GO / Jail / GoToJail / FreeParking.
+
+        Used instead of hardcoded 0 / 10 / 30 / 20 so the engine works with
+        boards shorter than 40 cells. Values are None if the landmark is
+        absent (shouldn't happen in practice — we never remove these cells).
+        """
+        self.go_index = None
+        self.jail_index = None
+        self.go_to_jail_index = None
+        self.free_parking_index = None
+        for i, c in enumerate(self.cells):
+            # Plain Cell with a few hardcoded names (GO and Jail use the base Cell type)
+            if isinstance(c, Cell) and type(c).__name__ == 'Cell':
+                if c.name == 'GO':
+                    self.go_index = i
+                elif 'Jail' in c.name:
+                    self.jail_index = i
+            elif isinstance(c, GoToJail):
+                self.go_to_jail_index = i
+            elif isinstance(c, FreeParking):
+                # Canonical Free Parking is named "FP Free Parking"; any other
+                # FreeParking cells on the board are DesignSpace-substituted
+                # removed properties (legacy decode path). Treat the first
+                # canonical one we find as THE FreeParking landmark.
+                if self.free_parking_index is None and c.name.startswith('FP'):
+                    self.free_parking_index = i
+        # Fallback if FP wasn't found by name prefix: take the first FreeParking.
+        if self.free_parking_index is None:
+            for i, c in enumerate(self.cells):
+                if isinstance(c, FreeParking):
+                    self.free_parking_index = i
+                    break
+
+    def cell_index_by_name(self, name: str):
+        """Return the index of the first cell with this exact name, or None.
+
+        Used by the Chance / Community Chest card handlers to look up
+        "Advance to X" targets dynamically, so the cards gracefully no-op
+        when the target cell has been removed by shrinkage.
+        """
+        for i, c in enumerate(self.cells):
+            if c.name == name:
+                return i
+        return None
+
+    def next_cell_of_group(self, from_position: int, target_group: str):
+        """Walk forward from from_position (wrapping around) and return the
+        index of the next Property whose group == target_group. Returns None
+        if no such property exists on the board."""
+        n = len(self.cells)
+        for offset in range(n):
+            idx = (from_position + offset) % n
+            c = self.cells[idx]
+            if isinstance(c, Property) and c.group == target_group:
+                return idx
+        return None
 
     def create_property_groups(self):
         """ self.groups is a convenient way to group cells by color/type,

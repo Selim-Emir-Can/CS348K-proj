@@ -1,16 +1,14 @@
-"""Batch-render winning boards from all optimisation runs.
+"""Batch-render winning boards from all optimisation runs, LEGACY 40-cell layout.
 
-Produces one PNG per run (best design vs. default, side-by-side with
-diff annotations on the optimised side) plus a combined grid figure
-per player count showing every ablation's winning board next to the
-default at a glance.
+Sibling of render_all_boards.py but uses render_board_legacy.draw_board
+(fixed canonical 40-cell layout with FreeParking-substituted removed cells
+and hatched "(removed)" overlays).
 
 Usage (from monopoly/):
-    python scripts/render_all_boards.py                              # default: all runs, output under ../report/figures/boards/
-    python scripts/render_all_boards.py --out-dir figures/boards     # alt output dir
+    python scripts/render_all_boards_legacy.py                                    # default output: ../report/figures/boards_legacy/
+    python scripts/render_all_boards_legacy.py --suffix _mask --out-dir ../report/figures/boards_mask_legacy
 """
 import argparse
-import json
 import os
 import sys
 from pathlib import Path
@@ -18,17 +16,15 @@ from pathlib import Path
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
 import numpy as np
 
 from config import GameConfig
 from optimizer.design_space import DesignSpace
 
-# scripts/ isn't a package; add it to sys.path so render_board is importable.
 _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
-from render_board import draw_board, _legend_patches, best_design_from_run
+from render_board_legacy import draw_board, _legend_patches, best_design_from_run
 
 
 DEFAULT_RUNS_2P = [
@@ -47,33 +43,22 @@ DEFAULT_RUNS_3P = [
 ]
 
 
-def _load_metrics(run_path):
-    """Return the best entry's metrics dict."""
-    best = best_design_from_run(run_path)
-    return best
-
-
-def _metric_summary(metrics: dict) -> str:
-    return (f'score={metrics.get("score", 0):.3f}  '
-            f'fair={metrics["metrics"]["mean_fairness"]:.2f}  '
-            f'rounds={metrics["metrics"]["mean_rounds"]:.0f}  '
-            f'draw={100*metrics["metrics"]["mean_draw_rate"]:.0f}%  '
-            f'xfer={metrics["metrics"]["mean_transfer_rate"]:.0f}')
-
-
-def _decode_styled(space, vec, style):
-    if style == 'substituted':
-        return space.decode_as_substituted(vec)
-    return space.decode(vec)
+def _metric_summary(entry):
+    m = entry['metrics']
+    return (f'score={entry.get("score", 0):.3f}  '
+            f'fair={m["mean_fairness"]:.2f}  '
+            f'rounds={m["mean_rounds"]:.0f}  '
+            f'draw={100*m["mean_draw_rate"]:.0f}%  '
+            f'xfer={m["mean_transfer_rate"]:.0f}')
 
 
 def render_pair(base_cfg, run_path, out_path, title_suffix,
-                removal_direction='cheapest', render_style='shrunk'):
-    """Render default vs best-of-run side-by-side with change annotations."""
+                removal_direction='cheapest'):
+    """Default vs best-of-run, side-by-side, legacy 40-cell layout."""
     space = DesignSpace(base_cfg, removal_direction=removal_direction)
-    default_cfg = _decode_styled(space, space.identity_vec(), render_style)
+    default_cfg = space.decode_as_substituted(space.identity_vec())
     best = best_design_from_run(run_path)
-    decoded = _decode_styled(space, np.asarray(best['vec']), render_style)
+    decoded = space.decode_as_substituted(np.asarray(best['vec']))
     summary = _metric_summary(best)
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(22, 12))
@@ -90,13 +75,10 @@ def render_pair(base_cfg, run_path, out_path, title_suffix,
 
 
 def render_grid(base_cfg, runs, out_path, super_title,
-                removal_direction='cheapest', render_style='shrunk'):
-    """One grid: default (top-left) + one winning board per ablation.
-
-    2 columns × ceil((len(runs)+1)/2) rows; each cell is one board.
-    """
+                removal_direction='cheapest'):
+    """Default + one winning board per ablation, legacy 40-cell layout."""
     space = DesignSpace(base_cfg, removal_direction=removal_direction)
-    default_cfg = _decode_styled(space, space.identity_vec(), render_style)
+    default_cfg = space.decode_as_substituted(space.identity_vec())
 
     n_panels = len(runs) + 1
     cols = 2
@@ -112,7 +94,7 @@ def render_grid(base_cfg, runs, out_path, super_title,
             axes[i].set_visible(False)
             continue
         best = best_design_from_run(run_path)
-        decoded = _decode_styled(space, np.asarray(best['vec']), render_style)
+        decoded = space.decode_as_substituted(np.asarray(best['vec']))
         summary = _metric_summary(best)
         draw_board(axes[i], decoded, default_cfg=default_cfg,
                    title=f'{label}\n{summary}',
@@ -132,21 +114,12 @@ def render_grid(base_cfg, runs, out_path, super_title,
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--config', default='default_config.yaml')
-    ap.add_argument('--out-dir', default='../report/figures/boards')
+    ap.add_argument('--out-dir', default='../report/figures/boards_legacy')
     ap.add_argument('--removal-direction', choices=('cheapest', 'expensive', 'middle'),
                     default='cheapest',
-                    help='Must match the optimiser setting that produced the run logs.')
-    ap.add_argument('--runs-2p', nargs='*', default=None,
-                    help='Override: list of (stem,label) pairs as stem1 label1 stem2 label2 ...')
+                    help='Only affects legacy 45-dim vecs; ignored for 66-dim masks.')
     ap.add_argument('--suffix',  default='',
-                    help='Appended to output filenames (e.g. "_expensive") so different '
-                         'removal-direction renders don\'t overwrite each other.')
-    ap.add_argument('--render-style', choices=('shrunk', 'substituted'),
-                    default='shrunk',
-                    help='"shrunk" (default): removed properties are deleted, '
-                         'board becomes shorter. "substituted": removed '
-                         'properties become FreeParking cells, board stays 40 '
-                         'cells (the "Free Parking style" used in the original renders).')
+                    help='Appended to run-name stems and output filenames, e.g. "_mask".')
     args = ap.parse_args()
 
     base_cfg = GameConfig.from_yaml(args.config)
@@ -154,7 +127,6 @@ def main():
     out_dir.mkdir(parents=True, exist_ok=True)
     sfx = args.suffix
 
-    # Individual pairs (default vs winner) for every run
     for stem, label in DEFAULT_RUNS_2P + DEFAULT_RUNS_3P:
         run_path = Path('logs/optimizer') / f'{stem}{sfx}.jsonl'
         if not run_path.exists():
@@ -162,24 +134,20 @@ def main():
             continue
         out_path = out_dir / f'board_{stem}{sfx}.png'
         render_pair(base_cfg, run_path, out_path, label,
-                    removal_direction=args.removal_direction,
-                    render_style=args.render_style)
+                    removal_direction=args.removal_direction)
         print(f'  wrote {out_path}')
 
-    # Grid figures per player count: default + every ablation winner
     render_grid(base_cfg,
                 [(s + sfx, l) for s, l in DEFAULT_RUNS_2P],
                 out_dir / f'boards_grid_2p{sfx}.png',
-                super_title='2-player winning boards - default + ablations',
-                removal_direction=args.removal_direction,
-                render_style=args.render_style)
+                super_title='2-player winning boards - legacy 40-cell layout',
+                removal_direction=args.removal_direction)
     print(f'  wrote {out_dir / f"boards_grid_2p{sfx}.png"}')
     render_grid(base_cfg,
                 [(s + sfx, l) for s, l in DEFAULT_RUNS_3P],
                 out_dir / f'boards_grid_3p{sfx}.png',
-                super_title='3-player winning boards - default + ablations',
-                removal_direction=args.removal_direction,
-                render_style=args.render_style)
+                super_title='3-player winning boards - legacy 40-cell layout',
+                removal_direction=args.removal_direction)
     print(f'  wrote {out_dir / f"boards_grid_3p{sfx}.png"}')
 
 

@@ -153,10 +153,14 @@ class DesignSpace:
         out[:self.N_CONT] = np.clip(out[:self.N_CONT], _MIN_MULT, _MAX_MULT)
         # Round binary dims to {0, 1}
         out[self.N_CONT:] = np.round(np.clip(out[self.N_CONT:], 0.0, 1.0))
-        # Enforce popcount deterministically (seed derived from the vec itself
-        # so clip(x) is idempotent and reproducible).
+        # Enforce popcount deterministically. Use a content-stable hash
+        # (SHA256) rather than Python's built-in hash() — the latter is
+        # randomised per-process via PYTHONHASHSEED, which makes clip() (and
+        # therefore the whole GA) non-reproducible across runs.
         if out[self.N_CONT:].sum() < self.MIN_KEPT:
-            seed = int(abs(hash(out.tobytes())) & 0xFFFFFFFF)
+            import hashlib
+            digest = hashlib.sha256(out.tobytes()).digest()
+            seed = int.from_bytes(digest[:4], 'big')
             rng = np.random.default_rng(seed)
             out[self.N_CONT:] = self._enforce_min_kept(out[self.N_CONT:], rng)
         return out
@@ -186,11 +190,27 @@ class DesignSpace:
         raise ValueError(f'bad vec length {len(vec)}; expected 45 (legacy) or '
                          f'{self.n_dims} (mask)')
 
-    def _decode_mask(self, vec: np.ndarray):
+    def decode_as_substituted(self, vec):
+        """Alternative decode for rendering only: apply the mask by replacing
+        removed properties with FreeParking cells at the SAME board index,
+        keeping the board at 40 cells.
+
+        Not used by the optimiser (which uses the shrunk decode via decode()).
+        Useful only for side-by-side visualisation comparisons with the old
+        board layout. The returned GameConfig is NOT suitable for simulation.
+        """
+        vec = np.asarray(vec, dtype=np.float64)
+        if len(vec) == 2 * _N_CG_PROPS + 1:
+            # Legacy 45-dim vecs already produce a 40-cell substituted board
+            # via _decode_legacy, so just delegate.
+            return self._decode_legacy(vec)
+        if len(vec) != self.n_dims:
+            raise ValueError(f'bad vec length {len(vec)}; expected 45 (legacy) or '
+                             f'{self.n_dims} (mask)')
+        vec = self.clip(vec)
         cost_mults = vec[:_N_CG_PROPS]
         rent_mults = vec[_N_CG_PROPS:2*_N_CG_PROPS]
         mask       = vec[self.N_CONT:]
-
         cfg = deepcopy(self.base_cfg)
         new_cells = list(cfg.cells)
         for pos, bi in enumerate(self._cg_indices):
@@ -208,6 +228,55 @@ class DesignSpace:
                 tuple(max(1, int(round(r * r_mult))) for r in d['rent_house']),
                 d['group'],
             )
+        cfg.cells = new_cells
+        return cfg
+
+    def _decode_mask(self, vec: np.ndarray):
+        """Build a shrunk cell list by dropping masked-off properties entirely.
+
+        Unlike the legacy decode, we do not FreeParking-substitute removed
+        cells; we remove them. The resulting board is shorter than 40 cells,
+        which genuinely changes game dynamics (shorter laps → more salary
+        per game). All engine hardcoded positions (jail, go-to-jail, card
+        targets) now resolve via board.cell_index_by_name /
+        board.next_cell_of_group so the shorter board plays correctly.
+        """
+        cost_mults = vec[:_N_CG_PROPS]
+        rent_mults = vec[_N_CG_PROPS:2*_N_CG_PROPS]
+        mask       = vec[self.N_CONT:]
+
+        # Build a set of board indices to drop.
+        drop_indices = {bi for pos, bi in enumerate(self._cg_indices)
+                        if mask[pos] < 0.5}
+
+        # Map colour-group board-index → (cost_mult, rent_mult) for those we keep.
+        kept_multipliers = {
+            bi: (float(cost_mults[pos]), float(rent_mults[pos]))
+            for pos, bi in enumerate(self._cg_indices) if bi not in drop_indices
+        }
+
+        cfg = deepcopy(self.base_cfg)
+        new_cells = []
+        for bi, cell in enumerate(cfg.cells):
+            if bi in drop_indices:
+                continue   # truly skip — the board gets shorter by one cell
+            # Non-colour-group cells pass through untouched.
+            if bi not in kept_multipliers:
+                new_cells.append(cell)
+                continue
+            # Apply multipliers to kept colour-group properties.
+            c_mult, r_mult = kept_multipliers[bi]
+            # Find this property's defaults by its board index via the cg_indices lookup.
+            pos = self._cg_indices.index(bi)
+            d = self._defaults[pos]
+            new_cells.append(Property(
+                d['name'],
+                max(1, int(round(d['cost_base']  * c_mult))),
+                max(1, int(round(d['rent_base']  * r_mult))),
+                max(1, int(round(d['cost_house'] * c_mult))),
+                tuple(max(1, int(round(r * r_mult))) for r in d['rent_house']),
+                d['group'],
+            ))
         cfg.cells = new_cells
         return cfg
 

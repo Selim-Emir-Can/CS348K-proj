@@ -122,7 +122,7 @@ class Player:
 
         # Get doubles for the third time: go to jail
         if is_double and self.had_doubles == 2:
-            self.handle_going_to_jail("rolled 3 doubles in a row", log)
+            self.handle_going_to_jail("rolled 3 doubles in a row", log, board=board)
             return MoveResult.END_MOVE
 
         # Player is currently in jail
@@ -132,11 +132,12 @@ class Player:
 
         # Player moves to a cell
         self.position += dice_sum
+        board_len = len(board.cells)
         # Get salary if we passed go on the way
-        if self.position >= 40:
+        if self.position >= board_len:
             self.handle_salary(board, log)
         # Get the correct position if we passed GO
-        self.position %= 40
+        self.position %= board_len
         log.add(f"{self.name} goes to: {board.cells[self.position].name}")
 
         # Handle special cells:
@@ -160,7 +161,7 @@ class Player:
 
         # Player lands on "Go To Jail"
         if isinstance(board.cells[self.position], GoToJail):
-            self.handle_going_to_jail("landed on Go To Jail", log)
+            self.handle_going_to_jail("landed on Go To Jail", log, board=board)
             return MoveResult.END_MOVE
 
         # Player lands on "Free Parking"
@@ -202,11 +203,15 @@ class Player:
         self.money += board.mechanics.salary
         log.add(f" {self.name} receives salary ${board.mechanics.salary}")
 
-    def handle_going_to_jail(self, message, log):
-        """ Start the jail time
-        """
+    def handle_going_to_jail(self, message, log, board=None):
+        """ Start the jail time """
         log.add(f"{self} {message}, and goes to Jail.")
-        self.position = 10
+        # Dynamic jail position from the board (defaults to 10 if absent,
+        # matching the original hardcoded behaviour for the stock 40-cell board).
+        if board is not None and getattr(board, 'jail_index', None) is not None:
+            self.position = board.jail_index
+        else:
+            self.position = 10
         self.in_jail = True
         self.had_doubles = 0
         self.days_in_jail = 0
@@ -254,66 +259,74 @@ class Player:
         card = board.chance.draw()
         log.add(f"{self} drew Chance card: '{card}'")
 
-        # Cards that send you to a certain location on board
+        # Cards that send you to a certain location on board.
+        # Target cells are looked up by name so they gracefully no-op if the
+        # cell has been removed from the board by DesignSpace shrinkage.
+
+        def _advance_to_named(name: str, pass_go: bool, collect_on_go: bool = True):
+            """Move to the cell named `name` and handle salary if we passed GO.
+            Returns True if the advance happened, False if the target was missing."""
+            target = board.cell_index_by_name(name)
+            if target is None:
+                log.add(f"{self} would advance to '{name}' but that cell is not on the board; card is a no-op")
+                return False
+            log.add(f"{self} goes to {board.cells[target]}")
+            if pass_go and (collect_on_go and self.position > target):
+                self.handle_salary(board, log)
+            self.position = target
+            return True
 
         if card == "Advance to Boardwalk":
-            log.add(f"{self} goes to {board.cells[39]}")
-            self.position = 39
+            _advance_to_named("H2 Boardwalk", pass_go=False)
 
         elif card == "Advance to Go (Collect $200)":
-            log.add(f"{self} goes to {board.cells[0]}")
-            self.position = 0
+            go_idx = board.go_index if board.go_index is not None else 0
+            log.add(f"{self} goes to {board.cells[go_idx]}")
+            self.position = go_idx
             self.handle_salary(board, log)
 
         elif card == "Advance to Illinois Avenue. If you pass Go, collect $200":
-            log.add(f"{self} goes to {board.cells[24]}")
-            if self.position > 24:
-                self.handle_salary(board, log)
-            self.position = 24
+            _advance_to_named("E3 Illinois Avenue", pass_go=True)
 
         elif card == "Advance to St. Charles Place. If you pass Go, collect $200":
-            log.add(f"{self} goes to {board.cells[11]}")
-            if self.position > 11:
-                self.handle_salary(board, log)
-            self.position = 11
+            _advance_to_named("C1 St. Charles Place", pass_go=True)
 
         elif card == "Take a trip to Reading Railroad. If you pass Go, collect $200":
-            log.add(f"{self} goes to {board.cells[5]}")
-            if self.position > 5:
-                self.handle_salary(board, log)
-            self.position = 5
+            _advance_to_named("R1 Reading Railroad", pass_go=True)
 
         # Going backwards
 
         elif card == "Go Back 3 Spaces":
-            self.position -= 3
+            self.position = (self.position - 3) % len(board.cells)
             log.add(f"{self} goes to {board.cells[self.position]}")
 
         # Sends to a type of location, and affects the rent amount
 
         elif card == "Advance to the nearest Railroad. " + \
                 "If owned, pay owner twice the rental to which they are otherwise entitled":
-            nearest_railroad = self.position
-            while (nearest_railroad - 5) % 10 != 0:
-                nearest_railroad += 1
-                nearest_railroad %= 40
-            log.add(f"{self} goes to {board.cells[nearest_railroad]}")
-            if self.position > nearest_railroad:
-                self.handle_salary(board, log)
-            self.position = nearest_railroad
-            self.other_notes = "double rent"
+            from monopoly.core.constants import RAILROADS
+            target = board.next_cell_of_group(self.position, RAILROADS)
+            if target is None:
+                log.add(f"{self} would advance to the nearest Railroad but none exist on the board; card is a no-op")
+            else:
+                log.add(f"{self} goes to {board.cells[target]}")
+                if self.position > target:
+                    self.handle_salary(board, log)
+                self.position = target
+                self.other_notes = "double rent"
 
         elif card == "Advance token to nearest Utility. " + \
                 "If owned, throw dice and pay owner a total ten times amount thrown.":
-            nearest_utility = self.position
-            while nearest_utility not in (12, 28):
-                nearest_utility += 1
-                nearest_utility %= 40
-            log.add(f"{self} goes to {board.cells[nearest_utility]}")
-            if self.position > nearest_utility:
-                self.handle_salary(board, log)
-            self.position = nearest_utility
-            self.other_notes = "10 times dice"
+            from monopoly.core.constants import UTILITIES
+            target = board.next_cell_of_group(self.position, UTILITIES)
+            if target is None:
+                log.add(f"{self} would advance to the nearest Utility but none exist on the board; card is a no-op")
+            else:
+                log.add(f"{self} goes to {board.cells[target]}")
+                if self.position > target:
+                    self.handle_salary(board, log)
+                self.position = target
+                self.other_notes = "10 times dice"
 
         # Jail related (go to jail or GOOJF card)
 
@@ -324,7 +337,7 @@ class Player:
             board.chance.remove("Get Out of Jail Free")
 
         elif card == "Go to Jail. Go directly to Jail, do not pass Go, do not collect $200":
-            self.handle_going_to_jail("got GTJ Chance card", log)
+            self.handle_going_to_jail("got GTJ Chance card", log, board=board)
             return MoveResult.END_MOVE
 
         # Receiving money
@@ -368,8 +381,9 @@ class Player:
         # Moving to Go
 
         if card == "Advance to Go (Collect $200)":
-            log.add(f"{self} goes to {board.cells[0]}")
-            self.position = 0
+            go_idx = board.go_index if board.go_index is not None else 0
+            log.add(f"{self} goes to {board.cells[go_idx]}")
+            self.position = go_idx
             self.handle_salary(board, log)
 
         # Jail related
@@ -381,7 +395,7 @@ class Player:
             board.chest.remove("Get Out of Jail Free")
 
         elif card == "Go to Jail. Go directly to Jail, do not pass Go, do not collect $200":
-            self.handle_going_to_jail("got GTJ Community Chest card", log)
+            self.handle_going_to_jail("got GTJ Community Chest card", log, board=board)
             return MoveResult.END_MOVE
 
         # Paying money
