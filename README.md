@@ -1,6 +1,6 @@
 # Beta-Testing Monopoly: Closed-Loop Game-Design Optimisation
 
-_Selim Emir Can (emirc) · CS348K project · 2026_
+_Selim Emir Can (emirc) and Alaz Cig · CS348K project · 2026_
 
 This repository automates the beta-testing loop that game and system designers
 usually run by hand. We treat Monopoly as a parameterised multi-agent system
@@ -209,7 +209,7 @@ dataclass in `player_settings.py` (17 configurable knobs) which powers the
 If you use this codebase, please cite:
 
 ```
-Selim Emir Can. "Beta-Testing Monopoly: Closed-Loop Game-Design
-Optimisation over a Diverse Strategy Pool." CS348K project, 2026.
-https://github.com/Selim-Emir-Can/CS348K-proj
+Selim Emir Can and Alaz Cig. "Beta-Testing Monopoly: Closed-Loop
+Game-Design Optimisation over a Diverse Strategy Pool." CS348K project,
+2026. https://github.com/Selim-Emir-Can/CS348K-proj
 ```
