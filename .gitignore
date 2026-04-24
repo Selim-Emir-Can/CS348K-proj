@@ -162,4 +162,17 @@ cython_debug/
 
 # results dir
 results/
+
+# Training / optimisation runtime artefacts (logs, model weights, W&B sync).
+logs/
+models/
+models_a2_old/
+models_a6_old/
+wandb/
+
+# Persistent optimiser artefacts that are re-derivable from code + seed
+optimizer/strategy_pool.json
+
+# VS Code per-project state
+.codex/
 /results/

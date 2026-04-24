@@ -36,3 +36,26 @@ class RandomPlayerSettings(StandardPlayerSettings):
     """Settings for RandomPlayer; actual buy decisions are randomised in the Player subclass."""
     unspendable_cash: int = 0
     is_willing_to_make_trades: bool = False
+
+
+@dataclass(frozen=True)
+class ParametricPlayerSettings(StandardPlayerSettings):
+    """Full parametric ruleset for the strategy-pool optimiser.
+
+    Used by agents.ParametricPlayer. Defines ~17 degrees of freedom the outer
+    optimiser samples over to build a diverse strategy pool.
+    """
+    # --- continuous knobs (5) ---
+    # unspendable_cash inherited from parent: [0, 1500]
+    build_cash_floor: int = 200           # cash kept before building houses
+    # trade_max_diff_absolute inherited: [0, 500]
+    # trade_max_diff_relative inherited: [1.0, 5.0]
+    jail_pay_threshold: int = 150         # pay jail fine early if cash above this
+
+    # --- boolean knobs (4) ---
+    # is_willing_to_make_trades inherited
+    aggressive_build: bool = True         # True: build as many houses as affordable per turn; False: at most 1
+    buy_utilities: bool = True            # skip utilities if False
+    buy_railroads: bool = True            # skip railroads if False
+
+    # --- bit-mask over 8 colour groups (ignore_property_groups inherited) ---

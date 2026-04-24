@@ -8,6 +8,7 @@ import argparse
 
 import numpy as np
 from stable_baselines3 import DQN
+from tqdm import tqdm
 
 from config import GameConfig
 from monopoly_env import MonopolyEnv
@@ -19,7 +20,7 @@ def run_tournament(cfg, model, n_games=1000, seed=0):
     wins = {a: 0 for a in player_names}
     sole_winner_games = 0
 
-    for i in range(n_games):
+    for i in tqdm(range(n_games), desc='Evaluating'):
         obs_dict = {}
         env.reset(seed=seed + i)
 
@@ -33,12 +34,15 @@ def run_tournament(cfg, model, n_games=1000, seed=0):
                 env.step(None)
             elif a == dqn_agent:
                 action, _ = model.predict(obs_dict[dqn_agent], deterministic=True)
-                # Inject into player before step
+                action = int(action)
                 idx = env._name_to_idx[a]
                 player = env._players[idx]
                 if hasattr(player, '_buy_action'):
-                    player._buy_action = int(action)
-                env.step(int(action))
+                    player._buy_action = action % 2
+                if hasattr(player, '_build_threshold'):
+                    from agents import _BUILD_THRESHOLDS
+                    player._build_threshold = _BUILD_THRESHOLDS[action // 2]
+                env.step(action)
                 obs_dict[dqn_agent] = env.observe(dqn_agent)
             else:
                 env.step(0)

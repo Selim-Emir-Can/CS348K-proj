@@ -83,6 +83,11 @@ class Player:
             return False
         return True
 
+    @property
+    def _improve_cash_floor(self) -> int:
+        """Minimum cash to keep before spending on houses. Overridable by subclasses."""
+        return self.settings.unspendable_cash
+
     def make_a_move(self, board, players, dice, log) -> MoveResult:
         """ Main function for a player to make a move
         Receives:
@@ -572,7 +577,7 @@ class Player:
             improvement_cost = cell_to_improve.cost_house
 
             # Don't do it if you don't have money to spend
-            if self.money - improvement_cost < self.settings.unspendable_cash:
+            if self.money - improvement_cost < self._improve_cash_floor:
                 break
 
             # Building a house
