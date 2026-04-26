@@ -1,0 +1,13 @@
+# Trimmed deck: only cards that work without the canonical 40-cell positions.
+# "Advance to GO" still works (uses board.go_index dynamically).
+# Property-targeted cards (Boardwalk, Illinois, etc.) are omitted because
+# those properties don't exist on the mini board; the in-engine handler
+# would no-op them, but trimming the deck speeds up game flow.
+- "Advance to Go (Collect $200)"
+- "Bank pays you dividend of $50"
+- "Get Out of Jail Free"
+- "Go Back 3 Spaces"
+- "Go to Jail. Go directly to Jail, do not pass Go, do not collect $200"
+- "Speeding fine $15"
+- "Your building loan matures. Collect $150"
+- "You have been elected Chairman of the Board. Pay each player $50"

@@ -144,6 +144,13 @@ At _n_=1000 games per cell (Wilson 95% CI of ±3pp on individual win rates):
 | GA-2p winner      |    **0.82** |    0.72 |              0.24  |        62.5 |      1.3 % |                 $75 |
 | GA-3p winner      |    0.92  |    **0.79** |              0.25  |        63.8 |      0.4 % |                 $66 |
 
+> **Pending human validation.** All numbers above are internal to the
+> agent loop. Whether these designs play the way the agents predict for
+> real human players is the subject of an ongoing validation effort
+> (simplified-board sanity check + human playtest + LLM-agent
+> cross-check). See `notes/kayvon_meeting_2026-04-24.md` for the
+> validation plan and `report/report.tex` §7 for the formal write-up.
+
 The composite score drops ~40% below the default in both regimes. Games
 end in ~62 rounds instead of ~104. Draw rate falls by 80%+. Per-strategy
 structural asymmetry (mean `|W-0.5|` over the 30×30 matchup matrix) also
@@ -203,6 +210,27 @@ dataclass in `player_settings.py` (17 configurable knobs) which powers the
 </details>
 
 ---
+
+## Roadmap
+
+The current codebase covers the agent-internal optimisation loop. The
+project's central claim (agent feedback is _directionally_ predictive of
+real human play, even when not literally accurate) is being validated in
+three phases. See `notes/kayvon_meeting_2026-04-24.md` and §7 of the
+report for full detail.
+
+- **Phase A: simplified-board sanity check.** A 4×4 (16-cell) variant
+  of Monopoly with 8 colour-group properties across 4 groups lives at
+  `configs/mini/`; see `optimizer/simulate.py` for usage. Pre-declared
+  knobs to validate on this board: salary level, removing one colour
+  group, doubling rent on one expensive group.
+- **Phase B: human playtest.** 3-5 testers playing 5-10 games per
+  board. Default vs. GA-optimised winner. Falsification criterion
+  pre-declared in `report/report.tex` §7.2.
+- **Phase C: LLM-agent cross-check.** `agents.LLMPlayer` calls a local
+  Qwen2.5-1.5B-Instruct (or any OpenAI-compatible endpoint) for each
+  buy decision. Used as a third independent signal alongside rule-based
+  agents and humans.
 
 ## Citation
 

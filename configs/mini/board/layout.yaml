@@ -1,0 +1,38 @@
+# 16-cell simplified Monopoly board (4x4 perimeter).
+# Index 0  = GO          (bottom-right corner)
+# Index 4  = JL Jail     (bottom-left corner)
+# Index 8  = FP Free Parking (top-left corner)
+# Index 12 = GTJ Go To Jail  (top-right corner)
+# Each side has 3 non-corner cells: 1 chance/chest + 2 colour-group properties.
+- type: Cell
+  name: GO
+- type: Property
+  name: A1 Brown Lane
+- type: CommunityChest
+  name: COM1 Community Chest
+- type: Property
+  name: A2 Brown Avenue
+- type: Cell
+  name: JL Jail
+- type: Property
+  name: B1 Lightblue Street
+- type: Chance
+  name: CH1 Chance
+- type: Property
+  name: B2 Lightblue Avenue
+- type: FreeParking
+  name: FP Free Parking
+- type: Property
+  name: C1 Pink Lane
+- type: CommunityChest
+  name: COM2 Community Chest
+- type: Property
+  name: C2 Pink Avenue
+- type: GoToJail
+  name: GTJ Go To Jail
+- type: Property
+  name: D1 Orange Lane
+- type: Chance
+  name: CH2 Chance
+- type: Property
+  name: D2 Orange Avenue

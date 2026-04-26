@@ -17,7 +17,7 @@ from settings import GameSettings, GameMechanics
 from player_settings import (StandardPlayerSettings, HeroPlayerSettings,
                               RuleBasedPlayerSettings, RandomPlayerSettings,
                               ParametricPlayerSettings)
-from agents import RandomPlayer, DQNPlayer, ParametricPlayer
+from agents import RandomPlayer, DQNPlayer, ParametricPlayer, LLMPlayer
 
 # Maps settings class name -> class, for YAML player deserialization
 _PLAYER_SETTINGS_CLASSES = {
@@ -33,6 +33,7 @@ _PLAYER_CLASSES = {
     'RandomPlayer':     RandomPlayer,
     'DQNPlayer':        DQNPlayer,
     'ParametricPlayer': ParametricPlayer,
+    'LLMPlayer':        LLMPlayer,
 }
 from monopoly.core.cell import (
     Cell, GoToJail, LuxuryTax, IncomeTax, FreeParking,
