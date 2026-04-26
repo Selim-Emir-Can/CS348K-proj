@@ -83,7 +83,8 @@ def _bounded_trade_loop(per_turn_counts: dict, max_per_turn: int = 5):
 # Single-game runner                                                            #
 # --------------------------------------------------------------------------- #
 
-def run_single_game(cfg, players_spec, seed: int, max_turns: int = None) -> dict:
+def run_single_game(cfg, players_spec, seed: int, max_turns: int = None,
+                    on_turn=None) -> dict:
     """Run one game with the specified players; return a stat dict.
 
     Args:
@@ -136,6 +137,8 @@ def run_single_game(cfg, players_spec, seed: int, max_turns: int = None) -> dict
                 if p.is_bankrupt:
                     continue
                 p.make_a_move(board, players, dice, elog)
+            if on_turn is not None:
+                on_turn(turn_n, players, total[0])
 
     alive = [p for p in players if not p.is_bankrupt]
     winner = alive[0].name if len(alive) == 1 else None

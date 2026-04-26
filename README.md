@@ -228,7 +228,7 @@ report for full detail.
   board. Default vs. GA-optimised winner. Falsification criterion
   pre-declared in `report/report.tex` §7.2.
 - **Phase C: LLM-agent cross-check.** `agents.LLMPlayer` calls a local
-  Qwen2.5-1.5B-Instruct (or any OpenAI-compatible endpoint) for each
+  Qwen2.5-0.5B-Instruct (or any OpenAI-compatible endpoint) for each
   buy decision. Used as a third independent signal alongside rule-based
   agents and humans.
 

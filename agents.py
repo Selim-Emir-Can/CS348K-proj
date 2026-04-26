@@ -187,6 +187,9 @@ class LLMPlayer(Player):
 
     Environment variables (only read in the matching backend):
       LLM_MODEL            (default: 'Qwen/Qwen2.5-1.5B-Instruct')
+      LLM_CACHE_DIR        Folder for HF model weights. Default: 'models/hf_cache'
+                           relative to CWD, so weights land inside the project
+                           rather than the user's global ~/.cache/huggingface.
       LLM_OPENAI_BASE_URL  (e.g. 'http://localhost:11434/v1' for ollama)
       LLM_OPENAI_API_KEY
       LLM_OPENAI_MODEL     (e.g. 'qwen2.5:1.5b' for ollama)
@@ -195,7 +198,7 @@ class LLMPlayer(Player):
     _MODEL_CACHE: dict = {}
 
     def __init__(self, name: str, settings=None, backend: str = 'local',
-                 model_name: str = None, max_new_tokens: int = 4):
+                 model_name: str = None, max_new_tokens: int = 64):
         from player_settings import StandardPlayerSettings
         super().__init__(name, settings or StandardPlayerSettings())
         self._backend = backend
@@ -204,6 +207,17 @@ class LLMPlayer(Player):
         # Per-instance counter for diagnostic logging.
         self._n_buy_decisions = 0
         self._n_buy_yes = 0
+        # Refs cached at the start of each turn by make_a_move so the buy
+        # prompt can reference board state and opponents.
+        self._board_ref = None
+        self._players_ref = None
+
+    def make_a_move(self, board, players, dice, log):
+        # Cache refs so _should_buy / _build_buy_prompt can include
+        # board state in the LLM query.
+        self._board_ref = board
+        self._players_ref = players
+        return super().make_a_move(board, players, dice, log)
 
     # ------------------------------------------------------------------ #
     # Backend                                                              #
@@ -211,38 +225,112 @@ class LLMPlayer(Player):
 
     def _get_local_model(self):
         import os
+        from pathlib import Path
         model_name = self._model_name or os.environ.get(
             'LLM_MODEL', 'Qwen/Qwen2.5-1.5B-Instruct')
         if model_name in self._MODEL_CACHE:
             return self._MODEL_CACHE[model_name]
+        # If model_name looks like a path on disk, load from there directly
+        # (no HF hub interaction). Otherwise treat it as a hub repo id and
+        # use a project-local HF cache so weights don't pollute the global
+        # ~/.cache/huggingface and are easy to wipe / .gitignore.
         from transformers import AutoModelForCausalLM, AutoTokenizer
         import torch
-        tok = AutoTokenizer.from_pretrained(model_name)
+        is_local = Path(model_name).is_dir()
+        if is_local:
+            from_pretrained_kw = {}
+        else:
+            cache_dir = os.environ.get('LLM_CACHE_DIR', 'models/hf_cache')
+            Path(cache_dir).mkdir(parents=True, exist_ok=True)
+            from_pretrained_kw = {'cache_dir': cache_dir}
+        tok = AutoTokenizer.from_pretrained(model_name, **from_pretrained_kw)
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
         # Load in float16 on GPU for speed; default precision on CPU.
         kw = {'torch_dtype': torch.float16} if device == 'cuda' else {}
-        model = AutoModelForCausalLM.from_pretrained(model_name, **kw).to(device)
+        model = AutoModelForCausalLM.from_pretrained(
+            model_name, **from_pretrained_kw, **kw).to(device)
         model.eval()
         self._MODEL_CACHE[model_name] = (tok, model, device)
         return self._MODEL_CACHE[model_name]
 
+    # ------------------------------------------------------------------ #
+    # Prompting                                                            #
+    # ------------------------------------------------------------------ #
+
+    _SYSTEM_PROMPT = (
+        "You are a strategic Monopoly player who decides whether to buy "
+        "properties. Your goal is to win by bankrupting opponents through "
+        "rent. You must NOT mindlessly buy every property: passing is "
+        "correct when (a) cash is dangerously low, (b) the property is "
+        "in a group an opponent already dominates and you have no path "
+        "to monopoly, or (c) the rent return is poor relative to the "
+        "cost. Equally, buying is correct when the property advances a "
+        "group you already own most of, or when it denies the group to "
+        "an opponent who would otherwise complete it.\n\n"
+        "Reply in EXACTLY this format on a single line:\n"
+        "  REASON: <one short sentence>\n"
+        "  ANSWER: BUY\n"
+        "or\n"
+        "  REASON: <one short sentence>\n"
+        "  ANSWER: PASS\n"
+        "Do not output anything else."
+    )
+
+    _FEW_SHOT = [
+        {"role": "user", "content":
+            "Cash $1200. Decision: buy 'B1 Oriental Avenue' (group Lightblue) "
+            "for $100, base rent $6. You own 0 properties total, 0 in this "
+            "group. Opponent owns 0 in this group, 2 properties total."},
+        {"role": "assistant", "content":
+            "REASON: Cheap, plenty of cash, and no opponent ownership in "
+            "this group leaves room for me to monopolise it.\nANSWER: BUY"},
+        {"role": "user", "content":
+            "Cash $90. Decision: buy 'D1 St. James Place' (group Orange) for "
+            "$180, base rent $14. You own 3 properties total, 0 in this "
+            "group. Opponent owns 1 in this group, 5 properties total."},
+        {"role": "assistant", "content":
+            "REASON: Cash is too low to afford this and the opponent already "
+            "holds Orange, so this group is unlikely to become my monopoly.\n"
+            "ANSWER: PASS"},
+        {"role": "user", "content":
+            "Cash $700. Decision: buy 'C2 States Avenue' (group Pink) for "
+            "$140, base rent $10. You own 6 properties total, 2 in this "
+            "group. Opponent owns 0 in this group, 4 properties total."},
+        {"role": "assistant", "content":
+            "REASON: Buying this completes my Pink monopoly, which is the "
+            "single highest-value move available.\nANSWER: BUY"},
+        {"role": "user", "content":
+            "Cash $500. Decision: buy 'G1 Pacific Avenue' (group Green) for "
+            "$300, base rent $26. You own 8 properties total, 0 in this "
+            "group. Opponent owns 2 in this group, 5 properties total."},
+        {"role": "assistant", "content":
+            "REASON: Opponent already owns two-thirds of Green so I cannot "
+            "monopolise it; spending $300 here hurts my liquidity.\nANSWER: PASS"},
+    ]
+
     def _query_local(self, prompt: str) -> str:
         import torch
         tok, model, device = self._get_local_model()
-        msgs = [
-            {'role': 'system', 'content':
-                'You are a strategic player in Monopoly. Reply with exactly '
-                'one token: BUY or PASS. Do not explain your reasoning.'},
-            {'role': 'user', 'content': prompt},
-        ]
+        msgs = [{'role': 'system', 'content': self._SYSTEM_PROMPT}]
+        msgs.extend(self._FEW_SHOT)
+        msgs.append({'role': 'user', 'content': prompt})
         text = tok.apply_chat_template(msgs, tokenize=False, add_generation_prompt=True)
         inputs = tok(text, return_tensors='pt').to(device)
+        # Stop as soon as the model emits the chat-template's user-turn
+        # marker (so it can't hallucinate a fake new user message after
+        # its answer). Falling back to eos for older templates.
+        eos_ids = [tok.eos_token_id]
+        for marker in ('<|im_end|>', '<|endoftext|>'):
+            tid = tok.convert_tokens_to_ids(marker)
+            if tid is not None and tid != tok.unk_token_id:
+                eos_ids.append(tid)
         with torch.no_grad():
             out = model.generate(
                 **inputs,
                 max_new_tokens=self._max_new_tokens,
                 do_sample=False,
                 pad_token_id=tok.eos_token_id,
+                eos_token_id=eos_ids,
             )
         gen = tok.decode(out[0, inputs['input_ids'].shape[1]:], skip_special_tokens=True)
         return gen.strip()
@@ -252,14 +340,12 @@ class LLMPlayer(Player):
         base = os.environ.get('LLM_OPENAI_BASE_URL', 'http://localhost:11434/v1')
         key = os.environ.get('LLM_OPENAI_API_KEY', 'no-key')
         model = os.environ.get('LLM_OPENAI_MODEL', 'qwen2.5:1.5b')
+        msgs = [{'role': 'system', 'content': self._SYSTEM_PROMPT}]
+        msgs.extend(self._FEW_SHOT)
+        msgs.append({'role': 'user', 'content': prompt})
         body = {
             'model': model,
-            'messages': [
-                {'role': 'system', 'content':
-                    'You are a strategic Monopoly player. Reply with exactly '
-                    'one token: BUY or PASS. Do not explain.'},
-                {'role': 'user', 'content': prompt},
-            ],
+            'messages': msgs,
             'max_tokens': self._max_new_tokens,
             'temperature': 0.0,
         }
@@ -279,16 +365,55 @@ class LLMPlayer(Player):
 
     def _build_buy_prompt(self, prop) -> str:
         owned_count = len(self.owned)
-        # Count properties the player owns in the same group already
-        same_group = sum(1 for c in self.owned if c.group == prop.group)
+        same_group_self = sum(1 for c in self.owned if c.group == prop.group)
+        # Opponent context (if board/players are cached by make_a_move)
+        opp_in_group = 0
+        opp_total = 0
+        group_size = 0
+        if self._board_ref is not None and self._players_ref is not None:
+            from monopoly.core.cell import Property
+            group_cells = [c for c in self._board_ref.cells
+                           if isinstance(c, Property) and c.group == prop.group]
+            group_size = len(group_cells)
+            for other in self._players_ref:
+                if other is self:
+                    continue
+                opp_in_group += sum(1 for c in other.owned if c.group == prop.group)
+                opp_total    += len(other.owned)
         return (
-            f"You are at turn position with ${self.money} cash. "
-            f"You can buy '{prop.name}' (group: {prop.group}) for "
-            f"${prop.cost_base}. Base rent ${prop.rent_base}. "
-            f"You already own {owned_count} properties total and "
-            f"{same_group} in this colour group. "
-            f"Should you BUY it, or PASS?"
+            f"Cash ${self.money}. Decision: buy '{prop.name}' "
+            f"(group {prop.group}) for ${prop.cost_base}, base rent "
+            f"${prop.rent_base}. You own {owned_count} properties total, "
+            f"{same_group_self} in this group of {group_size}. "
+            f"Opponent owns {opp_in_group} in this group, {opp_total} "
+            f"properties total."
         )
+
+    @staticmethod
+    def _parse_decision(response: str) -> bool:
+        """Extract the LLM's BUY/PASS decision from the structured response.
+
+        We look for the FIRST occurrence of 'ANSWER: BUY' or 'ANSWER: PASS'
+        (case-insensitive) because small models often hallucinate a fake
+        new user turn after their answer, and that hallucinated text can
+        contain the word 'buy' or 'pass' unrelated to the actual decision.
+        Falls back to a last-token heuristic if neither structured form is
+        found, then defaults to True (BUY) so a malformed response leaves
+        the player playing roughly like a RuleBasedPlayer.
+        """
+        upper = response.upper()
+        buy_idx  = upper.find('ANSWER: BUY')
+        pass_idx = upper.find('ANSWER: PASS')
+        if buy_idx >= 0 and (pass_idx < 0 or buy_idx < pass_idx):
+            return True
+        if pass_idx >= 0 and (buy_idx < 0 or pass_idx < buy_idx):
+            return False
+        # Fallback: no structured ANSWER tag — use last-token heuristic.
+        last_buy  = upper.rfind('BUY')
+        last_pass = upper.rfind('PASS')
+        if last_buy < 0 and last_pass < 0:
+            return True
+        return last_buy > last_pass
 
     def _should_buy(self, property_to_buy) -> bool:
         # Cheap pre-filter that avoids the LLM for trivially-impossible buys.
@@ -313,7 +438,7 @@ class LLMPlayer(Player):
         except Exception:
             # Network / model failure: fall back to "buy if affordable".
             response = 'BUY'
-        decision = 'BUY' in response.upper()[:8]
+        decision = self._parse_decision(response)
         self._n_buy_decisions += 1
         if decision:
             self._n_buy_yes += 1
