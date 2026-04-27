@@ -112,9 +112,17 @@ def main() -> int:
         'n_games_completed': n_completed,
         'aggregate_score':   out['score'],
         'metrics':           out['metrics'],
-        'per_game':          [{'rounds': r['rounds'], 'truncated': r['truncated'],
-                                'winner': r['winner'], 'transfer_total': r['transfer_total']}
-                               for rs in results_by_matchup for r in rs],
+        # Per-game records keep ALL fields the bootstrap evaluator needs so a
+        # caller can re-aggregate (fairness needs `strategy_names`, etc.).
+        'per_game':          [{
+            'seed':           r['seed'],
+            'rounds':         r['rounds'],
+            'truncated':      r['truncated'],
+            'winner':         r['winner'],
+            'transfer_total': r['transfer_total'],
+            'strategy_names': r['strategy_names'],
+            'seat_perm':      r.get('seat_perm', []),
+        } for rs in results_by_matchup for r in rs],
     })
     return 0
 

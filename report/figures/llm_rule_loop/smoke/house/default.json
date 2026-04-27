@@ -1,0 +1,47 @@
+{
+  "board": "default",
+  "seed": 42,
+  "baseline_score": 1.5815252081964692,
+  "house_score": 1.4087028265721706,
+  "house_rules": [
+    {
+      "kind": "free_parking_jackpot",
+      "enabled": true
+    },
+    {
+      "kind": "jail_fine_change",
+      "value": 25
+    },
+    {
+      "kind": "salary_change",
+      "value": 300
+    },
+    {
+      "kind": "tax_change",
+      "tax_kind": "luxury",
+      "value": 50
+    },
+    {
+      "kind": "income_tax_pct",
+      "value": 0.05
+    }
+  ],
+  "baseline_metrics": {
+    "mean_fairness": 0.6,
+    "max_fairness": 1.0,
+    "mean_rounds": 98.52,
+    "mean_draw_rate": 0.04,
+    "mean_transfer_rate": 50.49159726784362,
+    "length_penalty": 0.6419999999999999,
+    "transfer_penalty": 0.49508402732156376
+  },
+  "house_metrics": {
+    "mean_fairness": 0.48,
+    "max_fairness": 1.0,
+    "mean_rounds": 97.86,
+    "mean_draw_rate": 0.08,
+    "mean_transfer_rate": 70.26572447594316,
+    "length_penalty": 0.631,
+    "transfer_penalty": 0.2973427552405684
+  }
+}
