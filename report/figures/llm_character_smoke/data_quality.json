@@ -1,0 +1,40 @@
+{
+  "per_board": {
+    "default": {
+      "n_total": 43,
+      "n_format_ok": 43,
+      "n_backend_error": 0,
+      "format_ok_rate": 1.0,
+      "backend_error_rate": 0.0
+    },
+    "GA-2p": {
+      "n_total": 25,
+      "n_format_ok": 25,
+      "n_backend_error": 0,
+      "format_ok_rate": 1.0,
+      "backend_error_rate": 0.0
+    },
+    "GA-3p": {
+      "n_total": 23,
+      "n_format_ok": 23,
+      "n_backend_error": 0,
+      "format_ok_rate": 1.0,
+      "backend_error_rate": 0.0
+    },
+    "salary x2": {
+      "n_total": 15,
+      "n_format_ok": 15,
+      "n_backend_error": 0,
+      "format_ok_rate": 1.0,
+      "backend_error_rate": 0.0
+    },
+    "drop Brown": {
+      "n_total": 11,
+      "n_format_ok": 11,
+      "n_backend_error": 0,
+      "format_ok_rate": 1.0,
+      "backend_error_rate": 0.0
+    }
+  },
+  "format_ok_threshold": 0.8
+}

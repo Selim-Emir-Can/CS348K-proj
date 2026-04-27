@@ -1,0 +1,92 @@
+[
+  {
+    "board": "default",
+    "game": 0,
+    "seed": 42,
+    "rounds": 40,
+    "truncated": true,
+    "winner": null,
+    "transfer": 1418
+  },
+  {
+    "board": "default",
+    "game": 1,
+    "seed": 43,
+    "rounds": 28,
+    "truncated": false,
+    "winner": "LLM-B",
+    "transfer": 2086
+  },
+  {
+    "board": "GA-2p",
+    "game": 0,
+    "seed": 42,
+    "rounds": 23,
+    "truncated": false,
+    "winner": "LLM-B",
+    "transfer": 2076
+  },
+  {
+    "board": "GA-2p",
+    "game": 1,
+    "seed": 43,
+    "rounds": 40,
+    "truncated": true,
+    "winner": null,
+    "transfer": 2082
+  },
+  {
+    "board": "GA-3p",
+    "game": 0,
+    "seed": 42,
+    "rounds": 33,
+    "truncated": false,
+    "winner": "LLM-B",
+    "transfer": 1766
+  },
+  {
+    "board": "GA-3p",
+    "game": 1,
+    "seed": 43,
+    "rounds": 27,
+    "truncated": false,
+    "winner": "LLM-A",
+    "transfer": 1155
+  },
+  {
+    "board": "salary x2",
+    "game": 0,
+    "seed": 42,
+    "rounds": 40,
+    "truncated": true,
+    "winner": null,
+    "transfer": 3950
+  },
+  {
+    "board": "salary x2",
+    "game": 1,
+    "seed": 43,
+    "rounds": 39,
+    "truncated": true,
+    "winner": null,
+    "transfer": 5940
+  },
+  {
+    "board": "drop Brown",
+    "game": 0,
+    "seed": 42,
+    "rounds": 40,
+    "truncated": true,
+    "winner": null,
+    "transfer": 3942
+  },
+  {
+    "board": "drop Brown",
+    "game": 1,
+    "seed": 43,
+    "rounds": 40,
+    "truncated": true,
+    "winner": null,
+    "transfer": 6184
+  }
+]

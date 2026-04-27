@@ -1,0 +1,142 @@
+{
+  "default": {
+    "n_decisions": 43,
+    "avg_reason_chars": 46.0,
+    "concept_counts": {
+      "cash": 43,
+      "risk": 0,
+      "monopoly": 0,
+      "trade": 0,
+      "rent": 0,
+      "bankrupt": 0,
+      "accumulate": 0,
+      "defensive": 0,
+      "opponent": 0,
+      "group": 0
+    },
+    "concept_freq": {
+      "cash": 1.0,
+      "risk": 0.0,
+      "monopoly": 0.0,
+      "trade": 0.0,
+      "rent": 0.0,
+      "bankrupt": 0.0,
+      "accumulate": 0.0,
+      "defensive": 0.0,
+      "opponent": 0.0,
+      "group": 0.0
+    }
+  },
+  "GA-2p": {
+    "n_decisions": 25,
+    "avg_reason_chars": 46.0,
+    "concept_counts": {
+      "cash": 25,
+      "risk": 0,
+      "monopoly": 0,
+      "trade": 0,
+      "rent": 0,
+      "bankrupt": 0,
+      "accumulate": 0,
+      "defensive": 0,
+      "opponent": 0,
+      "group": 0
+    },
+    "concept_freq": {
+      "cash": 1.0,
+      "risk": 0.0,
+      "monopoly": 0.0,
+      "trade": 0.0,
+      "rent": 0.0,
+      "bankrupt": 0.0,
+      "accumulate": 0.0,
+      "defensive": 0.0,
+      "opponent": 0.0,
+      "group": 0.0
+    }
+  },
+  "GA-3p": {
+    "n_decisions": 23,
+    "avg_reason_chars": 46.0,
+    "concept_counts": {
+      "cash": 23,
+      "risk": 0,
+      "monopoly": 0,
+      "trade": 0,
+      "rent": 0,
+      "bankrupt": 0,
+      "accumulate": 0,
+      "defensive": 0,
+      "opponent": 0,
+      "group": 0
+    },
+    "concept_freq": {
+      "cash": 1.0,
+      "risk": 0.0,
+      "monopoly": 0.0,
+      "trade": 0.0,
+      "rent": 0.0,
+      "bankrupt": 0.0,
+      "accumulate": 0.0,
+      "defensive": 0.0,
+      "opponent": 0.0,
+      "group": 0.0
+    }
+  },
+  "salary x2": {
+    "n_decisions": 15,
+    "avg_reason_chars": 46.0,
+    "concept_counts": {
+      "cash": 15,
+      "risk": 0,
+      "monopoly": 0,
+      "trade": 0,
+      "rent": 0,
+      "bankrupt": 0,
+      "accumulate": 0,
+      "defensive": 0,
+      "opponent": 0,
+      "group": 0
+    },
+    "concept_freq": {
+      "cash": 1.0,
+      "risk": 0.0,
+      "monopoly": 0.0,
+      "trade": 0.0,
+      "rent": 0.0,
+      "bankrupt": 0.0,
+      "accumulate": 0.0,
+      "defensive": 0.0,
+      "opponent": 0.0,
+      "group": 0.0
+    }
+  },
+  "drop Brown": {
+    "n_decisions": 11,
+    "avg_reason_chars": 46.0,
+    "concept_counts": {
+      "cash": 11,
+      "risk": 0,
+      "monopoly": 0,
+      "trade": 0,
+      "rent": 0,
+      "bankrupt": 0,
+      "accumulate": 0,
+      "defensive": 0,
+      "opponent": 0,
+      "group": 0
+    },
+    "concept_freq": {
+      "cash": 1.0,
+      "risk": 0.0,
+      "monopoly": 0.0,
+      "trade": 0.0,
+      "rent": 0.0,
+      "bankrupt": 0.0,
+      "accumulate": 0.0,
+      "defensive": 0.0,
+      "opponent": 0.0,
+      "group": 0.0
+    }
+  }
+}
