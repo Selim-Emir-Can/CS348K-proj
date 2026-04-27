@@ -1,0 +1,205 @@
+{
+  "config": {
+    "canonical_config": "default_config.yaml",
+    "mini_config": "configs/mini",
+    "n_games_per_cell": 100,
+    "n_matchups": 10,
+    "max_turns": 200,
+    "n_players": 2,
+    "base_seed": 42,
+    "matchup_seed": 1234
+  },
+  "rows": [
+    {
+      "design": {
+        "salary_mult": 1.0,
+        "drop_groups": [],
+        "group_cost_mult": {},
+        "group_rent_mult": {},
+        "prop_overrides": {},
+        "label": "baseline",
+        "rationale": "no-op control"
+      },
+      "mini": {
+        "score": 0.9072420439682749,
+        "metrics": {
+          "mean_fairness": 0.30999999999999994,
+          "max_fairness": 0.7,
+          "mean_rounds": 69.63,
+          "mean_draw_rate": 0.35,
+          "mean_transfer_rate": 120.66401465609171,
+          "length_penalty": 0.16049999999999992,
+          "transfer_penalty": 0.2066401465609171
+        },
+        "n_games": 100
+      },
+      "canonical": {
+        "score": 1.5563057297534915,
+        "metrics": {
+          "mean_fairness": 0.5399999999999999,
+          "max_fairness": 1.0,
+          "mean_rounds": 101.95,
+          "mean_draw_rate": 0.06,
+          "mean_transfer_rate": 50.42586785994732,
+          "length_penalty": 0.6991666666666667,
+          "transfer_penalty": 0.49574132140052685
+        },
+        "n_games": 100
+      }
+    },
+    {
+      "design": {
+        "salary_mult": 1.5,
+        "drop_groups": [],
+        "group_cost_mult": {},
+        "group_rent_mult": {},
+        "prop_overrides": {},
+        "label": "salary x1.5",
+        "rationale": "probe pacing knob"
+      },
+      "mini": {
+        "score": 0.6213163756666954,
+        "metrics": {
+          "mean_fairness": 0.18000000000000002,
+          "max_fairness": 0.3,
+          "mean_rounds": 56.3,
+          "mean_draw_rate": 0.66,
+          "mean_transfer_rate": 120.82768077778732,
+          "length_penalty": 0.06166666666666672,
+          "transfer_penalty": 0.20827680777787322
+        },
+        "n_games": 100
+      },
+      "canonical": {
+        "score": 1.434983051990117,
+        "metrics": {
+          "mean_fairness": 0.48,
+          "max_fairness": 1.0,
+          "mean_rounds": 101.6,
+          "mean_draw_rate": 0.08,
+          "mean_transfer_rate": 71.89453822551658,
+          "length_penalty": 0.6933333333333332,
+          "transfer_penalty": 0.28105461774483415
+        },
+        "n_games": 100
+      }
+    },
+    {
+      "design": {
+        "salary_mult": 1.0,
+        "drop_groups": [
+          "Brown"
+        ],
+        "group_cost_mult": {},
+        "group_rent_mult": {},
+        "prop_overrides": {},
+        "label": "drop Brown",
+        "rationale": "probe structural removal"
+      },
+      "mini": {
+        "score": 0.7489202513661376,
+        "metrics": {
+          "mean_fairness": 0.23000000000000004,
+          "max_fairness": 0.7,
+          "mean_rounds": 65.33,
+          "mean_draw_rate": 0.35,
+          "mean_transfer_rate": 106.50119489982364,
+          "length_penalty": 0.0888333333333333,
+          "transfer_penalty": 0.06501194899823645
+        },
+        "n_games": 100
+      },
+      "canonical": {
+        "score": 1.577057899047665,
+        "metrics": {
+          "mean_fairness": 0.53,
+          "max_fairness": 1.0,
+          "mean_rounds": 104.18,
+          "mean_draw_rate": 0.09,
+          "mean_transfer_rate": 49.36958920633394,
+          "length_penalty": 0.7363333333333334,
+          "transfer_penalty": 0.5063041079366606
+        },
+        "n_games": 100
+      }
+    },
+    {
+      "design": {
+        "salary_mult": 1.0,
+        "drop_groups": [],
+        "group_cost_mult": {},
+        "group_rent_mult": {
+          "Orange": 1.5
+        },
+        "prop_overrides": {},
+        "label": "Orange rent x1.5",
+        "rationale": "probe single-group rent inflation"
+      },
+      "mini": {
+        "score": 0.9515964076440255,
+        "metrics": {
+          "mean_fairness": 0.30999999999999994,
+          "max_fairness": 0.9,
+          "mean_rounds": 57.43,
+          "mean_draw_rate": 0.29,
+          "mean_transfer_rate": 127.7265803257863,
+          "length_penalty": 0.04283333333333334,
+          "transfer_penalty": 0.277265803257863
+        },
+        "n_games": 100
+      },
+      "canonical": {
+        "score": 1.5550406219364115,
+        "metrics": {
+          "mean_fairness": 0.5599999999999999,
+          "max_fairness": 1.0,
+          "mean_rounds": 99.64,
+          "mean_draw_rate": 0.06,
+          "mean_transfer_rate": 51.09757046564064,
+          "length_penalty": 0.6606666666666666,
+          "transfer_penalty": 0.48902429534359354
+        },
+        "n_games": 100
+      }
+    },
+    {
+      "design": {
+        "salary_mult": 0.75,
+        "drop_groups": [],
+        "group_cost_mult": {
+          "Lightblue": 1.5
+        },
+        "group_rent_mult": {},
+        "prop_overrides": {},
+        "label": "salary x0.75 + Lightblue cost x1.5",
+        "rationale": "probe interaction between two knobs"
+      },
+      "mini": {
+        "score": 0.9509623791386276,
+        "metrics": {
+          "mean_fairness": 0.33999999999999997,
+          "max_fairness": 1.0,
+          "mean_rounds": 61.72,
+          "mean_draw_rate": 0.22,
+          "mean_transfer_rate": 110.20968193509812,
+          "length_penalty": 0.02866666666666665,
+          "transfer_penalty": 0.10209681935098118
+        },
+        "n_games": 100
+      },
+      "canonical": {
+        "score": 1.6657802683490568,
+        "metrics": {
+          "mean_fairness": 0.57,
+          "max_fairness": 1.0,
+          "mean_rounds": 108.1,
+          "mean_draw_rate": 0.05,
+          "mean_transfer_rate": 40.0176883280921,
+          "length_penalty": 0.8016666666666665,
+          "transfer_penalty": 0.5998231167190791
+        },
+        "n_games": 100
+      }
+    }
+  ]
+}

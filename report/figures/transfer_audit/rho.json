@@ -1,0 +1,29 @@
+{
+  "spearman_rho": 0.29999999999999993,
+  "mini_scores": [
+    0.9072420439682749,
+    0.6213163756666954,
+    0.7489202513661376,
+    0.9515964076440255,
+    0.9509623791386276
+  ],
+  "canon_scores": [
+    1.5563057297534915,
+    1.434983051990117,
+    1.577057899047665,
+    1.5550406219364115,
+    1.6657802683490568
+  ],
+  "design_labels": [
+    "baseline",
+    "salary x1.5",
+    "drop Brown",
+    "Orange rent x1.5",
+    "salary x0.75 + Lightblue cost x1.5"
+  ],
+  "interpretation": "mini-board iteration NOT justified -- switch iteration board to canonical",
+  "thresholds": {
+    "justified_at": 0.7,
+    "marginal_above": 0.4
+  }
+}
