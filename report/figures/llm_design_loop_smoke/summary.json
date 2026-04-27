@@ -1,0 +1,185 @@
+{
+  "config": {
+    "canonical_config": "default_config.yaml",
+    "mini_config": "configs/mini",
+    "ga_2p": "logs/optimizer/ga_2p.jsonl",
+    "ga_3p": "logs/optimizer/ga_3p.jsonl",
+    "pool": "optimizer/strategy_pool.json",
+    "boards": "default",
+    "n_seeds": 1,
+    "seed_offset": 0,
+    "K": 3,
+    "n_games": 20,
+    "n_matchups": 10,
+    "max_turns": 200,
+    "n_players": 2,
+    "matchup_seed": 1234,
+    "backend": "heuristic",
+    "model": null,
+    "out_dir": "report/figures/llm_design_loop_smoke",
+    "hazard_summary_path": null,
+    "rb_llm_agreement_path": null
+  },
+  "trajectories_by_board": {
+    "default": [
+      [
+        {
+          "iter": 0,
+          "design": {
+            "salary_mult": 1.0,
+            "drop_groups": [],
+            "group_cost_mult": {},
+            "group_rent_mult": {},
+            "prop_overrides": {},
+            "label": "cumulative",
+            "rationale": ""
+          },
+          "rationale": "[baseline]",
+          "parser_status": "baseline",
+          "parser_error": null,
+          "converged_request": false,
+          "score": 1.7229316279634244,
+          "metrics": {
+            "mean_fairness": 0.75,
+            "max_fairness": 1.0,
+            "mean_rounds": 97.2,
+            "mean_draw_rate": 0.05,
+            "mean_transfer_rate": 50.6894573455252,
+            "length_penalty": 0.62,
+            "transfer_penalty": 0.49310542654474804
+          },
+          "score_ci": {
+            "mean": 1.9707147253289268,
+            "ci_lo": 1.8437855806133503,
+            "ci_hi": 2.1238065397766213,
+            "n_resamples": 500
+          },
+          "delta_vs_prev": null,
+          "improvement": null,
+          "n_games": 20,
+          "token_count": null,
+          "wall_seconds": 0.07572590000927448,
+          "raw_response": ""
+        },
+        {
+          "iter": 1,
+          "design": {
+            "salary_mult": 1.25,
+            "drop_groups": [],
+            "group_cost_mult": {},
+            "group_rent_mult": {},
+            "prop_overrides": {},
+            "label": "cumulative",
+            "rationale": "pacing too long; raise salary"
+          },
+          "rationale": "pacing too long; raise salary",
+          "parser_status": "ok",
+          "parser_error": null,
+          "converged_request": false,
+          "score": 1.501787747953145,
+          "metrics": {
+            "mean_fairness": 0.65,
+            "max_fairness": 1.0,
+            "mean_rounds": 85.9,
+            "mean_draw_rate": 0.05,
+            "mean_transfer_rate": 59.68186179339606,
+            "length_penalty": 0.43166666666666675,
+            "transfer_penalty": 0.40318138206603943
+          },
+          "score_ci": {
+            "mean": 1.8511518404476828,
+            "ci_lo": 1.7506937918370735,
+            "ci_hi": 1.97504355318554,
+            "n_resamples": 500
+          },
+          "delta_vs_prev": -0.2211438800102794,
+          "improvement": false,
+          "n_games": 20,
+          "token_count": null,
+          "wall_seconds": 0.05166949998238124,
+          "raw_response": "```json\n{\"rationale\": \"pacing too long; raise salary\", \"intervention\": {\"salary_mult\": 1.25}, \"converged\": false}\n```"
+        },
+        {
+          "iter": 2,
+          "design": {
+            "salary_mult": 1.25,
+            "drop_groups": [],
+            "group_cost_mult": {},
+            "group_rent_mult": {
+              "Orange": 1.25
+            },
+            "prop_overrides": {},
+            "label": "cumulative",
+            "rationale": "orange rents look weak; bump"
+          },
+          "rationale": "orange rents look weak; bump",
+          "parser_status": "ok",
+          "parser_error": null,
+          "converged_request": false,
+          "score": 1.4812667400781536,
+          "metrics": {
+            "mean_fairness": 0.65,
+            "max_fairness": 1.0,
+            "mean_rounds": 83.45,
+            "mean_draw_rate": 0.05,
+            "mean_transfer_rate": 59.716642196170895,
+            "length_penalty": 0.39083333333333337,
+            "transfer_penalty": 0.40283357803829106
+          },
+          "score_ci": {
+            "mean": 1.835189119052918,
+            "ci_lo": 1.7231057283223037,
+            "ci_hi": 1.951819606183902,
+            "n_resamples": 500
+          },
+          "delta_vs_prev": -0.020521007874991337,
+          "improvement": false,
+          "n_games": 20,
+          "token_count": null,
+          "wall_seconds": 0.05240590000175871,
+          "raw_response": "```json\n{\"rationale\": \"orange rents look weak; bump\", \"intervention\": {\"group_rent_mult\": {\"Orange\": 1.25}}, \"converged\": false}\n```"
+        },
+        {
+          "iter": 3,
+          "design": {
+            "salary_mult": 1.25,
+            "drop_groups": [],
+            "group_cost_mult": {},
+            "group_rent_mult": {
+              "Orange": 1.25
+            },
+            "prop_overrides": {},
+            "label": "cumulative",
+            "rationale": "no improvement margin remaining"
+          },
+          "rationale": "no improvement margin remaining",
+          "parser_status": "ok",
+          "parser_error": null,
+          "converged_request": true,
+          "score": 1.4812667400781536,
+          "metrics": {
+            "mean_fairness": 0.65,
+            "max_fairness": 1.0,
+            "mean_rounds": 83.45,
+            "mean_draw_rate": 0.05,
+            "mean_transfer_rate": 59.716642196170895,
+            "length_penalty": 0.39083333333333337,
+            "transfer_penalty": 0.40283357803829106
+          },
+          "score_ci": {
+            "mean": 1.8342447664138322,
+            "ci_lo": 1.7177311173484908,
+            "ci_hi": 1.9659027170492331,
+            "n_resamples": 500
+          },
+          "delta_vs_prev": 0.0,
+          "improvement": false,
+          "n_games": 20,
+          "token_count": null,
+          "wall_seconds": 0.05318260000785813,
+          "raw_response": "```json\n{\"rationale\": \"no improvement margin remaining\", \"intervention\": {}, \"converged\": true}\n```"
+        }
+      ]
+    ]
+  }
+}

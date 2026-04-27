@@ -168,3 +168,71 @@ AUDIT_DESIGNS: List[GroupDesign] = [
                  group_cost_mult={'Lightblue': 1.5},
                  rationale='probe interaction between two knobs'),
 ]
+
+
+# --------------------------------------------------------------------------- #
+# Shared eval helper                                                           #
+# --------------------------------------------------------------------------- #
+#
+# Used by transfer_audit.py, llm_design_loop.py, llm_rule_loop.py to compute
+# a single (score, metrics, per_game_scores) tuple from a GameConfig. Kept
+# alongside GroupDesign so the eval contract is one helper away from the
+# vocabulary every loop emits patches in.
+
+def evaluate_config(cfg: GameConfig, pool, matchups, n_games: int,
+                    base_seed: int, max_turns: int = 200) -> dict:
+    """Run all matchups on cfg; return aggregate evaluate(...) output plus
+    per-game scores so callers can compute bootstrap CIs on improvement.
+
+    Imports are inline to keep group_design.py importable from places that
+    don't have the optimiser stack on path (it's used by tests, schemas, etc.).
+    """
+    from optimizer.objectives import Targets, Weights, evaluate
+    from optimizer.simulate import run_matchup
+
+    n_per = max(1, n_games // len(matchups))
+    results_by_matchup = []
+    per_game_records = []
+    for mi, idxs in enumerate(matchups):
+        strategies = [(pool[i][0], pool[i][1], 'ParametricPlayer') for i in idxs]
+        seed = base_seed + mi * 10_000
+        rs = run_matchup(cfg, strategies,
+                          n_games=n_per, base_seed=seed,
+                          max_turns=max_turns, balance_seats=True)
+        results_by_matchup.append(rs)
+        per_game_records.extend(rs)
+    out = evaluate(results_by_matchup, weights=Weights(), targets=Targets())
+    out['per_game_records'] = per_game_records
+    out['n_games_total'] = sum(len(rs) for rs in results_by_matchup)
+    return out
+
+
+def bootstrap_score_ci(per_game_records, n_resamples: int = 500,
+                       seed: int = 0) -> dict:
+    """Bootstrap 95% CI on the aggregate score by resampling the per-game
+    records with replacement. The "improvement" definition in
+    ANALYSIS_LOCK §5 needs CIs on per-iteration deltas so this is the
+    helper that backs that test.
+    """
+    import numpy as np
+    from optimizer.objectives import Targets, Weights, evaluate
+
+    rng = np.random.default_rng(seed)
+    n = len(per_game_records)
+    if n == 0:
+        return {'mean': 0.0, 'ci_lo': 0.0, 'ci_hi': 0.0, 'n_resamples': 0}
+    samples = []
+    arr = np.asarray(per_game_records, dtype=object)
+    for _ in range(n_resamples):
+        idx = rng.integers(0, n, size=n)
+        rs = list(arr[idx])
+        out = evaluate([rs], weights=Weights(), targets=Targets())
+        samples.append(out['score'])
+    samples_arr = np.asarray(samples, dtype=float)
+    return {
+        'mean':         float(samples_arr.mean()),
+        'ci_lo':        float(np.percentile(samples_arr, 2.5)),
+        'ci_hi':        float(np.percentile(samples_arr, 97.5)),
+        'n_resamples':  int(n_resamples),
+    }
+
