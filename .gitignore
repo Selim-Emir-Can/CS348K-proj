@@ -1,5 +1,7 @@
 # Output and log files
 *.txt
+# ...except prompt artefacts in monopoly/prompts/, which are documentation
+!prompts/*.txt
 
 # Mac stuff
 .DS_Store
