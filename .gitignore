@@ -3,6 +3,17 @@
 # ...except prompt artefacts in monopoly/prompts/, which are documentation
 !prompts/*.txt
 
+# LaTeX build artifacts at report/ root (figures/*.pdf are kept)
+/report/report.aux
+/report/report.out
+/report/report.pdf
+/report/report.bbl
+/report/report.blg
+/report/report.toc
+/report/report.fls
+/report/report.fdb_latexmk
+/report/report.synctex.gz
+
 # Mac stuff
 .DS_Store
 

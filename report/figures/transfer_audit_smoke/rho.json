@@ -1,0 +1,29 @@
+{
+  "spearman_rho": 0.6999999999999998,
+  "mini_scores": [
+    1.357018080183498,
+    1.148886026160325,
+    1.371310540602255,
+    1.4319315282034266,
+    1.592893861847293
+  ],
+  "canon_scores": [
+    1.9376399932006718,
+    1.7863702421708685,
+    1.8800749574624103,
+    1.9014639349721718,
+    2.0982451739660415
+  ],
+  "design_labels": [
+    "baseline",
+    "salary x1.5",
+    "drop Brown",
+    "Orange rent x1.5",
+    "salary x0.75 + Lightblue cost x1.5"
+  ],
+  "interpretation": "marginal: proceed with mini and document caveat",
+  "thresholds": {
+    "justified_at": 0.7,
+    "marginal_above": 0.4
+  }
+}

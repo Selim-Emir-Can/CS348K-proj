@@ -1,0 +1,199 @@
+{
+  "config": {
+    "canonical_config": "default_config.yaml",
+    "mini_config": "configs/mini",
+    "ga_2p": null,
+    "ga_3p": null,
+    "n_games": 8,
+    "max_turns": 60,
+    "base_seed": 42,
+    "cash_edges": [
+      0,
+      50,
+      150,
+      300,
+      500,
+      800,
+      1200,
+      2000,
+      5000,
+      20000
+    ]
+  },
+  "games_by_board": {
+    "default": [
+      {
+        "seed": 42,
+        "rounds": 60,
+        "truncated": true,
+        "winner": null,
+        "transfer_total": 2200
+      },
+      {
+        "seed": 43,
+        "rounds": 60,
+        "truncated": true,
+        "winner": null,
+        "transfer_total": 1516
+      },
+      {
+        "seed": 44,
+        "rounds": 60,
+        "truncated": true,
+        "winner": null,
+        "transfer_total": 1867
+      },
+      {
+        "seed": 45,
+        "rounds": 49,
+        "truncated": false,
+        "winner": "B",
+        "transfer_total": 2482
+      },
+      {
+        "seed": 46,
+        "rounds": 60,
+        "truncated": true,
+        "winner": null,
+        "transfer_total": 945
+      },
+      {
+        "seed": 47,
+        "rounds": 60,
+        "truncated": true,
+        "winner": null,
+        "transfer_total": 1517
+      },
+      {
+        "seed": 48,
+        "rounds": 60,
+        "truncated": true,
+        "winner": null,
+        "transfer_total": 1653
+      },
+      {
+        "seed": 49,
+        "rounds": 44,
+        "truncated": false,
+        "winner": "A",
+        "transfer_total": 1347
+      }
+    ],
+    "salary x2": [
+      {
+        "seed": 42,
+        "rounds": 49,
+        "truncated": false,
+        "winner": null,
+        "transfer_total": 4058
+      },
+      {
+        "seed": 43,
+        "rounds": 39,
+        "truncated": false,
+        "winner": null,
+        "transfer_total": 5898
+      },
+      {
+        "seed": 44,
+        "rounds": 59,
+        "truncated": false,
+        "winner": "A",
+        "transfer_total": 12809
+      },
+      {
+        "seed": 45,
+        "rounds": 23,
+        "truncated": false,
+        "winner": null,
+        "transfer_total": 94
+      },
+      {
+        "seed": 46,
+        "rounds": 35,
+        "truncated": false,
+        "winner": null,
+        "transfer_total": 5300
+      },
+      {
+        "seed": 47,
+        "rounds": 32,
+        "truncated": false,
+        "winner": null,
+        "transfer_total": 1790
+      },
+      {
+        "seed": 48,
+        "rounds": 23,
+        "truncated": false,
+        "winner": null,
+        "transfer_total": 180
+      },
+      {
+        "seed": 49,
+        "rounds": 60,
+        "truncated": true,
+        "winner": null,
+        "transfer_total": 13658
+      }
+    ],
+    "drop Brown": [
+      {
+        "seed": 42,
+        "rounds": 60,
+        "truncated": true,
+        "winner": null,
+        "transfer_total": 5572
+      },
+      {
+        "seed": 43,
+        "rounds": 57,
+        "truncated": false,
+        "winner": null,
+        "transfer_total": 9856
+      },
+      {
+        "seed": 44,
+        "rounds": 24,
+        "truncated": false,
+        "winner": "A",
+        "transfer_total": 3666
+      },
+      {
+        "seed": 45,
+        "rounds": 43,
+        "truncated": false,
+        "winner": null,
+        "transfer_total": 328
+      },
+      {
+        "seed": 46,
+        "rounds": 60,
+        "truncated": true,
+        "winner": null,
+        "transfer_total": 10140
+      },
+      {
+        "seed": 47,
+        "rounds": 60,
+        "truncated": true,
+        "winner": null,
+        "transfer_total": 3520
+      },
+      {
+        "seed": 48,
+        "rounds": 49,
+        "truncated": false,
+        "winner": null,
+        "transfer_total": 374
+      },
+      {
+        "seed": 49,
+        "rounds": 18,
+        "truncated": false,
+        "winner": "A",
+        "transfer_total": 2680
+      }
+    ]
+  }
+}
