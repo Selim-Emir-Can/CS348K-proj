@@ -1,0 +1,137 @@
+{
+  "name": "LLMPlayer buy-decision prompt",
+  "purpose": "Single-turn prompt used by agents.LLMPlayer to ask the LLM whether to buy an unowned property the player has just landed on. Build, trade, and jail decisions are not asked of the LLM (they fall through to base Player logic) to keep latency manageable.",
+  "model_default": "Qwen/Qwen2.5-1.5B-Instruct",
+  "model_alternatives_tested": [
+    "Qwen/Qwen2.5-0.5B-Instruct (saturated to BUY 100% of the time even with rich prompt; insufficient capacity)",
+    "Qwen/Qwen2.5-1.5B-Instruct (current default; differentiates correctly on cash level + opponent ownership + monopoly-completion scenarios)"
+  ],
+
+  "generation_settings": {
+    "max_new_tokens": 160,
+    "do_sample": false,
+    "temperature": null,
+    "stop_token_ids": ["<|im_end|>", "<|endoftext|>"],
+    "comment": "Greedy decoding to keep decisions reproducible across runs. max_new_tokens raised 40 -> 160 on 2026-04-28T18 because the response now includes a ten-line ECHO block before REASON+ANSWER. Earlier 64 -> 40 cut on 2026-04-28T16 was made when the response was REASON+ANSWER only (~35 tokens); the new schema needs ~100 tokens of generation budget."
+  },
+
+  "context_passed_to_llm": [
+    "cash (in dollars)",
+    "property name",
+    "colour group",
+    "cost (purchase price)",
+    "base_rent",
+    "you_own_total",
+    "you_own_in_group",
+    "group_size",
+    "opp_own_in_group",
+    "opp_own_total"
+  ],
+
+  "context_NOT_passed_to_llm": [
+    "build levels (houses / hotels) on any property",
+    "mortgage state of any property",
+    "cash held by opponents",
+    "current board position of the player",
+    "which other unowned properties exist on the board",
+    "game history / turn number / round number"
+  ],
+
+  "system_prompt": "You are a strategic Monopoly player who decides whether to buy properties. Your goal is to win by bankrupting opponents through rent. You must NOT mindlessly buy every property: passing is correct when (a) cash is dangerously low, (b) the property is in a group an opponent already dominates and you have no path to monopoly, or (c) the rent return is poor relative to the cost. Equally, buying is correct when the property advances a group you already own most of, or when it denies the group to an opponent who would otherwise complete it.\n\nYou receive a STATE block with 10 fields. Before reasoning, you MUST emit an ECHO block that copies all 10 STATE fields verbatim (numeric values must equal STATE; string values must equal STATE). The ECHO block is checked deterministically — if it differs from STATE in any field you will be asked to redo the answer. Only after the ECHO block do you write REASON and ANSWER. Do not invent any number or name not present in STATE. A purchase ONLY 'completes a monopoly' when you_own_in_group + 1 == group_size; do not claim completion otherwise.\n\nReply in EXACTLY this format and order:\n  ECHO:\n    cash: $<value>\n    property: <name>\n    group: <name>\n    cost: $<value>\n    base_rent: $<value>\n    you_own_total: <value>\n    you_own_in_group: <value>\n    group_size: <value>\n    opp_own_in_group: <value>\n    opp_own_total: <value>\n  REASON: <one short sentence citing only STATE numbers>\n  ANSWER: BUY\nor\n  ... (same ECHO block) ...\n  REASON: <one short sentence>\n  ANSWER: PASS\nDo not output anything else.",
+
+  "few_shot_examples": [
+    {
+      "rationale": "Clear BUY: cheap, plenty of cash, no opponent ownership. Demonstrates the ECHO-then-REASON-then-ANSWER format the model is expected to imitate.",
+      "user": "STATE:\n  cash: $1200\n  property: B1 Oriental Avenue\n  group: Lightblue\n  cost: $100\n  base_rent: $6\n  you_own_total: 0\n  you_own_in_group: 0\n  group_size: 3\n  opp_own_in_group: 0\n  opp_own_total: 2",
+      "assistant": "ECHO:\n  cash: $1200\n  property: B1 Oriental Avenue\n  group: Lightblue\n  cost: $100\n  base_rent: $6\n  you_own_total: 0\n  you_own_in_group: 0\n  group_size: 3\n  opp_own_in_group: 0\n  opp_own_total: 2\nREASON: I have $1200, cost is only $100, and opp_own_in_group is 0 so I can still monopolise this group.\nANSWER: BUY"
+    },
+    {
+      "rationale": "Clear PASS: opponent dominates the group.",
+      "user": "STATE:\n  cash: $500\n  property: G1 Pacific Avenue\n  group: Green\n  cost: $300\n  base_rent: $26\n  you_own_total: 8\n  you_own_in_group: 0\n  group_size: 3\n  opp_own_in_group: 2\n  opp_own_total: 5",
+      "assistant": "ECHO:\n  cash: $500\n  property: G1 Pacific Avenue\n  group: Green\n  cost: $300\n  base_rent: $26\n  you_own_total: 8\n  you_own_in_group: 0\n  group_size: 3\n  opp_own_in_group: 2\n  opp_own_total: 5\nREASON: opp_own_in_group is 2 of 3 so opponent already controls most of Green; spending $300 hurts liquidity for no monopoly path.\nANSWER: PASS"
+    },
+    {
+      "rationale": "Clear BUY: completing one's own monopoly. The REASON makes the math (you_own_in_group=2 and group_size=3 ⇒ one short) explicit.",
+      "user": "STATE:\n  cash: $700\n  property: C2 States Avenue\n  group: Pink\n  cost: $140\n  base_rent: $10\n  you_own_total: 6\n  you_own_in_group: 2\n  group_size: 3\n  opp_own_in_group: 0\n  opp_own_total: 4",
+      "assistant": "ECHO:\n  cash: $700\n  property: C2 States Avenue\n  group: Pink\n  cost: $140\n  base_rent: $10\n  you_own_total: 6\n  you_own_in_group: 2\n  group_size: 3\n  opp_own_in_group: 0\n  opp_own_total: 4\nREASON: you_own_in_group=2 and group_size=3 so I am one short; this purchase completes my Pink monopoly.\nANSWER: BUY"
+    },
+    {
+      "rationale": "Clear PASS due to genuinely low cash AND opponent has nothing in this group. Critical exemplar: gives the model a 'low-cash PASS' template that does NOT require citing opponent ownership, breaking the hallucination pattern where the 1.5B model recycled 'opponent already holds X' as a generic excuse for any PASS.",
+      "user": "STATE:\n  cash: $80\n  property: H2 Boardwalk\n  group: Indigo\n  cost: $400\n  base_rent: $50\n  you_own_total: 4\n  you_own_in_group: 0\n  group_size: 2\n  opp_own_in_group: 0\n  opp_own_total: 3",
+      "assistant": "ECHO:\n  cash: $80\n  property: H2 Boardwalk\n  group: Indigo\n  cost: $400\n  base_rent: $50\n  you_own_total: 4\n  you_own_in_group: 0\n  group_size: 2\n  opp_own_in_group: 0\n  opp_own_total: 3\nREASON: cash is $80 and cost is $400 so I cannot afford this without going broke, regardless of the opponent.\nANSWER: PASS"
+    }
+  ],
+
+  "runtime_user_prompt_template": "STATE:\n  cash: ${self.money}\n  property: {prop.name}\n  group: {prop.group}\n  cost: ${prop.cost_base}\n  base_rent: ${prop.rent_base}\n  you_own_total: {owned_count}\n  you_own_in_group: {same_group_self}\n  group_size: {group_size}\n  opp_own_in_group: {opp_in_group}\n  opp_own_total: {opp_total}",
+
+  "runtime_user_prompt_example": "STATE:\n  cash: $850\n  property: C1 Pink Lane\n  group: Pink\n  cost: $140\n  base_rent: $10\n  you_own_total: 4\n  you_own_in_group: 0\n  group_size: 2\n  opp_own_in_group: 1\n  opp_own_total: 3",
+
+  "decision_parsing": {
+    "rule": "Find the FIRST occurrence of 'ANSWER: BUY' or 'ANSWER: PASS' (case-insensitive) in the generated text; whichever appears first is the decision. If neither appears, fall back to the last-token heuristic (last 'BUY' vs last 'PASS' anywhere in the text). If still nothing, default to BUY (matches the optimistic baseline RuleBasedPlayer behaviour).",
+    "rationale": "Small models often hallucinate a fake new user turn after their answer. That hallucinated text frequently contains the words 'buy' or 'pass' unrelated to the actual decision. Locking onto the FIRST 'ANSWER: ...' clause prevents the parser from being misled by post-answer garbage."
+  },
+
+  "hallucination_detector": {
+    "added":     "2026-04-28T16",
+    "replaced":  "2026-04-28T18 — superseded by the ECHO-block validator below; the regex detector remains in agents.py for reference but is no longer called from _should_buy_logged.",
+    "rationale": "Initial regex+predicate detector covered three patterns (false opponent dominance, false low-cash, false monopoly completion). Worked end-to-end after the retry-message-ordering bug was fixed but missed any state-mismatch we hadn't anticipated.",
+    "patterns": [
+      {
+        "regex": "opp(onent)? (already )?(owns|holds|controls) (all|most|two-thirds|half|N of M|N/M)",
+        "predicate": "opp_own_in_group == 0",
+        "issue_label": "reason claims opponent ownership but opp_own_in_group=0"
+      },
+      {
+        "regex": "i have no cash | cash is (too )?low | cannot afford | no money | out of cash",
+        "predicate": "cash >= max(500, cost + 200)",
+        "issue_label": "reason claims low cash but cash is plentiful"
+      },
+      {
+        "regex": "completes? (my|the) <group> monopoly",
+        "predicate": "(group_size - same_group_self) != 1",
+        "issue_label": "reason claims monopoly completion but you are not one short"
+      }
+    ]
+  },
+
+  "echo_validator": {
+    "added":     "2026-04-28T18",
+    "rationale": "Replace the regex-pattern detector with a deterministic, exhaustive check: require the model to emit ALL 10 STATE fields verbatim in a leading ECHO block, then equality-check each echoed value against the ground-truth STATE the prompt was built from. Captures any state misread (not just the three we coded for), reports per-field issues, and gives the retry path a strong steer ('you echoed cash=$80 but STATE.cash=$1500'). Pure prompt + parsing change — no game logic touched.",
+    "echoed_fields": [
+      "cash (numeric, optional $ prefix)",
+      "property (string)",
+      "group (string)",
+      "cost (numeric, optional $ prefix)",
+      "base_rent (numeric, optional $ prefix)",
+      "you_own_total (numeric)",
+      "you_own_in_group (numeric)",
+      "group_size (numeric)",
+      "opp_own_in_group (numeric)",
+      "opp_own_total (numeric)"
+    ],
+    "validator": "LLMPlayer._check_echo() — applies a single MULTILINE regex to the response, parses each numeric field with int() (after stripping $ and -) and each string field with case-sensitive equality. Returns (issues: list[str], echoed: dict[str, raw_string]).",
+    "retry_policy": "Up to MAX_RETRIES=4 retries on any echo mismatch (5 total attempts per decision). Each retry's tail appends every prior attempt as an assistant turn followed by a user turn; the latest user turn names the specific mismatched fields. The FINAL attempt's parsed answer is the decision. Full attempt list is written to the JSONL under 'echo_attempts'; the original (attempt 0) and final attempt are also surfaced under raw_response/reason_text/parsed and retry_response/retry_reason_text/retry_parse_path for back-compat with the 2026-04-28T16 schema."
+  },
+
+  "pre_filter_before_llm_call": [
+    "if property_to_buy.cost_base > self.money: return False (can't afford)",
+    "if self.money - property_to_buy.cost_base < self.settings.unspendable_cash: return False (would dip below cash floor)",
+    "if property_to_buy.group in self.settings.ignore_property_groups: return False (player has chosen to ignore this group)"
+  ],
+  "pre_filter_rationale": "These three checks short-circuit the LLM call when buying is trivially impossible or excluded by player policy. This drops LLM calls per game by ~60-80% and keeps Phase A wall-clock manageable. The pre-filter does NOT decide BUY; only PASS is shortcut-able. Anything that survives the pre-filter is sent to the LLM.",
+
+  "code_pointers": {
+    "system_prompt":             "monopoly/agents.py LLMPlayer._SYSTEM_PROMPT",
+    "few_shot_examples":         "monopoly/agents.py LLMPlayer._FEW_SHOT",
+    "user_prompt_template":      "monopoly/agents.py LLMPlayer._build_buy_prompt",
+    "local_query":               "monopoly/agents.py LLMPlayer._query_local",
+    "local_query_traced":        "monopoly/agents.py LLMPlayer._query_local_traced",
+    "openai_query":              "monopoly/agents.py LLMPlayer._query_openai",
+    "decision_parser":           "monopoly/agents.py LLMPlayer._parse_decision",
+    "hallucination_detector":    "monopoly/agents.py LLMPlayer._check_reason_consistency",
+    "logging_path":              "monopoly/agents.py LLMPlayer._should_buy_logged",
+    "diagnostic_smoke_test":     "monopoly/scripts/smoke_llm_player.py",
+    "eval_driver":               "monopoly/scripts/eval_llm_on_boards.py",
+    "post_hoc_analyser":         "monopoly/scripts/analyze_llm_decisions.py"
+  }
+}

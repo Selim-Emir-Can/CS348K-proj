@@ -1,0 +1,50 @@
+# 8 colour-group properties, two per group, four groups total.
+# Costs and rents scaled to keep games short (~10-30 turns) but interesting.
+- name: A1 Brown Lane
+  cost_base: 60
+  rent_base: 4
+  cost_house: 50
+  rent_house: [20, 60, 180, 320, 450]
+  group: Brown
+- name: A2 Brown Avenue
+  cost_base: 60
+  rent_base: 4
+  cost_house: 50
+  rent_house: [20, 60, 180, 320, 450]
+  group: Brown
+- name: B1 Lightblue Street
+  cost_base: 100
+  rent_base: 6
+  cost_house: 50
+  rent_house: [30, 90, 270, 400, 550]
+  group: Lightblue
+- name: B2 Lightblue Avenue
+  cost_base: 100
+  rent_base: 6
+  cost_house: 50
+  rent_house: [30, 90, 270, 400, 550]
+  group: Lightblue
+- name: C1 Pink Lane
+  cost_base: 140
+  rent_base: 10
+  cost_house: 100
+  rent_house: [50, 150, 450, 625, 750]
+  group: Pink
+- name: C2 Pink Avenue
+  cost_base: 140
+  rent_base: 10
+  cost_house: 100
+  rent_house: [50, 150, 450, 625, 750]
+  group: Pink
+- name: D1 Orange Lane
+  cost_base: 180
+  rent_base: 14
+  cost_house: 100
+  rent_house: [70, 200, 550, 700, 950]
+  group: Orange
+- name: D2 Orange Avenue
+  cost_base: 180
+  rent_base: 14
+  cost_house: 100
+  rent_house: [70, 200, 550, 700, 950]
+  group: Orange

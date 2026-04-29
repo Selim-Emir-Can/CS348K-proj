@@ -1,0 +1,29 @@
+Revert points for the LLM-eval / LLM-GA work
+=============================================
+
+Each entry records a known-good git commit you can roll back to if a
+later change breaks the codebase. ISO timestamps are the commit's
+author/commit date in local time (PT).
+
+To revert locally (destructive, drops all uncommitted changes):
+    git -C C:/Users/emir2/Desktop/CS349K_proj reset --hard <SHA>
+To also roll back the remote (very destructive, ask first):
+    git -C C:/Users/emir2/Desktop/CS349K_proj push --force-with-lease origin master
+
+
+[2026-04-28T16:19:11-07:00]  8c1cbaf90619df7dbb23e0a43f866d3e67ea991d
+    Title: Vendor report directories; fix stale 45-dim and FreeParking-substitution wording
+    State: master HEAD just before the LLM-eval / LLM-GA branch of work.
+           - report/report.tex and monopoly/report/report.tex both have
+             the four mechanical fixes Codex missed (66 dims, broken
+             lead-in, FreeParking substitution rewrite).
+           - LLMPlayer is the rich-prompt Qwen2.5-1.5B version with
+             first-occurrence ANSWER parser. No decision_log hook yet.
+           - optimizer/simulate.py:run_single_game has no
+             player_kwargs_list parameter yet.
+           - LLMPlayer._build_buy_prompt uses the prose template; few-shot
+             has 4 examples; max_new_tokens=64.
+    Use this revert if Task 1 (decision_log hook), Task 2 (LLM-driven GA),
+    or the anti-hallucination prompt rewrite leaves the codebase in a
+    broken state. All three branches of work sit on top of this commit
+    with no intermediate commits in between (as of 2026-04-28T17:00 PT).

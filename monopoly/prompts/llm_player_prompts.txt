@@ -1,0 +1,344 @@
+================================================================
+LLMPlayer buy-decision prompt — full transcript
+================================================================
+
+This file shows the exact prompt fed to the LLM in `agents.LLMPlayer`,
+laid out in the same conversation format the chat template produces.
+Default model: Qwen/Qwen2.5-1.5B-Instruct.
+Generation: greedy (do_sample=False), max_new_tokens=160, with
+<|im_end|> and <|endoftext|> as additional EOS tokens.
+
+The conversation is six messages:
+  - 1 system message
+  - 4 few-shot user/assistant exchanges
+  - 1 runtime user message describing the actual decision
+
+The model produces an assistant response that:
+  1. Begins with an ECHO block copying all 10 STATE fields verbatim.
+  2. Then a REASON sentence.
+  3. Then "ANSWER: BUY" or "ANSWER: PASS".
+
+The parser scans for the FIRST 'ANSWER: BUY' or 'ANSWER: PASS' (the
+ECHO block contains no 'ANSWER:' line, so the answer line is
+unambiguously the model's decision).
+
+A separate echo validator (LLMPlayer._check_echo) compares each echoed
+value to the ground-truth STATE; on any mismatch it triggers up to
+MAX_RETRIES=4 retries with corrective follow-up turns. The final
+attempt's answer is the decision used by the simulator.
+
+Build, trade, and jail decisions are NOT routed through the LLM —
+those keep the base Player logic to keep latency manageable.
+
+----------------------------------------------------------------
+[ system ]
+----------------------------------------------------------------
+You are a strategic Monopoly player who decides whether to buy
+properties. Your goal is to win by bankrupting opponents through
+rent. You must NOT mindlessly buy every property: passing is correct
+when (a) cash is dangerously low, (b) the property is in a group an
+opponent already dominates and you have no path to monopoly, or (c)
+the rent return is poor relative to the cost. Equally, buying is
+correct when the property advances a group you already own most of,
+or when it denies the group to an opponent who would otherwise
+complete it.
+
+You receive a STATE block with 10 fields. Before reasoning, you
+MUST emit an ECHO block that copies all 10 STATE fields verbatim
+(numeric values must equal STATE; string values must equal STATE).
+The ECHO block is checked deterministically — if it differs from
+STATE in any field you will be asked to redo the answer. Only after
+the ECHO block do you write REASON and ANSWER. Do not invent any
+number or name not present in STATE. A purchase ONLY 'completes a
+monopoly' when you_own_in_group + 1 == group_size; do not claim
+completion otherwise.
+
+Reply in EXACTLY this format and order:
+  ECHO:
+    cash: $<value>
+    property: <name>
+    group: <name>
+    cost: $<value>
+    base_rent: $<value>
+    you_own_total: <value>
+    you_own_in_group: <value>
+    group_size: <value>
+    opp_own_in_group: <value>
+    opp_own_total: <value>
+  REASON: <one short sentence citing only STATE numbers>
+  ANSWER: BUY
+or
+  ... (same ECHO block) ...
+  REASON: <one short sentence>
+  ANSWER: PASS
+Do not output anything else.
+
+----------------------------------------------------------------
+[ user ]    (few-shot 1: clear BUY — cheap, no opposition, plenty of cash)
+----------------------------------------------------------------
+STATE:
+  cash: $1200
+  property: B1 Oriental Avenue
+  group: Lightblue
+  cost: $100
+  base_rent: $6
+  you_own_total: 0
+  you_own_in_group: 0
+  group_size: 3
+  opp_own_in_group: 0
+  opp_own_total: 2
+
+----------------------------------------------------------------
+[ assistant ]
+----------------------------------------------------------------
+ECHO:
+  cash: $1200
+  property: B1 Oriental Avenue
+  group: Lightblue
+  cost: $100
+  base_rent: $6
+  you_own_total: 0
+  you_own_in_group: 0
+  group_size: 3
+  opp_own_in_group: 0
+  opp_own_total: 2
+REASON: I have $1200, cost is only $100, and opp_own_in_group is 0
+so I can still monopolise this group.
+ANSWER: BUY
+
+----------------------------------------------------------------
+[ user ]    (few-shot 2: PASS — opponent dominates, cash is fine)
+----------------------------------------------------------------
+STATE:
+  cash: $500
+  property: G1 Pacific Avenue
+  group: Green
+  cost: $300
+  base_rent: $26
+  you_own_total: 8
+  you_own_in_group: 0
+  group_size: 3
+  opp_own_in_group: 2
+  opp_own_total: 5
+
+----------------------------------------------------------------
+[ assistant ]
+----------------------------------------------------------------
+ECHO:
+  cash: $500
+  property: G1 Pacific Avenue
+  group: Green
+  cost: $300
+  base_rent: $26
+  you_own_total: 8
+  you_own_in_group: 0
+  group_size: 3
+  opp_own_in_group: 2
+  opp_own_total: 5
+REASON: opp_own_in_group is 2 of 3 so opponent already controls
+most of Green; spending $300 hurts liquidity for no monopoly path.
+ANSWER: PASS
+
+----------------------------------------------------------------
+[ user ]    (few-shot 3: BUY — completing a monopoly)
+----------------------------------------------------------------
+STATE:
+  cash: $700
+  property: C2 States Avenue
+  group: Pink
+  cost: $140
+  base_rent: $10
+  you_own_total: 6
+  you_own_in_group: 2
+  group_size: 3
+  opp_own_in_group: 0
+  opp_own_total: 4
+
+----------------------------------------------------------------
+[ assistant ]
+----------------------------------------------------------------
+ECHO:
+  cash: $700
+  property: C2 States Avenue
+  group: Pink
+  cost: $140
+  base_rent: $10
+  you_own_total: 6
+  you_own_in_group: 2
+  group_size: 3
+  opp_own_in_group: 0
+  opp_own_total: 4
+REASON: you_own_in_group=2 and group_size=3 so I am one short;
+this purchase completes my Pink monopoly.
+ANSWER: BUY
+
+----------------------------------------------------------------
+[ user ]    (few-shot 4: PASS — genuinely low cash, opponent owns nothing)
+----------------------------------------------------------------
+STATE:
+  cash: $80
+  property: H2 Boardwalk
+  group: Indigo
+  cost: $400
+  base_rent: $50
+  you_own_total: 4
+  you_own_in_group: 0
+  group_size: 2
+  opp_own_in_group: 0
+  opp_own_total: 3
+
+----------------------------------------------------------------
+[ assistant ]
+----------------------------------------------------------------
+ECHO:
+  cash: $80
+  property: H2 Boardwalk
+  group: Indigo
+  cost: $400
+  base_rent: $50
+  you_own_total: 4
+  you_own_in_group: 0
+  group_size: 2
+  opp_own_in_group: 0
+  opp_own_total: 3
+REASON: cash is $80 and cost is $400 so I cannot afford this
+without going broke, regardless of the opponent.
+ANSWER: PASS
+
+----------------------------------------------------------------
+[ user ]    (runtime decision — template filled in per buy event)
+----------------------------------------------------------------
+STATE:
+  cash: ${self.money}
+  property: {prop.name}
+  group: {prop.group}
+  cost: ${prop.cost_base}
+  base_rent: ${prop.rent_base}
+  you_own_total: {owned_count}
+  you_own_in_group: {same_group_self}
+  group_size: {group_size}
+  opp_own_in_group: {opp_in_group}
+  opp_own_total: {opp_total}
+
+Concrete example a real query the LLM might see:
+
+STATE:
+  cash: $850
+  property: C1 Pink Lane
+  group: Pink
+  cost: $140
+  base_rent: $10
+  you_own_total: 4
+  you_own_in_group: 0
+  group_size: 2
+  opp_own_in_group: 1
+  opp_own_total: 3
+
+----------------------------------------------------------------
+[ assistant ]    (model's response — example)
+----------------------------------------------------------------
+ECHO:
+  cash: $850
+  property: C1 Pink Lane
+  group: Pink
+  cost: $140
+  base_rent: $10
+  you_own_total: 4
+  you_own_in_group: 0
+  group_size: 2
+  opp_own_in_group: 1
+  opp_own_total: 3
+REASON: I have $850 and cost is $140 so I can afford it;
+opp_own_in_group is 1 of 2 so monopoly is still possible.
+ANSWER: BUY
+
+
+================================================================
+Pre-filter before the LLM is even called
+================================================================
+
+LLMPlayer._should_buy applies three cheap rule-based checks before
+constructing the prompt. Anything that fails one of these returns
+PASS without an LLM call:
+
+  - if cost > current_cash:                      PASS  (can't afford)
+  - if cash - cost < settings.unspendable_cash:  PASS  (cash floor)
+  - if prop.group in settings.ignore_groups:     PASS  (player policy)
+
+This typically eliminates 60-80% of would-be LLM calls per game.
+
+
+================================================================
+Decision parsing
+================================================================
+
+The model's response is parsed by LLMPlayer._parse_decision /
+_parse_decision_traced:
+
+  1. Find the FIRST 'ANSWER: BUY' or 'ANSWER: PASS' (case-insensitive)
+     in the response. The earlier of the two wins.
+  2. If neither structured tag appears, fall back to the LAST
+     occurrence of 'BUY' or 'PASS' anywhere in the response.
+  3. If neither token appears, default to BUY.
+
+The first-occurrence rule is critical because small models often
+hallucinate a fake new user turn after their answer. The first-
+occurrence rule guarantees we read the model's actual decision.
+
+
+================================================================
+ECHO validator (added 2026-04-28T18; supersedes the regex detector)
+================================================================
+
+LLMPlayer._check_echo parses the assistant response for "key: value"
+lines and compares each of the 10 expected fields against ground-
+truth STATE:
+
+  Numeric fields  : cash, cost, base_rent,
+                    you_own_total, you_own_in_group, group_size,
+                    opp_own_in_group, opp_own_total
+                    (parsed with int(), tolerating leading $ and -)
+  String fields   : property, group
+                    (case-sensitive equality)
+
+Any missing field, unparseable value, or mismatch produces an issue
+string like:
+
+  "echo mismatch on 'cash': model echoed 80, STATE.cash=1500"
+
+These strings drop directly into the corrective user turn for the
+retry. The retry loop runs up to MAX_RETRIES=4 times (5 total
+attempts per decision); each retry's tail appends EVERY prior
+assistant response plus a corrective user turn after the latest, so
+the model sees its accumulated history of wrong answers.
+
+The FINAL attempt's parsed answer is the decision used by the
+simulator. The full attempt list is logged under "echo_attempts" in
+the per-game JSONL; original (attempt 0) and final-attempt fields
+are also surfaced under raw_response/reason_text/parsed and
+retry_response/retry_reason_text/retry_parse_path for back-compat
+with the 2026-04-28T16 schema.
+
+The earlier regex+predicate detector (LLMPlayer._check_reason_consistency)
+remains in agents.py but is no longer called from the logging path.
+The echo validator strictly dominates it.
+
+
+================================================================
+Code pointers
+================================================================
+
+  System prompt:           agents.py LLMPlayer._SYSTEM_PROMPT
+  Few-shot examples:       agents.py LLMPlayer._FEW_SHOT
+  User-prompt template:    agents.py LLMPlayer._build_buy_prompt
+  Local model query:       agents.py LLMPlayer._query_local
+  Local model query
+    (with timing+meta):    agents.py LLMPlayer._query_local_traced
+  OpenAI-compatible query: agents.py LLMPlayer._query_openai
+  Decision parser:         agents.py LLMPlayer._parse_decision
+  Echo parser:             agents.py LLMPlayer._parse_echo
+  Echo validator:          agents.py LLMPlayer._check_echo
+  Logged buy decision:     agents.py LLMPlayer._should_buy_logged
+  Eval driver:             scripts/eval_llm_on_boards.py
+  Post-hoc analyser:       scripts/analyze_llm_decisions.py
+  Diagnostic smoke test:   scripts/smoke_llm_player.py

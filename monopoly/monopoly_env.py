@@ -15,6 +15,7 @@ Typical usage::
             env.step(env.action_space(agent).sample())
 """
 import functools
+from collections import deque
 
 import gymnasium as gym
 import numpy as np
@@ -25,6 +26,7 @@ from monopoly.core.game import setup_game_from_config, setup_players_from_config
 from monopoly.core.move_result import MoveResult
 from monopoly.core.cell import Property
 from settings import SimulationSettings
+from agents import _BUILD_THRESHOLDS
 
 # Board always has exactly 40 cells in the standard layout.
 N_CELLS = 40
@@ -134,9 +136,8 @@ class MonopolyEnv(AECEnv):
             a: spaces.Box(low=-1.0, high=1.0, shape=(obs_size,), dtype=np.float32)
             for a in self.possible_agents
         }
-        # Discrete(1) is a placeholder; will expand to real decision actions later.
         self.action_spaces = {
-            a: spaces.Discrete(1) for a in self.possible_agents
+            a: spaces.Discrete(6) for a in self.possible_agents
         }
 
     # ------------------------------------------------------------------ #
@@ -170,6 +171,10 @@ class MonopolyEnv(AECEnv):
 
         self._prev_nw = {
             a: self._players[self._name_to_idx[a]].net_worth()
+            for a in self.possible_agents
+        }
+        self._prev_monopolies = {
+            a: self._count_monopolies(self._players[self._name_to_idx[a]])
             for a in self.possible_agents
         }
 
@@ -207,11 +212,26 @@ class MonopolyEnv(AECEnv):
             if p.is_bankrupt and not self.terminations[a]:
                 self.terminations[a] = True
 
-        # Shaped reward: change in net worth this turn.
+        # Shaped reward.
         cur_nw = player.net_worth()
-        self.rewards[agent] = (cur_nw - prev_nw) / 1000.0
+        # Damped NW-delta so one-episode noise doesn't drown the terminal signals.
+        reward = (cur_nw - prev_nw) / 5000.0
+
+        # Monopoly completion bonus: completing a color group is a major strategic event.
+        cur_mono = self._count_monopolies(player)
+        new_monos = cur_mono - self._prev_monopolies[agent]
+        if new_monos > 0:
+            reward += 2.0 * new_monos
+        self._prev_monopolies[agent] = cur_mono
+
+        # Low-cash liquidity penalty: being cash-poor risks cascading bankruptcy.
+        if not player.is_bankrupt and player.money < 100:
+            reward -= 0.5
+
         if self.terminations[agent] and player.is_bankrupt:
-            self.rewards[agent] -= 5.0   # bankruptcy penalty
+            reward -= 25.0   # bankruptcy penalty — instant loss in 2-player
+
+        self.rewards[agent] = reward
         self._prev_nw[agent] = cur_nw
         self._cumulative_rewards[agent] += self.rewards[agent]
 
@@ -221,8 +241,8 @@ class MonopolyEnv(AECEnv):
             for a in self.possible_agents:
                 p = self._players[self._name_to_idx[a]]
                 if not p.is_bankrupt and not self.terminations[a]:
-                    self.rewards[a] += 10.0          # winner bonus
-                    self._cumulative_rewards[a] += 10.0
+                    self.rewards[a] += 50.0          # winner bonus — dominates NW-delta
+                    self._cumulative_rewards[a] += 50.0
                     self.terminations[a] = True
 
         # Hard turn-limit truncation.
@@ -291,6 +311,14 @@ class MonopolyEnv(AECEnv):
                 self.agent_selection = candidate
                 return
 
+    def _count_monopolies(self, player) -> int:
+        """Count how many color groups this player owns completely."""
+        count = 0
+        for cells in self.board.groups.values():
+            if cells and all(c.owner is player for c in cells):
+                count += 1
+        return count
+
     def _on_round_complete(self):
         self._round += 1
         # "All rich" stalemate: if every surviving player is above the cash
@@ -333,7 +361,7 @@ class SingleAgentMonopolyEnv(gym.Env):
         obs_size = 5 * n + 2 * N_CELLS
         self.observation_space = spaces.Box(-1.0, 1.0,
                                             shape=(obs_size,), dtype=np.float32)
-        self.action_space = spaces.Discrete(2)  # 0=pass, 1=buy
+        self.action_space = spaces.Discrete(6)  # bit0=buy, bit1=build_level (0-2)
 
     # ------------------------------------------------------------------ #
     # Gym interface                                                         #
@@ -345,11 +373,13 @@ class SingleAgentMonopolyEnv(gym.Env):
         return self._multi.observe(self._agent), {}
 
     def step(self, action: int):
-        # Inject the buy decision into the learner before its turn runs.
+        # Decode and inject buy + build decisions before the learner's turn runs.
         idx = self._multi._name_to_idx[self._agent]
         player = self._multi._players[idx]
         if hasattr(player, '_buy_action'):
-            player._buy_action = int(action)
+            player._buy_action = int(action) % 2
+        if hasattr(player, '_build_threshold'):
+            player._build_threshold = _BUILD_THRESHOLDS[int(action) // 2]
 
         self._multi.step(action)
         self._advance_opponents()
@@ -387,3 +417,174 @@ class SingleAgentMonopolyEnv(gym.Env):
                 (env.terminations.get(self._agent) or
                  env.truncations.get(self._agent))):
             env.step(None)
+
+
+# --------------------------------------------------------------------------- #
+# History-aware Gym wrapper                                                     #
+# --------------------------------------------------------------------------- #
+
+def _make_strategic_obs(players, board, self_idx: int,
+                        group_keys: list,
+                        round_num: int, max_turns: int) -> np.ndarray:
+    """Turn progress + cash ratio + per-group ownership features.
+
+    Per group (in group_keys order):
+        self_completion  — fraction of group owned by self
+        opp_completion   — fraction owned by the leading opponent
+        self_monopoly    — 1 if self owns all cells in group
+        opp_monopoly     — 1 if any opponent owns all cells in group
+    """
+    self_p = players[self_idx]
+    others = [p for i, p in enumerate(players) if i != self_idx]
+    nw = max(self_p.net_worth(), 1)
+
+    feats = [
+        round_num / max(max_turns, 1),
+        float(np.clip(self_p.money / nw, 0.0, 1.0)),
+    ]
+    for gk in group_keys:
+        cells = board.groups.get(gk, [])
+        sz = max(len(cells), 1)
+        self_n = sum(1 for c in cells if c.owner is self_p)
+        opp_n  = max((sum(1 for c in cells if c.owner is p) for p in others),
+                     default=0)
+        feats += [
+            self_n / sz,
+            opp_n  / sz,
+            float(self_n == len(cells)),
+            float(opp_n  == len(cells)),
+        ]
+    return np.array(feats, dtype=np.float32)
+
+
+class HistorySingleAgentMonopolyEnv(SingleAgentMonopolyEnv):
+    """Gym wrapper with within-game history buffer + cross-game memory.
+
+    Observation layout (all float32, clipped to [-1, 1]):
+    ┌─────────────────────┬──────────────────────────┬──────────────────────────────┬───────────────────┐
+    │  current_base_obs   │   strategic_features     │  within-game history (K-1)   │ cross-game memory │
+    │  5n + 2*N_CELLS     │  2 + 4*n_groups          │  (K-1) * base_obs_size       │  n_groups + 2     │
+    └─────────────────────┴──────────────────────────┴──────────────────────────────┴───────────────────┘
+
+    within-game history  — last (K-1) base observations from the *current* episode,
+                           most-recent first. Resets to zeros at each episode start.
+
+    cross-game memory    — running statistics persisted across episodes (never reset):
+                           • per group: fraction of past episodes won when agent
+                             held a monopoly in that group
+                           • normalised recent average game length
+                           • recent win rate
+    """
+
+    _CROSS_MEMORY_GAMES = 50   # rolling window for cross-game statistics
+
+    def __init__(self, game_config=None, agent_name=None, seed=0,
+                 max_turns=None, render_mode=None,
+                 history_len: int = 5):
+        super().__init__(game_config, agent_name, seed, max_turns, render_mode)
+
+        self._history_len = history_len
+        self._within_hist: deque = deque(maxlen=history_len - 1)
+
+        # Determine group keys from config (sorted for stable ordering)
+        self._group_keys = sorted(
+            {c.group for c in self._multi._cfg.cells
+             if isinstance(c, Property)}
+        )
+        self._n_groups = len(self._group_keys)
+
+        # Cross-game memory: deque of episode result dicts
+        self._episode_results: deque = deque(maxlen=self._CROSS_MEMORY_GAMES)
+
+        # Compute observation sizes
+        self._base_size  = self.observation_space.shape[0]   # from parent
+        self._n_strat    = 2 + 4 * self._n_groups
+        self._n_cross    = self._n_groups + 2
+
+        total = (self._base_size
+                 + self._n_strat
+                 + (history_len - 1) * self._base_size
+                 + self._n_cross)
+        self.observation_space = spaces.Box(-1.0, 1.0,
+                                            shape=(total,), dtype=np.float32)
+
+    # ------------------------------------------------------------------ #
+    # Cross-game memory                                                    #
+    # ------------------------------------------------------------------ #
+
+    def _cross_game_features(self) -> np.ndarray:
+        feats = np.zeros(self._n_cross, dtype=np.float32)
+        n = len(self._episode_results)
+        if n == 0:
+            return feats
+        group_wins   = np.zeros(self._n_groups, dtype=np.float32)
+        group_counts = np.zeros(self._n_groups, dtype=np.float32)
+        total_wins, total_len = 0.0, 0.0
+        for r in self._episode_results:
+            total_wins += float(r['won'])
+            total_len  += r['game_length']
+            for gi in r['monopoly_group_indices']:
+                group_counts[gi] += 1
+                if r['won']:
+                    group_wins[gi] += 1
+        with np.errstate(divide='ignore', invalid='ignore'):
+            feats[:self._n_groups] = np.where(
+                group_counts > 0, group_wins / group_counts, 0.0)
+        feats[self._n_groups]     = total_len / (n * max(self._multi._max_turns, 1))
+        feats[self._n_groups + 1] = total_wins / n
+        return feats
+
+    def _record_episode(self):
+        idx    = self._multi._name_to_idx[self._agent]
+        player = self._multi._players[idx]
+        alive  = [p for p in self._multi._players if not p.is_bankrupt]
+        won    = (len(alive) == 1 and not player.is_bankrupt)
+        mono_indices = [
+            gi for gi, gk in enumerate(self._group_keys)
+            if (cells := self._multi.board.groups.get(gk, []))
+            and all(c.owner is player for c in cells)
+        ]
+        self._episode_results.append({
+            'won': won,
+            'game_length': self._multi._round,
+            'monopoly_group_indices': mono_indices,
+        })
+
+    # ------------------------------------------------------------------ #
+    # Full observation builder                                             #
+    # ------------------------------------------------------------------ #
+
+    def _full_obs(self) -> np.ndarray:
+        base  = self._multi.observe(self._agent)
+        idx   = self._multi._name_to_idx[self._agent]
+        strat = _make_strategic_obs(
+            self._multi._players, self._multi.board, idx,
+            self._group_keys, self._multi._round, self._multi._max_turns,
+        )
+        hist  = np.zeros((self._history_len - 1) * self._base_size, dtype=np.float32)
+        for i, h in enumerate(reversed(self._within_hist)):
+            s = i * self._base_size
+            hist[s:s + self._base_size] = h
+        cross = self._cross_game_features()
+        return np.concatenate([base, strat, hist, cross])
+
+    # ------------------------------------------------------------------ #
+    # Gym interface overrides                                              #
+    # ------------------------------------------------------------------ #
+
+    def reset(self, seed=None, options=None):
+        super().reset(seed=seed, options=options)   # sets up multi-env
+        self._within_hist.clear()
+        return self._full_obs(), {}
+
+    def step(self, action: int):
+        # Snapshot current base obs into within-game history before stepping
+        self._within_hist.append(self._multi.observe(self._agent))
+
+        _, reward, terminated, truncated, info = super().step(action)
+        done = terminated or truncated
+
+        if done:
+            self._record_episode()
+
+        return self._full_obs(), reward, terminated, truncated, info

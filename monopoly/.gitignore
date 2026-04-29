@@ -1,5 +1,9 @@
 # Output and log files
 *.txt
+# ...except prompt artefacts in monopoly/prompts/, which are documentation,
+# and curated notes in monopoly/notes/ (revert points, hand-written logs).
+!prompts/*.txt
+!notes/*.txt
 
 # Mac stuff
 .DS_Store
@@ -162,4 +166,18 @@ cython_debug/
 
 # results dir
 results/
+
+# Training / optimisation runtime artefacts (logs, model weights, W&B sync).
+logs/
+models/
+models_a2_old/
+models_a6_old/
+wandb/
+
+# Persistent optimiser artefacts that are re-derivable from code + seed
+optimizer/strategy_pool.json
+
+# VS Code per-project state
+.codex/
+.codex
 /results/

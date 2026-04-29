@@ -1,0 +1,12 @@
+available_houses: 16
+available_hotels: 4
+salary: 200
+luxury_tax: 100
+income_tax: 200
+income_tax_percentage: 0.1
+mortgage_value: 0.5
+mortgage_fee: 0.1
+exit_jail_fine: 50
+free_parking_money: false
+dice_count: 2
+dice_sides: 6
