@@ -8,7 +8,7 @@ Each iteration applies the patches in the subprocess sandbox per Step 2,
 records the resulting score and bootstrap CI, and logs to a per-trajectory
 JSONL.
 
-Two baselines (CEO plan + ANALYSIS_LOCK §6):
+Two baselines (CEO plan + ANALYSIS_PLAN §6):
   - random rule menu: each iteration picks 1-2 patches uniformly from
     the fixed RANDOM_RULE_MENU below. Same iteration count as the LLM.
   - Monopoly house-rule static ceiling: a fixed bundle (Free Parking

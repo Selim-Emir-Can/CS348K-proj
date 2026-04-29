@@ -659,7 +659,7 @@ def bootstrap_divergence(corpora: Dict[str, List[str]], n_resamples: int = 200,
 
 
 # --------------------------------------------------------------------------- #
-# Within-board L1 noise floor (ANALYSIS_LOCK §3, Step 3 of build plan)         #
+# Within-board L1 noise floor (ANALYSIS_PLAN §3, Step 3 of build plan)         #
 # --------------------------------------------------------------------------- #
 
 def within_board_noise_floor(corpora: Dict[str, List[str]],
@@ -670,7 +670,7 @@ def within_board_noise_floor(corpora: Dict[str, List[str]],
     halves A and B; L1(freq(A), freq(B)). Pooled mean+sigma across all splits
     on all boards is the noise floor. A cross-board L1 is "signal" iff it
     exceeds mean + 2*sigma; otherwise it could be a within-board sampling
-    artifact and the headline finding inverts (see ANALYSIS_LOCK §3).
+    artifact and the headline finding inverts (see ANALYSIS_PLAN §3).
 
     Returns a dict shaped:
       {
@@ -728,7 +728,7 @@ def within_board_noise_floor(corpora: Dict[str, List[str]],
 
 
 # --------------------------------------------------------------------------- #
-# Per-board board-state-reference precondition (Step 3, ANALYSIS_LOCK §4)     #
+# Per-board board-state-reference precondition (Step 3, ANALYSIS_PLAN §4)     #
 # --------------------------------------------------------------------------- #
 
 # Money/rent integer marker: either a "$<digits>" anchor, or a standalone
@@ -945,7 +945,7 @@ def main():
                     help='Permutations for the H0(no-per-board-signal) test.')
     ap.add_argument('--n-within-splits', type=int, default=100,
                     help='Random equal-size splits per board for the within-board '
-                         'L1 noise floor (ANALYSIS_LOCK §3).')
+                         'L1 noise floor (ANALYSIS_PLAN §3).')
     ap.add_argument('--stat-seed', type=int, default=0,
                     help='Seed for both the bootstrap and the permutation test.')
     args = ap.parse_args()

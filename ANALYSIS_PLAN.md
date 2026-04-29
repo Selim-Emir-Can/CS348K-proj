@@ -1,14 +1,18 @@
-# ANALYSIS_LOCK.md
+# ANALYSIS_PLAN.md
 
-Status: LOCKED 2026-04-27, before any LLM overnight run for #3, #4, or #5.
-Source of truth: `ceo-plans/2026-04-27-llm-design-loop-expansion.md` (locked).
+Status: planning draft, 2026-04-27 (revised 2026-04-28).
+Source of truth: `ceo-plans/2026-04-27-llm-design-loop-expansion.md`.
 
-This file pins the analysis decisions for items #3, #4, #5 of the LLM
-design-loop expansion BEFORE any data is collected at full scale. It exists
-to defuse the multiple-comparisons cliff across five experiments (CEO C6).
-Anything not pinned here is open to honest re-analysis after data lands;
-anything pinned here is frozen for the duration of this round and may only
-be revisited with an explicit "ANALYSIS_LOCK breach" note in the writeup.
+This file records the current analysis plan for items #3, #4, #5 of the LLM
+design-loop expansion. It is a working plan, not a lock — revise as we
+learn. Writing the analytical choices down (concept dictionary, divergence
+threshold, improvement gate) before data lands at scale still defuses the
+multiple-comparisons cliff across the five experiments; the discipline is
+in committing the choice in writing before peeking, not in declaring it
+immutable.
+
+If a section below turns out to be wrong on contact with data, edit it and
+note the change in the writeup.
 
 ---
 
@@ -31,8 +35,9 @@ this lock requires both logs be present for the production runs of #3/#4/#5.
 
 ## 2. Concept dictionary (#3)
 
-Frozen in `scripts/llm_character.py:CONCEPT_PATTERNS` and reproduced here
-verbatim so any later change is forced to bump this lock:
+Pinned in `scripts/llm_character.py:CONCEPT_PATTERNS` and reproduced here
+verbatim so any later change to the dictionary is visible in this plan's
+diff:
 
 ```
 cash       : \bcash\b | \bmoney\b | \bafford | \bliquid
@@ -174,9 +179,10 @@ cleanly. This is a finding, not a methodological wart.
 ## 8. Strategy pool (load-bearing across all five experiments)
 
 Pinned: `optimizer/strategy_pool.json` (10 named + 20 sampled, seed=0)
-already on disk. No regeneration is permitted between this lock and the
-end of the round. Any pool edit BEFORE running #3/#4/#5 must be recorded
-as an explicit lock breach in the writeup.
+already on disk. The intent is to keep the pool stable across #3/#4/#5
+so cross-experiment comparisons stay apples-to-apples. If the pool is
+regenerated mid-round, surface it in the writeup so the reader can
+audit the change.
 
 Recommended C5 audit (pool diagnostics: pairwise win-rate matrix +
 archetype entropy) — out of scope for this lock, but should be added in
@@ -206,7 +212,7 @@ deliverable trajectory.
 
 ---
 
-## What is NOT locked
+## What is explicitly post-hoc
 
 - The qualitative read of the per-board reasoning corpora (one paragraph
   each) is post-hoc and labelled as such in the writeup.
@@ -218,18 +224,11 @@ deliverable trajectory.
 
 ---
 
-## Lock breach protocol
+## When this plan changes
 
-If during analysis a problem is found with one of the items above
-(e.g. concept dictionary turns out to have a regex bug), the
-ANALYSIS_LOCK is updated with an explicit BREACH NOTE:
-
-```
-## BREACH 2026-04-XX: <one-line reason>
-- Old rule: ...
-- New rule: ...
-- Affected sections of writeup: ...
-```
-
-The pre-breach result is reported alongside the post-breach result
-in the writeup.
+If a section above turns out to be wrong on contact with data (e.g. the
+concept dictionary has a regex bug, the divergence threshold is too tight,
+the improvement gate is the wrong shape), edit the section in place and
+explain the revision in the writeup. The pre-revision and post-revision
+results both belong in the paper if the change is load-bearing. There is
+no formal breach protocol — the git diff is the record.

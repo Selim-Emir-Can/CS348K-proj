@@ -6,7 +6,7 @@ group-level intervention with rationale text. Loop runs up to K iterations
 or until the LLM declares {converged}.
 
 Iteration board: per Step 0 audit (Spearman rho=0.30 < 0.4 cutoff), the
-iteration board is CANONICAL, not mini. ANALYSIS_LOCK §7.
+iteration board is CANONICAL, not mini. ANALYSIS_PLAN §7.
 
 Per-iteration JSONL logged to <out_dir>/<board>_seed<S>.jsonl with:
   - design vector and human-readable diff from default
@@ -354,7 +354,7 @@ class Iteration:
 
 def _is_improvement(prev_score: float, cur_score: float, ci: dict,
                     rel_threshold: float = 0.03) -> bool:
-    """ANALYSIS_LOCK §5: improvement iff relative drop >= 3% AND 95% CI on
+    """ANALYSIS_PLAN §5: improvement iff relative drop >= 3% AND 95% CI on
     score excludes prev_score (i.e., new-score CI doesn't reach prev)."""
     if prev_score <= 0:
         return False
@@ -590,7 +590,7 @@ def main() -> int:
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    print('Resolving boards (iteration board = canonical, per ANALYSIS_LOCK §7)...')
+    print('Resolving boards (iteration board = canonical, per ANALYSIS_PLAN §7)...')
     sources = build_five_boards(
         canonical_config=args.canonical_config, mini_config=args.mini_config,
         ga_2p=args.ga_2p, ga_3p=args.ga_3p)

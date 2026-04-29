@@ -211,7 +211,7 @@ def bootstrap_score_ci(per_game_records, n_resamples: int = 500,
                        seed: int = 0) -> dict:
     """Bootstrap 95% CI on the aggregate score by resampling the per-game
     records with replacement. The "improvement" definition in
-    ANALYSIS_LOCK §5 needs CIs on per-iteration deltas so this is the
+    ANALYSIS_PLAN §5 needs CIs on per-iteration deltas so this is the
     helper that backs that test.
     """
     import numpy as np
