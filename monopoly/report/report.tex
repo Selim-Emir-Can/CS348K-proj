@@ -1733,26 +1733,102 @@ evaluated against exactly the same opponent combinations.
 
 \subsection*{Criterion 1 -- ``How thoughtfully (specifically) did the
 student define their problem to solve?''}
-Section~\ref{sec:problem} pins the strategy space (17 dims, ranges
-declared), the strategy pool (30 strategies with named archetypes
-+ deterministic sampler), the design space (66 dims with numeric
-bounds), the evaluation protocol ($10$ matchups $\times$ $10$ games,
-shared seeds), and the objective (formula, weights, targets) before any
-optimisation runs. Total evaluation budget is enumerated up front
-($\sim 165\text{k}$ games, $\sim 25$ min). The pivot from RL to a
-parametric strategy pool is justified explicitly.
+
+The problem we set out to solve is: \emph{find game designs that
+are fair, decisive, and interactive, given that we cannot ask
+thousands of humans to playtest the design space}. Each piece of
+the framing was a deliberate choice, and the choice itself, not the
+artefact, is the answer to this criterion.
+
+\paragraph{Inverse framing of the standard agent-environment loop.}
+Reinforcement learning fixes the environment and varies the agent.
+We did the opposite: fix the agent population, vary the environment.
+This makes the design space the optimisation target and treats the
+agent population as a measurement instrument. The decision is
+load-bearing because it forces us to ask ``what would generalise
+across many strategies?'' rather than ``what does my one agent
+prefer?''.
+
+\paragraph{Multi-dimensional objective.} Design quality is
+irreducibly multi-dimensional (a fair game can still be too long;
+a short game can still feel one-sided; an interactive game can still
+draw). We named four design qualities up front, gave each a numeric
+operationalisation and a target value, and exposed every weight as
+a CLI flag. Collapsing this to a single ``goodness'' score hides
+which knob the optimiser is really pulling.
+
+\paragraph{Population-as-evaluator.} A single trained agent
+conflates ``the design is good'' with ``the agent likes the
+design''. A diverse strategy pool factors those apart: an
+improvement that survives across 30 strategies is more likely to be
+about the design than the agent. Adding a second agent class
+(LLM) tests whether the rule-based pool's signal generalises to a
+fundamentally different reasoning style.
+
+\paragraph{Directional signals, not human substitutes.} We did
+not claim the agents predict human play. We claimed that
+\emph{when the design changes, the direction the agents' metrics
+move on is informative}, and that disagreement between agent
+classes is itself a useful signal. This changes the standard the
+work needs to meet: not ``does this match humans?'' but ``does
+this give a designer something to act on?''.
+
+\paragraph{Numerics-first commitment.} Every variable, range,
+target, and budget was committed to in writing before optimisation
+ran. The point is falsifiability: a description that cannot be
+computed cannot be wrong, and a workflow nobody can re-derive is
+not a contribution. Implementation details supporting the framing
+are in Section~\ref{sec:problem}.
 
 \subsection*{Criterion 2 -- ``How thoughtfully did the students evaluate
 their idea or technical implementation?''}
-Section~\ref{sec:eval} reports a default-board baseline
-(Table~\ref{tab:default}); two search algorithms at matched budget
-(Figure~\ref{fig:convergence}); five single-objective ablations $\times$ two
-player counts revealing real trade-offs (Table~\ref{tab:ablation}); a
-$2p\!\leftrightarrow\!3p$ cross-evaluation at $n{=}1000$
-(Table~\ref{tab:cross}); per-strategy win-rate heatmaps with diff against
-the default to visualise \emph{where} fairness changed
-(Figure~\ref{fig:heatmap}); explicit acknowledgement of the
-optimisation-budget overfit and saturated metrics; and a limitations
-section with concrete mitigations.
+
+The evaluation was designed to answer ``how would I know if this is
+wrong?'' before any number was reported. Each move below corresponds
+to a specific failure mode the evaluation is trying to rule out.
+
+\paragraph{Anchor against a noise floor and a head-to-head
+baseline.} Improvement claims are only meaningful relative to a
+concrete reference. We measured the unmodified default board first
+(noise floor) and then ran two search algorithms (random vs GA) at
+matched evaluation budget (head-to-head), so any claim of
+``optimisation worked'' has to beat both.
+
+\paragraph{Single-objective ablations to prove non-redundancy.}
+A multi-dimensional objective is only meaningful if each component
+is doing real work. We re-ran the optimisation with one objective
+weight at a time set to 1.0 and the rest to 0.0; if the resulting
+designs collapsed onto the combined-objective optimum, we would
+have evidence that some terms are decorative. They didn't, which
+shows the trade-off surface is real.
+
+\paragraph{Cross-class validation.} The rule-based pool can hide
+its own quirks behind the pretence of being a generalisable
+evaluator. A second agent class (Qwen2.5-1.5B with deterministic
+echo validation) was added specifically as a sanity check
+\emph{not subject to those quirks}. Cross-class agreement on
+direction is more compelling than either class on its own; cross-
+class disagreement (the fairness gap) is itself a finding.
+
+\paragraph{Re-evaluate optima under each other's evaluators.} The
+LLM-driven GA winner under the rule-based pool, and vice-versa,
+exposes the kind of evaluator-distribution mismatch that would
+otherwise look like a free lunch. The cross-evaluator gap on
+fairness was the diagnostic finding the workflow surfaced.
+
+\paragraph{Expose protocol failure modes rather than suppress
+them.} The validator-and-retry stack around the LLM caused
+retry-induced fabrication when the validator was wrong. We
+documented this as a finding rather than tuning the validator until
+it disappeared. A protocol whose failure modes are reported
+alongside its results is auditable; one whose are not is a
+benchmark trick.
+
+\paragraph{Reproducibility as a methodological commitment.} Every
+number in the paper can be regenerated from a seed and a JSONL
+line; the seed schedule is recorded in each run's
+\texttt{meta.json}. This is not a courtesy; it is what makes a
+methodology paper testable by someone who did not write it. Full
+artefact and table inventory is in Section~\ref{sec:eval}.
 
 \end{document}
