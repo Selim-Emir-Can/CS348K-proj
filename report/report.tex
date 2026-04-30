@@ -17,47 +17,43 @@
 
 \title{Beta-Testing Monopoly: \\Closed-Loop Game-Design Optimisation
        over a Diverse Strategy Pool}
-\author{Selim Emir Can (emirc) \and Alaz Cig}
+\author{Selim Emir Can \and Alaz Cig}
 \date{2026-04-24}
 
 \begin{document}
 \maketitle
 
 \begin{abstract}
-Game designers increasingly need to evaluate more candidate rule sets
-than human playtesting can cover. We present a workflow for using
-imperfect agents as \emph{design probes}: parameterise the game,
-evaluate candidates against a diverse agent population, compare
-directional predictions across agent classes, and reserve scarce
-human playtests for the designs where the automated signals are
-strongest or most conflicted. Monopoly is our reproducible case
-study. A genetic algorithm searches a 66-dim board design space
-(per-property cost/rent multipliers + a keep-mask that structurally
-shortens the board) against a composite of fairness, game length,
-draw rate, and inter-agent money transfer; single-objective
-ablations and a $2p\!\leftrightarrow\!3p$ cross-evaluation at
-$n{=}1000$ yield $\sim$40\% score reductions over the default board.
-We then run two cross-class validations of the workflow. \emph{Phase
-A} on a 16-cell mini board with three pre-declared knobs has
-rule-based agents and a Qwen2.5-1.5B LLM agreeing on direction for
-$8/12$ metric comparisons and cross-confirming a counter-intuitive
-finding (doubling salary \emph{increases} draw rate). \emph{Phase
-C}, completed, scales the LLM cross-check to the full 40-cell
-board: 80 games of all-LLM play (2{,}288 LLM decisions, 0
-hallucinations under deterministic per-field echo validation)
-reproduce the rule-based GA's directional signal in both 2p and 3p,
-and a mirror-image LLM-driven GA at 32 evaluations finds a board
-that beats the default but loses to the rule-based winner under the
-diverse-strategy pool; with a fairness gap (0.20 LLM eval $\to$
-0.379 pool eval) that diagnoses a single-personality evaluator's
-blind spot. The novel claim is not that the resulting Monopoly board
-is universally better, nor that agents are accurate human
-substitutes; rather, that automated agent feedback is
-decision-useful when treated as a directional, comparative signal,
-and that the validator-and-retry stack around the agent is part of
-the probe and shapes its failure modes.
-Code:
-\url{https://github.com/Selim-Emir-Can/CS348K-proj}.
+Game designers face combinatorial design spaces that human
+playtesting cannot cover. Existing automated approaches score
+candidate designs against a single trained agent or a single LLM,
+but a single-agent evaluator cannot separate design effects from
+agent-specific quirks, and naive LLM use produces prompt-conditioned
+reasoning that drifts from the actual game state. We argue that
+automated design feedback is decision-useful when treated as a
+directional signal compared across multiple agent classes, with
+deterministic per-field validation of the agent's claims about
+state, and we instantiate that workflow on Monopoly as a
+reproducible case study.
+
+A genetic algorithm searches a 66-dim board design space (cost/rent
+multipliers and a keep-mask) against a composite of fairness, game
+length, draw rate, and inter-player money transfer, evaluated by a
+30-strategy parametric pool. Single-objective ablations and a
+$2p\!\leftrightarrow\!3p$ cross-evaluation at $n{=}1000$ improve the
+composite score by approximately 40\% over the default board. A
+second agent class (Qwen2.5-1.5B with a structured echo-validated
+prompt) reproduces the same directional signal across 80 all-LLM
+games on the optimised boards, with 0 model-side hallucinations
+across 2{,}288 decisions. Re-running the GA with the LLM in the
+evaluator role produces a board that beats the default but loses to
+the rule-based winner under the diverse pool, with a fairness gap
+(0.20 vs.\ 0.379) that diagnoses single-personality evaluator blind
+spots. We conclude that the validator-and-retry stack around an
+agent is part of the probe, multi-class agreement is the right unit
+of evidence, and evaluator diversity is non-optional for
+fairness-sensitive design.
+Code: \url{https://github.com/Selim-Emir-Can/CS348K-proj}.
 \end{abstract}
 
 \section{Introduction}
