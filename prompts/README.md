@@ -59,3 +59,49 @@ We tried two model sizes:
 See `notes/phase_a_results_2026-04-26.md` for the validation findings
 that motivated this choice and `scripts/smoke_llm_player.py` for the
 diagnostic that uncovered the 0.5B model's saturation.
+
+## Hash-locked prompt artefacts (round 1)
+
+The round-1 experiments load every system prompt through
+`prompts/loader.py:load_prompt`, which verifies the `.txt` against the
+`.json` sidecar's `sha256` before returning the text. A mid-experiment
+edit to a prompt without rehashing the sidecar aborts the run on the
+next LLM call, instead of silently invalidating every trajectory.
+
+| File | Used by | Notes |
+|---|---|---|
+| `character_llm_prompt.{txt,json}`     | `scripts/llm_character.py:CharacterLLMPlayer` (NEUTRAL-PLAYER) | MIRROR-H, PHASE-A-ROBUSTNESS |
+| `designer_llm_prompt_open.{txt,json}` | `scripts/llm_design_loop.py:DesignerLLM` GOAL-OPEN | T-MUTE / T-HAZ / T-MET / T-FULL |
+| `designer_llm_prompt_closed.{txt,json}` | `scripts/llm_design_loop.py:DesignerLLM` GOAL-CLOSED | T-BLIND only |
+| `guided_player_system_prompt.{txt,json}` | `agents.py:LLMPlayer` (GUIDED-PLAYER) | Phase A original (already done) |
+
+Update procedure when a prompt legitimately changes:
+1. Edit the `.txt`.
+2. `python -m prompts.loader --rehash <path>` — refreshes the `.json` sha.
+3. Commit both files together so the diff is auditable.
+
+## Known limitations
+
+**Few-shot property-name overlap with default board (test-set
+contamination risk).** The 4-shot examples in `LLMPlayer._FEW_SHOT`
+reference four real properties present in `default_config.yaml`:
+B1 Oriental Avenue, D1 St. James Place, C2 States Avenue, G1 Pacific
+Avenue. When GUIDED-PLAYER plays on the canonical default board, the
+model has been pre-coached on those exact properties.
+
+Why the names were chosen: convenience during early development.
+Layer-1 specificity (template matching) and layer-2 specificity (one
+example per strategic axis) are deliberate and empirically necessary
+at 1.5B parameters; layer-3 specificity (real names) is incidental
+and could be replaced with synthetic placeholders without affecting
+the prompt's pedagogical function.
+
+When this matters: any future study using GUIDED-PLAYER on the
+canonical default board.
+
+When this does NOT matter: Phase A (mini-board, no overlap), MIRROR
+and PHASE-A-ROBUSTNESS (NEUTRAL-PLAYER, no shots), TUNER and
+ARCHITECT (no LLM player at all).
+
+Mitigation if needed: replace `_FEW_SHOT` with synthetic property
+names that don't appear in any test-bench config.

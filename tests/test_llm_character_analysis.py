@@ -125,3 +125,118 @@ def test_grounded_rate_per_board_independence():
     # Board B: 'Alpha' is NOT in its prop dict -> not grounded by prop
     # (could still be grounded by 'monopoly'? no - that's a concept, not a prop name)
     assert g['B']['n_has_prop'] == 0
+
+
+# --------------------------------------------------------------------------- #
+# format_pass_rate_gate (round 1 §1.3)                                          #
+# --------------------------------------------------------------------------- #
+
+def test_format_pass_rate_gate_passes_above_threshold():
+    decisions = (
+        [_decision('A', 'X', f'r{i}', format_ok=True) for i in range(8)] +
+        [_decision('A', 'X', f'b{i}', format_ok=False) for i in range(2)]
+    )
+    out = llm_character.format_pass_rate_gate(decisions, threshold=0.70)
+    assert out['per_board']['A']['rate'] == pytest.approx(0.8)
+    assert out['per_board']['A']['pass'] is True
+    assert out['all_pass'] is True
+    assert out['failing'] == []
+
+
+def test_format_pass_rate_gate_fails_below_threshold():
+    decisions = (
+        [_decision('A', 'X', f'r{i}', format_ok=True) for i in range(6)] +
+        [_decision('A', 'X', f'b{i}', format_ok=False) for i in range(4)]
+    )
+    out = llm_character.format_pass_rate_gate(decisions, threshold=0.70)
+    assert out['per_board']['A']['rate'] == pytest.approx(0.6)
+    assert out['per_board']['A']['pass'] is False
+    assert out['all_pass'] is False
+    assert 'A' in out['failing']
+
+
+def test_format_pass_rate_gate_per_board_independence():
+    """One bad board fails the gate without dragging down the others."""
+    decisions = (
+        [_decision('good', 'X', 'ok', format_ok=True) for _ in range(10)] +
+        [_decision('bad',  'X', 'r', format_ok=True) for _ in range(2)] +
+        [_decision('bad',  'X', 'b', format_ok=False) for _ in range(8)]
+    )
+    out = llm_character.format_pass_rate_gate(decisions, threshold=0.70)
+    assert out['per_board']['good']['pass'] is True
+    assert out['per_board']['bad']['pass'] is False
+    assert out['failing'] == ['bad']
+
+
+# --------------------------------------------------------------------------- #
+# Robustness checks (round 1 §1.3)                                              #
+# --------------------------------------------------------------------------- #
+
+def _canned_decisions():
+    """Two boards, deliberately different reasoning vocabularies, large
+    enough corpora to support the noise-floor split."""
+    a_text = ('I will buy this for the monopoly and complete the colour set; '
+              'cash is plentiful and rent return is excellent.')
+    b_text = ('I should pass; risk of bankruptcy looks high if rent income '
+              'on opponent properties drains my cash.')
+    out = []
+    for i in range(20):
+        out.append(_decision('A', 'X', f'{a_text} ({i})'))
+        out.append(_decision('B', 'X', f'{b_text} ({i})'))
+    return out
+
+
+def test_empath_robustness_returns_symmetric_zero_diag_or_skips():
+    """Empath may not be installed in the dev image; the function should
+    return a non-crashing dict either way. When empath IS available, the
+    returned matrix is symmetric and zero on the diagonal."""
+    out = llm_character.empath_robustness(_canned_decisions(),
+                                            n_within_splits=10, seed=0)
+    if 'note' in out and out['note'].startswith('empath unavailable'):
+        # OK if empath isn't installed in the dev image; we don't fail
+        # the test purely on dependency availability.
+        return
+    matrix = out['matrix']
+    assert len(matrix) == len(out['boards'])
+    n = len(matrix)
+    if n == 0:
+        return
+    for i in range(n):
+        assert matrix[i][i] == pytest.approx(0.0, abs=1e-9)
+        for j in range(n):
+            assert matrix[i][j] == pytest.approx(matrix[j][i], abs=1e-9)
+
+
+def test_sbert_robustness_returns_non_nan_matrix_or_skips():
+    """sentence-transformers + downloaded weights may not be available;
+    skip cleanly. If it IS available, the cosine matrix must be finite."""
+    import math
+    out = llm_character.sbert_robustness(_canned_decisions())
+    if 'note' in out and out.get('note', '').startswith(
+            ('sentence-transformers unavailable', 'failed to load')):
+        return
+    matrix = out.get('cosine_matrix') or []
+    if not matrix:
+        return
+    for row in matrix:
+        for v in row:
+            assert not math.isnan(v)
+
+
+# --------------------------------------------------------------------------- #
+# Generation-config recording (round 1 §1.3)                                    #
+# --------------------------------------------------------------------------- #
+
+def test_character_player_records_gen_cfg():
+    """Round 1 lock: every per-decision record carries a gen_cfg snapshot
+    of the locked generation parameters (model, max_new_tokens, do_sample,
+    temperature, seed)."""
+    p = llm_character.CharacterLLMPlayer(
+        'LLM-test', backend='heuristic', max_new_tokens=160, base_seed=42)
+    cfg = p._gen_cfg
+    assert cfg['max_new_tokens'] == 160
+    assert cfg['do_sample'] is False
+    assert cfg['temperature'] == 0.0
+    assert cfg['seed'] == 42
+    assert 'model' in cfg
+

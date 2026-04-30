@@ -1,7 +1,10 @@
 # ANALYSIS_PLAN.md
 
-Status: planning draft, 2026-04-27 (revised 2026-04-28).
-Source of truth: `ceo-plans/2026-04-27-llm-design-loop-expansion.md`.
+Status: planning draft, 2026-04-27 (revised 2026-04-30).
+Source of truth: `plan_v2.md` (round-1 scope) and `ROUND1_ACTION_PLAN.md`
+(round-1 implementation lock; not committed). The earlier pointer to
+`ceo-plans/2026-04-27-llm-design-loop-expansion.md` is superseded — that
+file represented the pre-`plan_v2` framing.
 
 This file records the current analysis plan for items #3, #4, #5 of the LLM
 design-loop expansion. It is a working plan, not a lock — revise as we
@@ -148,6 +151,15 @@ no-$200-on-first-pass, etc.) gives the static ceiling baseline. The LLM
 
 Both comparator gates are computed per-board and pooled.
 
+**Note on exploit-resistance.** Strategy-pool exploit-resistance is reported
+as a *parallel* metric in the diagnostic feed and the trajectory JSONLs
+(see `_strategy_pool_exploit_block` in `scripts/llm_design_loop.py`). It is
+NOT folded into the score function. Two reasons: (1) changing the score
+mid-stream invalidates direct comparisons against the GA-2p / GA-3p winners,
+which were optimized against the original score; (2) reporting the metric
+parallel-track lets us answer the richer question "did the LLM reduce
+exploitability *even when not directly scored on it?*"
+
 ---
 
 ## 7. Iteration board for #4 / #5 — DECISION
@@ -188,6 +200,13 @@ Recommended C5 audit (pool diagnostics: pairwise win-rate matrix +
 archetype entropy) — out of scope for this lock, but should be added in
 the appendix before submission.
 
+The same pool diagnostics now appear in the round-1 TUNER diagnostic
+feed (T-MET / T-FULL / T-BLIND) under `## STRATEGY-POOL EXPLOITATION`:
+pairwise win-rate dispersion, most-dominant pair, archetype entropy.
+That block is computed per iteration from the same eval games used for
+the score; the appendix table is the same numbers aggregated across
+trajectories.
+
 ---
 
 ## 9. Validation matrix LLM identity (C8)
@@ -211,6 +230,56 @@ disk. v2 is forbidden to start before v1 has completed and produced a
 deliverable trajectory.
 
 ---
+
+## 11. Prior-iteration history redaction (round 1 TUNER)
+
+Each TUNER condition's `## PRIOR ITERATIONS` block is filtered to match
+its information channels. T-HAZ history shows hazards only; T-MET history
+shows metrics + score + groups + exploit only; T-FULL / T-BLIND history
+shows everything; T-MUTE history shows design diffs only. Without
+redaction, even one or two iterations of full history would collapse
+T-HAZ and T-MET into T-FULL by leaking the hidden information channel
+via the history block — by iteration 3-4 of K=8 the conditions would
+be indistinguishable. Redaction is what keeps the ablation a
+single-variable comparison.
+
+Trajectory JSONL records the redacted history block exactly as the LLM
+saw it (the diagnostic feed is reconstructable from the iteration record
+at write time, not assembled fresh at analysis time).
+
+Convergence handling is also condition-aware (per ROUND1_ACTION_PLAN
+§1.4):
+  - T-FULL / T-HAZ / T-MET honor `converged=true`; remaining iters are
+    padded with `convergence_padded=true` carrying forward the
+    converged design unchanged.
+  - T-MUTE / T-BLIND disallow `converged=true`; the user prompt says so
+    explicitly. If the model sets it anyway the iteration is recorded
+    with `convergence_violation=true` and the loop continues for the
+    full K iters (in information-starved conditions the model has no
+    real basis for "I'm done"; allowing self-reported convergence
+    would produce truncated trajectories and break the cross-condition
+    comparison).
+
+Failed-parse policy is identical across conditions: 1 retry with a
+format-reminder appended to the user prompt; if the second attempt also
+fails, carry forward iter-(k-1) design with
+`parser_status=parser_failure`.
+
+## 12. Generation-parameter lock (round 1)
+
+| Experiment | model | max_new_tokens | do_sample | temperature | torch seed |
+|---|---|---|---|---|---|
+| PHASE-A-ROBUSTNESS | Qwen2.5-1.5B-Instruct | 160 | False | 0.0 | per-game from base seed |
+| MIRROR-H            | Qwen2.5-1.5B-Instruct | 160 | False | 0.0 | per-game from base seed |
+| TUNER (all)         | Qwen2.5-1.5B-Instruct | 320 | False | 0.0 | per-iteration from base seed |
+
+Determinism: `torch.use_deterministic_algorithms(True)` is set at script
+startup and `CUBLAS_WORKSPACE_CONFIG=:4096:8` is exported into the env.
+
+Every LLM call records `gen_cfg = {model, max_new_tokens, do_sample,
+temperature, seed}` into the per-decision (MIRROR-H) or per-iteration
+(TUNER) JSONL. Post-run analysis can verify nothing drifted by reading
+the recorded `gen_cfg` against the lock above.
 
 ## What is explicitly post-hoc
 

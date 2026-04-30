@@ -245,8 +245,19 @@ class LLMPlayer(Player):
             from_pretrained_kw = {'cache_dir': cache_dir}
         tok = AutoTokenizer.from_pretrained(model_name, **from_pretrained_kw)
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        # Load in float16 on GPU for speed; default precision on CPU.
-        kw = {'torch_dtype': torch.float16} if device == 'cuda' else {}
+        # Precision + attention impl can be overridden via env vars so the
+        # cluster can opt into bf16 + flash-attn-2 without changing default
+        # behavior on dev hosts (where Phase A's original runs were captured).
+        kw = {}
+        if device == 'cuda':
+            dtype_name = os.environ.get('LLM_DTYPE', 'float16')
+            dtype = {'float16': torch.float16,
+                      'bfloat16': torch.bfloat16,
+                      'float32':  torch.float32}.get(dtype_name, torch.float16)
+            kw['torch_dtype'] = dtype
+            attn_impl = os.environ.get('LLM_ATTN_IMPL')
+            if attn_impl:
+                kw['attn_implementation'] = attn_impl
         model = AutoModelForCausalLM.from_pretrained(
             model_name, **from_pretrained_kw, **kw).to(device)
         model.eval()

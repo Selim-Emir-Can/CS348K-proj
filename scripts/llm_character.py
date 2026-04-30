@@ -63,6 +63,7 @@ from optimizer.board_sources import build_five_boards
 from optimizer.simulate import (_bounded_trade_loop,
                                  _track_interplayer_transfers)
 from player_settings import StandardPlayerSettings
+from prompts.loader import load_prompt
 
 
 # --------------------------------------------------------------------------- #
@@ -89,20 +90,10 @@ CONCEPTS = list(CONCEPT_PATTERNS.keys())
 
 # A single neutral system prompt with no strategic scaffolding. The plan
 # requires this be pinned in the script (not configurable per-board) so the
-# environment is the only source of any reasoning shift.
-NEUTRAL_SYSTEM_PROMPT = (
-    "You are playing Monopoly. When asked to make a decision about whether "
-    "to buy a property, ground your reasoning in the current game state "
-    "(your cash, your owned properties, opponent state, and the specific "
-    "decision in front of you). State your reasoning in one short sentence "
-    "before committing to your choice.\n\n"
-    "Reply EXACTLY in this format on a single line:\n"
-    "  REASON: <one short sentence grounded in current game state>\n"
-    "  ANSWER: BUY\n"
-    "or\n"
-    "  REASON: <one short sentence grounded in current game state>\n"
-    "  ANSWER: PASS"
-)
+# environment is the only source of any reasoning shift. The text lives in
+# prompts/character_llm_prompt.txt and is hash-locked via prompts.loader so a
+# silent edit mid-run aborts the next experiment instead of contaminating it.
+NEUTRAL_SYSTEM_PROMPT = load_prompt('character_llm_prompt.txt')
 
 
 # --------------------------------------------------------------------------- #
@@ -123,15 +114,35 @@ class CharacterLLMPlayer(LLMPlayer):
     _FEW_SHOT: List[dict] = []   # explicitly empty so reasoning is uninstructed
 
     def __init__(self, name: str, settings=None, backend: str = 'local',
-                 model_name: str = None, max_new_tokens: int = 96,
+                 model_name: str = None, max_new_tokens: int = 160,
                  on_decision=None, board_label: str = '',
-                 game_id: int = 0, turn_ref=None):
+                 game_id: int = 0, turn_ref=None,
+                 base_seed: Optional[int] = None):
         super().__init__(name, settings=settings, backend=backend,
                          model_name=model_name, max_new_tokens=max_new_tokens)
         self._on_decision = on_decision
         self._board_label = board_label
         self._game_id = game_id
         self._turn_ref = turn_ref or [0]
+        # Snapshot of the locked generation parameters, written into every
+        # decision record so post-run analysis can verify nothing drifted.
+        # `engine`, `dtype`, `attn_impl` capture the cluster-vs-dev-host
+        # delta so a reviewer can grep gen_cfg across decisions.jsonl and
+        # confirm the entire run used one instrument config.
+        import os as _os
+        self._gen_cfg = {
+            'model':           (model_name or 'Qwen/Qwen2.5-1.5B-Instruct'),
+            'max_new_tokens':  int(max_new_tokens),
+            'do_sample':       False,
+            'temperature':     0.0,
+            'seed':            int(base_seed) if base_seed is not None else None,
+            'engine':          ('openai-compat' if backend == 'openai'
+                                  else ('heuristic' if backend == 'heuristic'
+                                          else 'transformers')),
+            'dtype':           _os.environ.get('LLM_DTYPE', 'float16'),
+            'attn_impl':       _os.environ.get('LLM_ATTN_IMPL', 'default'),
+            'deterministic':   True,
+        }
 
     def _should_buy(self, property_to_buy) -> bool:
         # Mirror parent affordability + ignore-group shortcuts so we don't
@@ -179,6 +190,7 @@ class CharacterLLMPlayer(LLMPlayer):
                 'decision':      'BUY' if decision else 'PASS',
                 'format_ok':     bool(format_ok) and backend_error is None,
                 'backend_error': backend_error,
+                'gen_cfg':       dict(self._gen_cfg),
             })
         self._n_buy_decisions += 1
         if decision:
@@ -226,7 +238,7 @@ def run_self_play(cfg, board_label: str, game_id: int, seed: int,
             nm, settings=StandardPlayerSettings(),
             backend=backend, model_name=model_name,
             on_decision=on_decision, board_label=board_label,
-            game_id=game_id, turn_ref=turn_ref,
+            game_id=game_id, turn_ref=turn_ref, base_seed=seed,
         )
         p.money = default_starting
         players.append(p)
@@ -499,15 +511,14 @@ def run_analyse(args, decisions_path: Path, out_dir: Path):
 
     # Data-quality report BEFORE deriving any finding from the corpus.
     quality = per_board_quality(decisions)
+    gate = format_pass_rate_gate(decisions, threshold=args.format_ok_threshold)
     print('  data quality:')
-    failing_boards: List[str] = []
+    failing_boards: List[str] = list(gate['failing'])
     for b, rec in quality.items():
         flag = ' OK' if rec['format_ok_rate'] >= args.format_ok_threshold else ' BELOW THRESHOLD'
         print(f'    {b:>12}: n={rec["n_total"]:5d}  '
               f'format_ok={rec["format_ok_rate"]*100:5.1f}%  '
               f'backend_err={rec["backend_error_rate"]*100:5.1f}%  {flag}')
-        if rec['format_ok_rate'] < args.format_ok_threshold:
-            failing_boards.append(b)
 
     corpora = per_board_corpus(decisions)
     stats = per_board_stats(corpora)
@@ -516,7 +527,8 @@ def run_analyse(args, decisions_path: Path, out_dir: Path):
     quality_path = out_dir / 'data_quality.json'
     with open(quality_path, 'w') as f:
         json.dump({'per_board': quality,
-                   'format_ok_threshold': args.format_ok_threshold},
+                   'format_ok_threshold': args.format_ok_threshold,
+                   'format_pass_rate_gate': gate},
                   f, indent=2)
     print(f'  quality   -> {quality_path}')
 
@@ -590,6 +602,35 @@ def run_analyse(args, decisions_path: Path, out_dir: Path):
     plot_grounded_rate(grounded, out_dir / 'grounded_rate.pdf')
     plot_grounded_rate(grounded, out_dir / 'grounded_rate.png')
     write_corpus_samples(corpora, out_dir / 'corpus_samples.md', k=10)
+
+    # Robustness checks (round 1 §1.3): primary 10-concept finding plus two
+    # independent dictionaries — Empath's 200 categories and sentence-BERT
+    # cosine. If all three agree, the divergence is dictionary-robust.
+    print('Computing Empath-200 robustness...')
+    empath = empath_robustness(decisions,
+                                n_within_splits=args.n_within_splits,
+                                seed=args.stat_seed)
+    with open(out_dir / 'empath_divergence.json', 'w') as f:
+        json.dump(empath, f, indent=2)
+    if empath.get('matrix'):
+        plot_empath_matrix(empath, out_dir / 'empath_divergence_matrix.pdf')
+        plot_empath_matrix(empath, out_dir / 'empath_divergence_matrix.png')
+        print(f'  empath cross_max={empath["cross_max"]:.3f} '
+              f'(threshold={empath["noise_floor"]["meaningful_threshold"]:.3f}) '
+              f'meaningful={empath["cross_board_meaningful"]}')
+    else:
+        print(f'  empath skipped: {empath.get("note", "no data")}')
+
+    print('Computing sentence-BERT robustness...')
+    sbert = sbert_robustness(decisions)
+    with open(out_dir / 'sbert_cosine.json', 'w') as f:
+        json.dump(sbert, f, indent=2)
+    if sbert.get('cosine_matrix'):
+        plot_sbert_matrix(sbert, out_dir / 'sbert_cosine_matrix.pdf')
+        plot_sbert_matrix(sbert, out_dir / 'sbert_cosine_matrix.png')
+        print(f'  sBERT model={sbert["model"]}; matrix written.')
+    else:
+        print(f'  sBERT skipped: {sbert.get("note", "no data")}')
     mp = _argmax_offdiag(boards, M)
     print(f'  max-divergence board pair: {mp["pair"]}  L1={mp["value"]:.3f}')
     print(f'    bootstrap 95% CI on max-pair L1: '
@@ -905,6 +946,287 @@ def permutation_test_max_divergence(corpora: Dict[str, List[str]],
         'null_mean':    float(null_arr.mean()),
         'null_ci_hi':   float(np.percentile(null_arr, 95.0)),
     }
+
+
+# --------------------------------------------------------------------------- #
+# Format-pass-rate gate (round 1 §1.3)                                          #
+# --------------------------------------------------------------------------- #
+
+def format_pass_rate_gate(decisions: List[dict],
+                          threshold: float = 0.70) -> dict:
+    """Per-board format-compliance pass/fail.
+
+    Returns a dict shaped:
+      {
+        'threshold': float,
+        'per_board': {board: {'rate': float, 'pass': bool, 'n': int}},
+        'all_pass':  bool,
+        'failing':   [board_label, ...],
+      }
+
+    Backend errors count as format failures (the corpus excludes them anyway,
+    but a high rate of backend errors is itself a data-quality flag and the
+    gate is the right place to surface it). A board falling below `threshold`
+    means its corpus is unreliable and downstream divergence claims should be
+    flagged in the writeup."""
+    quality = per_board_quality(decisions)
+    per_board: Dict[str, dict] = {}
+    failing: List[str] = []
+    for board, rec in quality.items():
+        rate = float(rec.get('format_ok_rate', 0.0))
+        ok = rate >= threshold
+        per_board[board] = {'rate': rate, 'pass': bool(ok),
+                             'n': int(rec.get('n_total', 0))}
+        if not ok:
+            failing.append(board)
+    return {
+        'threshold':  float(threshold),
+        'per_board':  per_board,
+        'all_pass':   len(failing) == 0,
+        'failing':    failing,
+    }
+
+
+# --------------------------------------------------------------------------- #
+# Empath-200 robustness check (round 1 §1.3)                                    #
+# --------------------------------------------------------------------------- #
+
+def empath_robustness(decisions: List[dict],
+                       n_within_splits: int = 100,
+                       seed: int = 0) -> dict:
+    """Cross-board L1 over Empath's 200 categories with the same noise-floor
+    methodology as the primary 10-concept analysis.
+
+    Empath gives us a much wider semantic dictionary; if the 10-concept
+    headline replicates against 200 unrelated categories, the divergence
+    finding is robust to the dictionary choice. This is the agreement
+    check, not a replacement for the primary analysis.
+
+    Returns a dict shaped:
+      {
+        'boards':                [...],
+        'matrix':                [[float ...] ...],
+        'cross_max':             float,
+        'noise_floor':           {pooled_mean, pooled_std, meaningful_threshold, ...},
+        'cross_board_meaningful': bool,
+        'n_categories':          int,
+        'note':                  str   (set if Empath unavailable)
+      }
+    """
+    try:
+        from empath import Empath
+    except Exception as ex:
+        return {'note': f'empath unavailable ({type(ex).__name__}: {ex})',
+                'boards': [], 'matrix': [],
+                'cross_max': 0.0, 'cross_board_meaningful': False,
+                'n_categories': 0}
+
+    lex = Empath()
+    categories = sorted(lex.cats.keys())
+
+    def _empath_freq(text: str) -> Dict[str, float]:
+        # Empath returns category counts. normalize=False so we can pool.
+        try:
+            return lex.analyze(text or '', normalize=False) or {}
+        except Exception:
+            return {}
+
+    def _l1(p: Dict[str, float], q: Dict[str, float]) -> float:
+        s_p = sum(p.values()); s_q = sum(q.values())
+        if s_p <= 0 or s_q <= 0:
+            return 0.0
+        return 0.5 * sum(abs(p.get(c, 0.0) / s_p - q.get(c, 0.0) / s_q)
+                          for c in categories)
+
+    corpora = per_board_corpus(decisions)
+    boards = list(corpora.keys())
+    if not boards:
+        return {'boards': [], 'matrix': [], 'cross_max': 0.0,
+                'cross_board_meaningful': False, 'n_categories': len(categories)}
+
+    # Empath totals per board (single bag).
+    totals: Dict[str, Dict[str, float]] = {}
+    for b, rs in corpora.items():
+        agg: Dict[str, float] = {c: 0.0 for c in categories}
+        for r in rs:
+            f = _empath_freq(r)
+            for c, v in f.items():
+                agg[c] = agg.get(c, 0.0) + float(v)
+        totals[b] = agg
+
+    n = len(boards)
+    M = np.zeros((n, n), dtype=float)
+    for i in range(n):
+        for j in range(n):
+            if i == j:
+                continue
+            M[i, j] = _l1(totals[boards[i]], totals[boards[j]])
+
+    # Within-board Empath noise floor: 100 random equal-size splits per board.
+    rng = np.random.default_rng(seed)
+    pooled: List[float] = []
+    per_board_noise: Dict[str, dict] = {}
+    for b, rs in corpora.items():
+        if len(rs) < 4:
+            per_board_noise[b] = {'mean': 0.0, 'std': 0.0,
+                                   'note': 'corpus too small (<4)'}
+            continue
+        idx = np.arange(len(rs))
+        half = len(rs) // 2
+        samples: List[float] = []
+        for _ in range(n_within_splits):
+            rng.shuffle(idx)
+            ai = idx[:half]; bi = idx[half:2 * half]
+            agg_a: Dict[str, float] = {c: 0.0 for c in categories}
+            agg_b: Dict[str, float] = {c: 0.0 for c in categories}
+            for k in ai:
+                f = _empath_freq(rs[k])
+                for c, v in f.items(): agg_a[c] = agg_a.get(c, 0.0) + float(v)
+            for k in bi:
+                f = _empath_freq(rs[k])
+                for c, v in f.items(): agg_b[c] = agg_b.get(c, 0.0) + float(v)
+            samples.append(_l1(agg_a, agg_b))
+        arr = np.asarray(samples, dtype=float)
+        per_board_noise[b] = {'mean': float(arr.mean()),
+                               'std':  float(arr.std(ddof=0)),
+                               'samples': samples}
+        pooled.extend(samples)
+
+    pooled_arr = np.asarray(pooled, dtype=float)
+    if len(pooled_arr):
+        pmean = float(pooled_arr.mean()); pstd = float(pooled_arr.std(ddof=0))
+    else:
+        pmean = pstd = 0.0
+    threshold = pmean + 2.0 * pstd
+    cross_max = _max_offdiag(M)
+    return {
+        'boards':                boards,
+        'matrix':                M.tolist(),
+        'cross_max':             float(cross_max),
+        'noise_floor':           {'per_board': per_board_noise,
+                                   'pooled_mean': pmean, 'pooled_std': pstd,
+                                   'meaningful_threshold': threshold,
+                                   'n_within_splits': int(n_within_splits)},
+        'cross_board_meaningful': bool(cross_max > threshold),
+        'n_categories':          int(len(categories)),
+    }
+
+
+def plot_empath_matrix(robustness: dict, out_path: Path) -> None:
+    if not robustness.get('boards') or not robustness.get('matrix'):
+        return
+    import matplotlib.pyplot as plt
+    boards = robustness['boards']
+    M = np.asarray(robustness['matrix'], dtype=float)
+    fig, ax = plt.subplots(figsize=(5.5, 4.8))
+    im = ax.imshow(M, cmap='magma', vmin=0, vmax=max(0.05, float(M.max())))
+    ax.set_xticks(range(len(boards))); ax.set_yticks(range(len(boards)))
+    ax.set_xticklabels(boards, rotation=45, ha='right')
+    ax.set_yticklabels(boards)
+    for i in range(len(boards)):
+        for j in range(len(boards)):
+            ax.text(j, i, f'{M[i,j]:.2f}', ha='center', va='center',
+                    color='white' if M[i, j] > M.max() * 0.5 else 'black',
+                    fontsize=8)
+    fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04).set_label(
+        f'L1 over Empath ({robustness.get("n_categories", 200)} categories)')
+    ax.set_title('Cross-board character divergence (Empath robustness)')
+    fig.tight_layout()
+    fig.savefig(out_path)
+    plt.close(fig)
+
+
+# --------------------------------------------------------------------------- #
+# Sentence-BERT robustness check (round 1 §1.3)                                 #
+# --------------------------------------------------------------------------- #
+
+def sbert_robustness(decisions: List[dict],
+                      model_name: str = 'all-MiniLM-L6-v2') -> dict:
+    """Per-decision sentence-BERT embeddings, mean-pooled per board, pairwise
+    cosine. The complement of cosine ('1 - cos') is reported alongside the
+    primary L1 matrix; agreement of (high primary L1) with (high 1-cos) is
+    the agreement check.
+
+    Returns a dict shaped:
+      {
+        'boards': [...],
+        'cosine_matrix':  [[float ...] ...],   # pairwise cosine, diagonal=1
+        'note':           str (set if model fails to load),
+        'model':          str,
+      }
+    """
+    try:
+        from sentence_transformers import SentenceTransformer
+    except Exception as ex:
+        return {'note': f'sentence-transformers unavailable '
+                        f'({type(ex).__name__}: {ex})',
+                'boards': [], 'cosine_matrix': [], 'model': model_name}
+
+    corpora = per_board_corpus(decisions)
+    boards = list(corpora.keys())
+    if not boards:
+        return {'boards': [], 'cosine_matrix': [], 'model': model_name}
+
+    try:
+        model = SentenceTransformer(model_name)
+    except Exception as ex:
+        return {'note': f'failed to load {model_name} '
+                        f'({type(ex).__name__}: {ex})',
+                'boards': boards, 'cosine_matrix': [], 'model': model_name}
+
+    centroids: List[np.ndarray] = []
+    for b in boards:
+        rs = [r for r in corpora[b] if (r or '').strip()]
+        if not rs:
+            centroids.append(np.zeros(model.get_sentence_embedding_dimension(),
+                                       dtype=np.float32))
+            continue
+        embs = model.encode(rs, batch_size=32, show_progress_bar=False,
+                             convert_to_numpy=True, normalize_embeddings=False)
+        c = np.asarray(embs, dtype=np.float32).mean(axis=0)
+        n = float(np.linalg.norm(c))
+        if n > 0:
+            c = c / n
+        centroids.append(c)
+
+    n = len(centroids)
+    M = np.zeros((n, n), dtype=float)
+    for i in range(n):
+        for j in range(n):
+            ci = centroids[i]; cj = centroids[j]
+            if np.linalg.norm(ci) == 0 or np.linalg.norm(cj) == 0:
+                M[i, j] = 0.0 if i != j else 1.0
+            else:
+                M[i, j] = float(np.dot(ci, cj))
+    return {
+        'boards':         boards,
+        'cosine_matrix':  M.tolist(),
+        'model':          model_name,
+    }
+
+
+def plot_sbert_matrix(robustness: dict, out_path: Path) -> None:
+    if not robustness.get('boards') or not robustness.get('cosine_matrix'):
+        return
+    import matplotlib.pyplot as plt
+    boards = robustness['boards']
+    M = np.asarray(robustness['cosine_matrix'], dtype=float)
+    fig, ax = plt.subplots(figsize=(5.5, 4.8))
+    im = ax.imshow(M, cmap='viridis', vmin=float(np.nanmin(M)),
+                   vmax=float(np.nanmax(M)))
+    ax.set_xticks(range(len(boards))); ax.set_yticks(range(len(boards)))
+    ax.set_xticklabels(boards, rotation=45, ha='right')
+    ax.set_yticklabels(boards)
+    for i in range(len(boards)):
+        for j in range(len(boards)):
+            ax.text(j, i, f'{M[i,j]:.2f}', ha='center', va='center',
+                    color='white' if M[i, j] < 0.6 else 'black', fontsize=8)
+    fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04).set_label(
+        f'pairwise cosine (sentence-BERT, {robustness.get("model", "")})')
+    ax.set_title('Cross-board character divergence (sBERT robustness)')
+    fig.tight_layout()
+    fig.savefig(out_path)
+    plt.close(fig)
 
 
 def main():

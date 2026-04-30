@@ -2,6 +2,8 @@
 *.txt
 # ...except prompt artefacts in monopoly/prompts/, which are documentation
 !prompts/*.txt
+# ...and requirements.txt at repo root (project asset)
+!/requirements.txt
 
 # LaTeX build artifacts at report/ root (figures/*.pdf are kept)
 /report/report.aux
@@ -189,3 +191,7 @@ optimizer/strategy_pool.json
 # VS Code per-project state
 .codex/
 /results/
+
+# Working planning documents (not committed — paper artifacts live in report/)
+/ROUND1_ACTION_PLAN.md
+/ROUND1_HYPOTHESES.md

@@ -1,0 +1,4 @@
+# Round 1 added dependencies (MIRROR-H robustness checks). Pinned to keep
+# concept-divergence findings reproducible across hosts.
+empath==0.89
+sentence-transformers==3.0.1

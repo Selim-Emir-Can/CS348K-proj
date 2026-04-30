@@ -1,47 +1,58 @@
-"""LLM-as-parametric-designer closed loop (#4 of the LLM design-loop expansion).
+"""LLM-as-parametric-designer closed loop — TUNER experiment, round 1.
 
-Qwen2.5-1.5B sees a diagnostic feed (hazards, RB-vs-LLM agreement, per-group
-cost/rent breakdown, design diff from default) and emits a hierarchical
-group-level intervention with rationale text. Loop runs up to K iterations
-or until the LLM declares {converged}.
+Five-condition ablation over the same K=8 trajectory:
 
-Iteration board: per Step 0 audit (Spearman rho=0.30 < 0.4 cutoff), the
-iteration board is CANONICAL, not mini. ANALYSIS_PLAN §7.
+  T-MUTE  : no diagnostic feed (control)
+  T-HAZ   : hazards channel only
+  T-MET   : metrics + per-group breakdown + strategy-pool exploit-resistance
+  T-FULL  : everything, GOAL-OPEN designer prompt (score function disclosed)
+  T-BLIND : everything, GOAL-CLOSED designer prompt (score not disclosed)
 
-Per-iteration JSONL logged to <out_dir>/<board>_seed<S>.jsonl with:
-  - design vector and human-readable diff from default
-  - rationale text
-  - eval output (score + metrics) and per-iter CI on score delta
-  - parser status (ok / parser_failure / invalid_patch)
-  - LLM token count
+Plus three structural comparators:
 
-Fixed across the run (per CEO plan + lock):
+  T-RAND  : uniform random parametric edits (does feedback beat random?)
+  T-CANON : no design intervention (variance floor)
+  T-SANITY: hardcoded "obviously good" trajectory (eval check)
+
+The LLM conditions all share the same per-iteration eval-game seed schedule
+for fixed (board, seed, iter) so cross-condition comparisons are paired,
+not independently noisy. The `## PRIOR ITERATIONS` block is redacted per
+condition so even one iteration of full history wouldn't collapse T-HAZ
+into T-FULL via the history channel (see ANALYSIS_PLAN §11).
+
+Iteration board: per ANALYSIS_PLAN §7 (Spearman rho=0.30 < 0.4 cutoff),
+iteration board is CANONICAL.
+
+Fixed across the run (per round-1 lock):
   - 5 starting boards from optimizer.board_sources.build_five_boards
-  - 3 seeds per board => 15 trajectories
-  - K=8 iterations max with LLM-declared {converged} action
-  - Eval n_games per iteration; pool + matchups loaded once at start
+  - 3 seeds per board => 15 trajectories per condition
+  - K=8 iterations max with LLM-declared {converged} action (T-FULL/HAZ/MET only)
+  - n_games=200 per iteration; bootstrap n=1500
+  - Strategy pool: optimizer/strategy_pool.json (10 named + 20 sampled, seed=0)
 
 Usage (from CS348K-proj/):
     # Heuristic smoke (no LLM); validates the loop end-to-end in a few sec.
-    set PYTHONPATH=. && python scripts/llm_design_loop.py --backend heuristic \
-        --boards default --n-seeds 1 --K 3 --n-games 20
+    set PYTHONPATH=. && python scripts/llm_design_loop.py --backend heuristic \\
+        --ablation-condition full --boards default --n-seeds 1 --K 3 --n-games 20
 
-    # Production:
-    set PYTHONPATH=. && python scripts/llm_design_loop.py --backend local \
-        --model Qwen/Qwen2.5-1.5B-Instruct \
-        --n-seeds 3 --K 8 --n-games 100 \
-        --out-dir report/figures/llm_design_loop
+    # Production (one condition):
+    set PYTHONPATH=. && python scripts/llm_design_loop.py --backend local \\
+        --ablation-condition full \\
+        --model Qwen/Qwen2.5-1.5B-Instruct \\
+        --n-seeds 3 --K 8 --n-games 200 \\
+        --out-dir report/figures/round1/tuner/full
 """
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
 import time
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Literal, Optional, Tuple
 
 import numpy as np
 
@@ -51,40 +62,17 @@ from optimizer.board_sources import build_five_boards
 from optimizer.group_design import (GroupDesign, apply_design,
                                        bootstrap_score_ci, evaluate_config)
 from optimizer.strategy_pool import load_eval_matchups, load_strategy_pool
+from prompts.loader import load_prompt
+
+
+CONDITIONS = ('mute', 'haz', 'met', 'full', 'blind', 'rand', 'canon', 'sanity')
+LLM_CONDITIONS = ('mute', 'haz', 'met', 'full', 'blind')
+NO_CONVERGE_CONDITIONS = ('mute', 'blind')
 
 
 # --------------------------------------------------------------------------- #
 # Designer-LLM wrapper                                                          #
 # --------------------------------------------------------------------------- #
-
-DESIGNER_SYSTEM_PROMPT = (
-    "You are a tabletop-game designer reasoning about a Monopoly variant. "
-    "Each turn you receive a DIAGNOSTIC FEED describing the current board's "
-    "behaviour (length, fairness, cash flow, hazard shape, per-group "
-    "cost/rent breakdown, and the diff from the default board). Your job "
-    "is to propose ONE small intervention to the parametric design that "
-    "would improve the combined score (lower is better; the score "
-    "penalises unfairness, draw rate, length deviation from 60 rounds, "
-    "and money-flow deviation from $100/round).\n\n"
-    "You must reply with EXACTLY one JSON object inside a fenced ```json``` "
-    "block, with no prose outside the fences, in this schema:\n"
-    "{\n"
-    '  "rationale": "<one short sentence>",\n'
-    '  "intervention": {\n'
-    '     "salary_mult": <float in [0.5, 2.0]>,\n'
-    '     "drop_groups": [<group_name strings>],\n'
-    '     "group_cost_mult": {"<group>": <float in [0.5, 2.0]>, ...},\n'
-    '     "group_rent_mult": {"<group>": <float in [0.5, 2.0]>, ...},\n'
-    '     "prop_overrides": {"<prop_name>": {"cost_base": <int>, "rent_base": <int>}}\n'
-    '  },\n'
-    '  "converged": <true|false>\n'
-    "}\n\n"
-    "Set converged=true ONLY if you believe further intervention will not "
-    "improve the score. Use the property-level escape hatch (prop_overrides) "
-    "rarely; group-level levers are preferred. Group names you reference "
-    "must appear in the per-group breakdown shown in the feed."
-)
-
 
 _RESPONSE_BLOCK = re.compile(r'```(?:json)?\s*(\{.*?\})\s*```', re.DOTALL | re.IGNORECASE)
 
@@ -92,18 +80,16 @@ _RESPONSE_BLOCK = re.compile(r'```(?:json)?\s*(\{.*?\})\s*```', re.DOTALL | re.I
 @dataclass
 class DesignerResponse:
     raw_text:       str
-    parsed:         Optional[dict]      # full parsed payload
+    parsed:         Optional[dict]
     design:         Optional[GroupDesign]
     rationale:      str
     converged:      bool
-    parser_status:  str                  # 'ok' | 'parser_failure' | 'invalid_intervention'
+    parser_status:  str
     error:          Optional[str] = None
     token_count:    Optional[int] = None
 
 
 def _coerce_design(intervention: dict, rationale: str) -> Optional[GroupDesign]:
-    """Convert the LLM's intervention dict into a GroupDesign, returning None
-    if any field has the wrong type (caller logs `parser_status=invalid`)."""
     try:
         return GroupDesign(
             salary_mult       = float(intervention.get('salary_mult', 1.0)),
@@ -117,15 +103,14 @@ def _coerce_design(intervention: dict, rationale: str) -> Optional[GroupDesign]:
             label             = '',
             rationale         = rationale[:500],
         )
-    except (TypeError, ValueError) as ex:
+    except (TypeError, ValueError):
         return None
 
 
 def parse_designer_response(text: str) -> DesignerResponse:
-    """Extract a structured DesignerResponse from a raw LLM text."""
-    candidates: List[str] = []
-    for m in _RESPONSE_BLOCK.finditer(text):
-        candidates.append(m.group(1))
+    """Extract a structured DesignerResponse from raw LLM text. Tries fenced
+    JSON first, falls back to a bare object."""
+    candidates: List[str] = [m.group(1) for m in _RESPONSE_BLOCK.finditer(text)]
     if not candidates:
         candidates.append(text.strip())
 
@@ -164,10 +149,19 @@ def parse_designer_response(text: str) -> DesignerResponse:
                             parser_status='ok')
 
 
+def _designer_prompt_path(goal_disclosure: str) -> str:
+    if goal_disclosure == 'open':
+        return 'designer_llm_prompt_open.txt'
+    if goal_disclosure == 'closed':
+        return 'designer_llm_prompt_closed.txt'
+    raise ValueError(f'goal_disclosure must be open|closed, got {goal_disclosure!r}')
+
+
 class DesignerLLM:
-    """Wraps backend dispatch (heuristic / local / openai). Heuristic backend
-    cycles through a tiny library of canned interventions so the loop driver
-    can be smoke-tested without any model."""
+    """Wraps backend dispatch (heuristic / local / openai). The heuristic
+    backend cycles a tiny canned library so the loop driver can be smoke-
+    tested without any model. Goal-disclosure picks which hash-locked
+    designer prompt is loaded at construction time (open vs closed)."""
 
     _MODEL_CACHE: dict = {}
 
@@ -181,11 +175,28 @@ class DesignerLLM:
     ]
 
     def __init__(self, backend: str = 'local', model_name: Optional[str] = None,
-                 max_new_tokens: int = 320, system_prompt: str = DESIGNER_SYSTEM_PROMPT):
+                 max_new_tokens: int = 320,
+                 goal_disclosure: Literal['open', 'closed'] = 'open'):
         self.backend = backend
         self.model_name = model_name
         self.max_new_tokens = max_new_tokens
-        self.system_prompt = system_prompt
+        self.goal_disclosure = goal_disclosure
+        self.prompt_path = _designer_prompt_path(goal_disclosure)
+        self.system_prompt = load_prompt(self.prompt_path)
+        self.gen_cfg = {
+            'model':           (model_name or 'Qwen/Qwen2.5-1.5B-Instruct'),
+            'max_new_tokens':  int(max_new_tokens),
+            'do_sample':       False,
+            'temperature':     0.0,
+            'goal_disclosure': goal_disclosure,
+            'prompt_path':     self.prompt_path,
+            'engine':          ('openai-compat' if backend == 'openai'
+                                  else ('heuristic' if backend == 'heuristic'
+                                          else 'transformers')),
+            'dtype':           os.environ.get('LLM_DTYPE', 'float16'),
+            'attn_impl':       os.environ.get('LLM_ATTN_IMPL', 'default'),
+            'deterministic':   True,
+        }
 
     def query(self, user_prompt: str, iteration: int = 0) -> Tuple[str, Optional[int]]:
         if self.backend == 'heuristic':
@@ -208,8 +219,16 @@ class DesignerLLM:
         kw = {} if is_local else {'cache_dir': cache_dir}
         tok = AutoTokenizer.from_pretrained(name, **kw)
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        dtype_kw = {'torch_dtype': torch.float16} if device == 'cuda' else {}
-        model = AutoModelForCausalLM.from_pretrained(name, **kw, **dtype_kw).to(device)
+        if device == 'cuda':
+            dtype_name = os.environ.get('LLM_DTYPE', 'float16')
+            dtype = {'float16': torch.float16,
+                      'bfloat16': torch.bfloat16,
+                      'float32':  torch.float32}.get(dtype_name, torch.float16)
+            kw['torch_dtype'] = dtype
+            attn_impl = os.environ.get('LLM_ATTN_IMPL')
+            if attn_impl:
+                kw['attn_implementation'] = attn_impl
+        model = AutoModelForCausalLM.from_pretrained(name, **kw).to(device)
         model.eval()
         self._MODEL_CACHE[name] = (tok, model, device)
         return self._MODEL_CACHE[name]
@@ -229,7 +248,7 @@ class DesignerLLM:
         return gen.strip(), int(gen_tokens.shape[0])
 
     def _query_openai(self, prompt: str) -> str:
-        import json, urllib.request
+        import urllib.request
         base = os.environ.get('LLM_OPENAI_BASE_URL', 'http://localhost:11434/v1')
         key  = os.environ.get('LLM_OPENAI_API_KEY', 'no-key')
         model = self.model_name or os.environ.get('LLM_OPENAI_MODEL', 'qwen2.5:1.5b')
@@ -247,7 +266,7 @@ class DesignerLLM:
 
 
 # --------------------------------------------------------------------------- #
-# Diagnostic feed builder                                                       #
+# Diagnostic-feed components                                                    #
 # --------------------------------------------------------------------------- #
 
 def _per_group_breakdown(cfg: GameConfig) -> List[dict]:
@@ -261,7 +280,7 @@ def _per_group_breakdown(cfg: GameConfig) -> List[dict]:
         r['n'] += 1
         r['cost_sum'] += c.cost_base
         r['rent_sum'] += c.rent_base
-    for g, r in rows.items():
+    for r in rows.values():
         r['mean_cost'] = r['cost_sum'] / max(r['n'], 1)
         r['mean_rent'] = r['rent_sum'] / max(r['n'], 1)
     return [rows[g] for g in rows]
@@ -282,51 +301,215 @@ def _design_diff_summary(design: GroupDesign) -> str:
     return '; '.join(parts) if parts else 'no diff from default'
 
 
+def _strategy_pool_exploit_block(eval_out: dict) -> str:
+    """Build the STRATEGY-POOL EXPLOITATION block.
+
+    pairwise_winrate_dispersion : std of pairwise win-rates across matchup
+                                  pairs (lower = more uniform = healthier).
+    most_dominant_pair          : strat_a beats strat_b at <winrate>.
+    archetype_entropy           : entropy of the winner-archetype distribution
+                                  across all per-game records (higher = more
+                                  diverse winners).
+    """
+    games = eval_out.get('per_game_records', []) or []
+    if not games:
+        return ('  pairwise_winrate_dispersion: n/a (no games)\n'
+                '  most_dominant_pair: n/a\n'
+                '  archetype_entropy: n/a')
+
+    # Aggregate per-pair (winner_strat, loser_strat) wins.
+    pair_counts: Dict[Tuple[str, str], List[int]] = {}
+    winner_counts: Dict[str, int] = {}
+    total = 0
+    for g in games:
+        # run_matchup writes per-game outputs as dicts with at least
+        # 'winner_strategy' / 'players_strategies' fields. Be tolerant of
+        # absent fields so this block never crashes the feed.
+        ws = g.get('winner_strategy') or g.get('winner') or None
+        strats = g.get('players_strategies') or g.get('strategies') or []
+        if not ws or not strats:
+            continue
+        total += 1
+        winner_counts[ws] = winner_counts.get(ws, 0) + 1
+        for s in strats:
+            if s == ws:
+                continue
+            key = (ws, s)
+            slot = pair_counts.setdefault(key, [0, 0])
+            slot[0] += 1                                              # ws beats s
+            rev = pair_counts.setdefault((s, ws), [0, 0])
+            rev[1] += 1                                                # s loses to ws
+
+    if total == 0:
+        return ('  pairwise_winrate_dispersion: n/a (no winner labels)\n'
+                '  most_dominant_pair: n/a\n'
+                '  archetype_entropy: n/a')
+
+    rates = []
+    most_dominant = ('', '', 0.0, 0)
+    for (a, b), (wins, _losses) in pair_counts.items():
+        # Sym-pair total appearances = wins + (other side's losses to this side)
+        rev = pair_counts.get((b, a), [0, 0])
+        n_pair = wins + rev[0]
+        if n_pair < 4:        # too few games to read as a "pair winrate"
+            continue
+        wr = wins / n_pair
+        rates.append(wr)
+        if wr > most_dominant[2]:
+            most_dominant = (a, b, wr, n_pair)
+
+    if rates:
+        dispersion = float(np.std(rates))
+    else:
+        dispersion = 0.0
+
+    if winner_counts:
+        ps = np.array(list(winner_counts.values()), dtype=float)
+        ps = ps / ps.sum()
+        # Shannon entropy in nats; convert to bits for readability.
+        entropy = float(-np.sum(ps * np.log2(np.clip(ps, 1e-12, 1.0))))
+    else:
+        entropy = 0.0
+
+    if most_dominant[2] > 0:
+        a, b, wr, n_pair = most_dominant
+        dom = f'{a} beats {b} at {wr*100:.1f}% (n={n_pair})'
+    else:
+        dom = 'no pair with sufficient sample size'
+
+    return ('\n'.join([
+        f'  pairwise_winrate_dispersion: {dispersion:.3f}    (lower = more uniform)',
+        f'  most_dominant_pair: {dom}',
+        f'  archetype_entropy: {entropy:.3f} bits          (higher = more diverse winners)',
+    ]))
+
+
+def _prior_iterations_block(prior_iters: List[dict], condition: str) -> str:
+    """Format the last <=3 prior iterations in a per-condition redacted way.
+
+    Per ANALYSIS_PLAN §11: even one iteration of full history would leak the
+    hidden information channel and collapse T-HAZ / T-MET into T-FULL by
+    iteration 3-4 of K=8. Redaction keeps the ablation single-variable.
+    """
+    if not prior_iters:
+        return ''
+    lines = []
+    for it in prior_iters[-3:]:
+        i = it.get('iter', '?')
+        diff = it.get('design_diff', '') or 'no diff'
+        rat  = (it.get('rationale') or '').strip()
+        bits = [f'  iter {i}: diff={diff}  rationale={rat[:80]!r}']
+        if condition in ('haz', 'full', 'blind'):
+            hz = it.get('hazard_summary')
+            if hz: bits.append(f'         hazards: {hz[:120]}')
+        if condition in ('met', 'full', 'blind'):
+            sc = it.get('score'); mr = (it.get('metrics') or {}).get('mean_rounds')
+            dr = (it.get('metrics') or {}).get('mean_draw_rate')
+            ex = it.get('exploit_summary')
+            if sc is not None:
+                bits.append(f'         score={sc:.4f}  mean_rounds={mr}  '
+                            f'mean_draw_rate={dr}')
+            if ex: bits.append(f'         exploit: {ex[:120]}')
+        lines.append('\n'.join(bits))
+    return '\n'.join(lines)
+
+
 def build_diagnostic_feed(cfg: GameConfig, design: GroupDesign,
-                           eval_out: dict, prior_eval: Optional[dict] = None,
-                           hazard_summary: Optional[str] = None,
-                           rb_llm_agreement: Optional[str] = None) -> str:
-    """Assemble the text the designer LLM sees per iteration."""
-    metrics = eval_out.get('metrics', {})
-    delta_line = ''
-    if prior_eval is not None:
-        delta = eval_out['score'] - prior_eval['score']
-        delta_line = f'  delta_score_vs_prev: {delta:+.4f}\n'
+                           eval_out: dict, prior_eval: Optional[dict],
+                           condition: str,
+                           prior_iters: Optional[List[dict]] = None,
+                           hazard_summary: Optional[str] = None) -> str:
+    """Assemble the user-prompt the designer LLM sees per iteration.
 
-    bd = _per_group_breakdown(cfg)
-    bd_lines = [f'  - {r["group"]:>10}: n={r["n"]} mean_cost=${r["mean_cost"]:.0f} '
-                f'mean_rent=${r["mean_rent"]:.0f}'
-                for r in bd]
+    Channels are gated per condition. See ROUND1_ACTION_PLAN §1.4 for the
+    full redaction matrix; in summary:
 
-    parts = []
-    parts.append('## CURRENT EVAL')
-    parts.append(f'  score: {eval_out["score"]:.4f}  (lower is better)')
-    parts.append(f'  mean_rounds: {metrics.get("mean_rounds", 0):.1f}  '
-                 f'(target 60)')
-    parts.append(f'  mean_draw_rate: {metrics.get("mean_draw_rate", 0):.3f}')
-    parts.append(f'  mean_fairness: {metrics.get("mean_fairness", 0):.3f}')
-    parts.append(f'  mean_transfer_rate: {metrics.get("mean_transfer_rate", 0):.1f}/round  '
-                 f'(target 100)')
-    if delta_line:
-        parts.append(delta_line.rstrip())
+      - CURRENT EVAL          : met, full, blind
+      - DESIGN DIFF           : all conditions (own action history)
+      - PER-GROUP BREAKDOWN   : met, full, blind
+      - STRATEGY-POOL EXPLOIT : met, full, blind
+      - HAZARD SUMMARY        : haz, full, blind
+      - PRIOR ITERATIONS      : all conditions, but redacted per condition
+      - YOUR JOB              : all conditions; T-MUTE / T-BLIND get
+                                "do not set converged=true"
+    """
+    if condition not in CONDITIONS:
+        raise ValueError(f'condition must be one of {CONDITIONS}, got {condition!r}')
+
+    show_metrics = condition in ('met', 'full', 'blind')
+    show_hazards = condition in ('haz', 'full', 'blind')
+    show_exploit = condition in ('met', 'full', 'blind')
+    show_groups  = condition in ('met', 'full', 'blind')
+
+    parts: List[str] = []
+
+    if show_metrics:
+        metrics = eval_out.get('metrics', {})
+        parts.append('## CURRENT EVAL')
+        parts.append(f'  score: {eval_out.get("score", float("nan")):.4f}  '
+                     f'(lower is better)')
+        parts.append(f'  mean_rounds: {metrics.get("mean_rounds", 0):.1f}  '
+                     f'(target 60)')
+        parts.append(f'  mean_draw_rate: {metrics.get("mean_draw_rate", 0):.3f}')
+        parts.append(f'  mean_fairness: {metrics.get("mean_fairness", 0):.3f}')
+        parts.append(f'  mean_transfer_rate: '
+                     f'{metrics.get("mean_transfer_rate", 0):.1f}/round  '
+                     f'(target 100)')
+        if prior_eval is not None and prior_eval.get('score') is not None:
+            delta = eval_out['score'] - prior_eval['score']
+            parts.append(f'  delta_score_vs_prev: {delta:+.4f}')
 
     parts.append('\n## CURRENT DESIGN DIFF FROM DEFAULT')
     parts.append('  ' + _design_diff_summary(design))
 
-    parts.append('\n## PER-GROUP COST/RENT BREAKDOWN')
-    parts.extend(bd_lines)
+    if show_groups:
+        bd = _per_group_breakdown(cfg)
+        bd_lines = [f'  - {r["group"]:>10}: n={r["n"]} '
+                    f'mean_cost=${r["mean_cost"]:.0f} '
+                    f'mean_rent=${r["mean_rent"]:.0f}'
+                    for r in bd]
+        parts.append('\n## PER-GROUP COST/RENT BREAKDOWN')
+        parts.extend(bd_lines)
 
-    if hazard_summary:
+    if show_exploit:
+        parts.append('\n## STRATEGY-POOL EXPLOITATION')
+        parts.append(_strategy_pool_exploit_block(eval_out))
+
+    if show_hazards and hazard_summary:
         parts.append('\n## HAZARD SUMMARY (prior runs)')
         parts.append(hazard_summary)
-    if rb_llm_agreement:
-        parts.append('\n## RB vs LLM CROSS-SOURCE AGREEMENT')
-        parts.append(rb_llm_agreement)
+
+    pi = _prior_iterations_block(prior_iters or [], condition)
+    if pi:
+        parts.append('\n## PRIOR ITERATIONS (redacted per condition)')
+        parts.append(pi)
 
     parts.append('\n## YOUR JOB')
-    parts.append('  Propose ONE small intervention. Reply only with the '
-                 'JSON schema described in the system prompt.')
+    if condition in NO_CONVERGE_CONDITIONS:
+        parts.append('  Propose ONE small intervention. Reply only with the '
+                     'JSON schema described in the system prompt. Do NOT set '
+                     'converged=true (this run does not honor convergence in '
+                     'this condition).')
+    else:
+        parts.append('  Propose ONE small intervention. Reply only with the '
+                     'JSON schema described in the system prompt.')
     return '\n'.join(parts)
+
+
+# --------------------------------------------------------------------------- #
+# Cross-condition seed alignment                                                #
+# --------------------------------------------------------------------------- #
+
+def eval_seed_for(board: str, seed: int, iter_idx: int, game_idx: int) -> int:
+    """Deterministic per-(board, seed, iter, game) eval seed.
+
+    All 5 LLM conditions hit the same seed for fixed (board, seed, iter, game)
+    so cross-condition score deltas are paired, not independently sampled.
+    The hash-of-tuple choice lets us derive seeds without storing schedules
+    on disk; reproducibility is purely a function of these four arguments.
+    """
+    s = f'{board}|{seed}|{iter_idx}|{game_idx}'.encode('utf-8')
+    return int(hashlib.blake2s(s, digest_size=4).hexdigest(), 16) & 0xFFFFFFFF
 
 
 # --------------------------------------------------------------------------- #
@@ -335,149 +518,39 @@ def build_diagnostic_feed(cfg: GameConfig, design: GroupDesign,
 
 @dataclass
 class Iteration:
-    iter:               int
-    design:             dict
-    rationale:          str
-    parser_status:      str
-    parser_error:       Optional[str]
-    converged_request:  bool
-    score:              Optional[float]
-    metrics:            Optional[dict]
-    score_ci:           Optional[dict]
-    delta_vs_prev:      Optional[float]
-    improvement:        Optional[bool]
-    n_games:            int
-    token_count:        Optional[int]
-    wall_seconds:       float
-    raw_response:       str
+    iter:                 int
+    design:               dict
+    design_diff:          str
+    rationale:            str
+    parser_status:        str
+    parser_error:         Optional[str]
+    converged_request:    bool
+    convergence_padded:   bool                  # iter is a no-op pad after early {converged}
+    convergence_violation: bool                 # T-MUTE/T-BLIND set converged=true (ignored)
+    parser_retry:         bool                  # parser_failure on attempt #1, retry succeeded
+    score:                Optional[float]
+    metrics:              Optional[dict]
+    score_ci:             Optional[dict]
+    delta_vs_prev:        Optional[float]
+    improvement:          Optional[bool]
+    n_games:              int
+    token_count:          Optional[int]
+    wall_seconds:         float
+    raw_response:         str
+    condition:            str
+    gen_cfg:              dict
+    eval_seed_base:       int
 
 
 def _is_improvement(prev_score: float, cur_score: float, ci: dict,
                     rel_threshold: float = 0.03) -> bool:
-    """ANALYSIS_PLAN §5: improvement iff relative drop >= 3% AND 95% CI on
-    score excludes prev_score (i.e., new-score CI doesn't reach prev)."""
     if prev_score <= 0:
         return False
     rel = (prev_score - cur_score) / prev_score
     return bool(rel >= rel_threshold and ci.get('ci_hi', cur_score) < prev_score)
 
 
-def run_trajectory(starting_cfg: GameConfig, board_label: str, seed: int,
-                   pool, matchups, n_games: int, K: int,
-                   designer: DesignerLLM,
-                   max_turns: int,
-                   out_path: Path,
-                   hazard_summary: Optional[str] = None,
-                   rb_llm_agreement: Optional[str] = None,
-                   ) -> List[Iteration]:
-    """Run one (board, seed) trajectory of up to K iterations. Writes one
-    JSON line per iteration to `out_path`."""
-    cfg = starting_cfg
-    cumulative_design = GroupDesign(label='cumulative')
-
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    fh = open(out_path, 'w')
-    iterations: List[Iteration] = []
-    prev_score: Optional[float] = None
-
-    # Iteration 0: baseline eval (no LLM call).
-    t0 = time.perf_counter()
-    base_eval = evaluate_config(cfg, pool, matchups, n_games,
-                                  base_seed=seed, max_turns=max_turns)
-    base_ci = bootstrap_score_ci(base_eval['per_game_records'], seed=seed)
-    rec0 = Iteration(
-        iter=0, design=cumulative_design.to_dict(), rationale='[baseline]',
-        parser_status='baseline', parser_error=None, converged_request=False,
-        score=base_eval['score'], metrics=base_eval['metrics'],
-        score_ci=base_ci, delta_vs_prev=None, improvement=None,
-        n_games=base_eval['n_games_total'], token_count=None,
-        wall_seconds=time.perf_counter() - t0, raw_response='')
-    iterations.append(rec0)
-    fh.write(json.dumps(asdict(rec0)) + '\n'); fh.flush()
-    prev_score = base_eval['score']
-
-    for k in range(1, K + 1):
-        t0 = time.perf_counter()
-        feed = build_diagnostic_feed(cfg, cumulative_design,
-                                       eval_out=iterations[-1].__dict__,
-                                       prior_eval=(iterations[-2].__dict__
-                                                    if len(iterations) >= 2 else None),
-                                       hazard_summary=hazard_summary,
-                                       rb_llm_agreement=rb_llm_agreement)
-        try:
-            raw, ntok = designer.query(feed, iteration=k - 1)
-        except Exception as ex:
-            raw = ''
-            ntok = None
-            resp = DesignerResponse(raw_text='', parsed=None, design=None,
-                                     rationale='', converged=False,
-                                     parser_status='backend_failure',
-                                     error=f'{type(ex).__name__}: {ex}')
-        else:
-            resp = parse_designer_response(raw)
-            resp.token_count = ntok
-
-        if resp.parser_status != 'ok' or resp.design is None:
-            rec = Iteration(
-                iter=k, design={}, rationale=resp.rationale,
-                parser_status=resp.parser_status, parser_error=resp.error,
-                converged_request=resp.converged, score=None, metrics=None,
-                score_ci=None, delta_vs_prev=None, improvement=None,
-                n_games=0, token_count=resp.token_count,
-                wall_seconds=time.perf_counter() - t0, raw_response=resp.raw_text)
-            iterations.append(rec)
-            fh.write(json.dumps(asdict(rec)) + '\n'); fh.flush()
-            break
-
-        # Apply on top of cumulative_design. We do not blindly stack -
-        # the LLM's intervention overwrites cumulative settings (so it can
-        # walk back a previous patch).
-        cumulative_design = _merge_designs(cumulative_design, resp.design)
-        try:
-            new_cfg = apply_design(starting_cfg, cumulative_design,
-                                    strict_groups=False)
-        except Exception as ex:
-            rec = Iteration(
-                iter=k, design=cumulative_design.to_dict(),
-                rationale=resp.rationale, parser_status='apply_failure',
-                parser_error=f'{type(ex).__name__}: {ex}',
-                converged_request=resp.converged, score=None, metrics=None,
-                score_ci=None, delta_vs_prev=None, improvement=None,
-                n_games=0, token_count=resp.token_count,
-                wall_seconds=time.perf_counter() - t0, raw_response=resp.raw_text)
-            iterations.append(rec)
-            fh.write(json.dumps(asdict(rec)) + '\n'); fh.flush()
-            break
-
-        cfg = new_cfg
-
-        ev = evaluate_config(cfg, pool, matchups, n_games,
-                               base_seed=seed, max_turns=max_turns)
-        ci = bootstrap_score_ci(ev['per_game_records'], seed=seed + k)
-        delta = (ev['score'] - prev_score) if prev_score is not None else None
-        improvement = (_is_improvement(prev_score, ev['score'], ci)
-                        if prev_score is not None else None)
-
-        rec = Iteration(
-            iter=k, design=cumulative_design.to_dict(),
-            rationale=resp.rationale, parser_status='ok', parser_error=None,
-            converged_request=resp.converged, score=ev['score'],
-            metrics=ev['metrics'], score_ci=ci, delta_vs_prev=delta,
-            improvement=improvement, n_games=ev['n_games_total'],
-            token_count=resp.token_count,
-            wall_seconds=time.perf_counter() - t0, raw_response=resp.raw_text)
-        iterations.append(rec)
-        fh.write(json.dumps(asdict(rec)) + '\n'); fh.flush()
-        prev_score = ev['score']
-        if resp.converged:
-            break
-
-    fh.close()
-    return iterations
-
-
 def _merge_designs(prev: GroupDesign, new: GroupDesign) -> GroupDesign:
-    """Merge new on top of prev: new fields overwrite prev where set."""
     return GroupDesign(
         salary_mult=(new.salary_mult if new.salary_mult != 1.0 else prev.salary_mult),
         drop_groups=list(set(prev.drop_groups) | set(new.drop_groups)),
@@ -489,13 +562,502 @@ def _merge_designs(prev: GroupDesign, new: GroupDesign) -> GroupDesign:
     )
 
 
+def _eval_with_aligned_seeds(cfg, pool, matchups, n_games, board, seed,
+                              iter_idx, max_turns):
+    """Wrap evaluate_config with cross-condition aligned seeds. The base seed
+    used for each matchup is derived from (board, seed, iter, matchup_idx) so
+    every condition that calls this with the same arguments gets exactly the
+    same per-game schedule."""
+    return evaluate_config(
+        cfg, pool, matchups, n_games,
+        base_seed=eval_seed_for(board, seed, iter_idx, 0),
+        max_turns=max_turns,
+    )
+
+
+# --------------------------------------------------------------------------- #
+# T-RAND comparator                                                             #
+# --------------------------------------------------------------------------- #
+
+_RAND_FIELDS = ('salary_mult', 'group_cost_mult', 'group_rent_mult', 'drop_groups')
+
+
+def sample_random_intervention(present_groups: List[str],
+                                rng: np.random.Generator) -> GroupDesign:
+    """Uniformly pick one of {salary_mult, group_cost_mult, group_rent_mult,
+    drop_groups} and a uniform value in declared range.
+
+    Bounds:
+      salary_mult       : [0.5, 2.0]
+      group_cost_mult   : [0.5, 2.0]  on a uniformly chosen present group
+      group_rent_mult   : [0.5, 2.0]  on a uniformly chosen present group
+      drop_groups       : a single uniformly chosen present group
+    """
+    field_choice = _RAND_FIELDS[rng.integers(0, len(_RAND_FIELDS))]
+    if field_choice == 'salary_mult':
+        return GroupDesign(salary_mult=float(rng.uniform(0.5, 2.0)),
+                            label='rand', rationale='[T-RAND]')
+    g = present_groups[rng.integers(0, len(present_groups))] if present_groups else 'Brown'
+    val = float(rng.uniform(0.5, 2.0))
+    if field_choice == 'group_cost_mult':
+        return GroupDesign(group_cost_mult={g: val},
+                            label='rand', rationale='[T-RAND]')
+    if field_choice == 'group_rent_mult':
+        return GroupDesign(group_rent_mult={g: val},
+                            label='rand', rationale='[T-RAND]')
+    return GroupDesign(drop_groups=[g], label='rand', rationale='[T-RAND]')
+
+
+# --------------------------------------------------------------------------- #
+# T-SANITY trajectory                                                           #
+# --------------------------------------------------------------------------- #
+
+# Hardcoded "obviously good" sequence of designs. The score should drop
+# monotonically iter 0 -> 4 on the default board (via the per-iter eval-seed
+# pinning below — see SANITY_PINNED_ITER). If it doesn't, the eval pipeline
+# (or score function) is broken, and the overnight aborts.
+#
+# Effect-size note: the original spec sequence (salary 1.10/1.20/1.25, then
+# add Orange rent 1.25/1.50) produces inter-iter score deltas (~0.05) that
+# are inside the n=200 sampling envelope and registered non-monotone on the
+# canonical default board during the round-1 smoke. The trajectory below
+# uses larger steps along the salary axis followed by a multi-group rent
+# inflation so each step's effect comfortably exceeds 1-iter sampling noise.
+SANITY_TRAJECTORY: List[GroupDesign] = [
+    GroupDesign(salary_mult=1.10, label='sanity-0',
+                 rationale='[T-SANITY] salary x1.10'),
+    GroupDesign(salary_mult=1.25, label='sanity-1',
+                 rationale='[T-SANITY] salary x1.25'),
+    GroupDesign(salary_mult=1.50, label='sanity-2',
+                 rationale='[T-SANITY] salary x1.50'),
+    GroupDesign(salary_mult=2.00, label='sanity-3',
+                 rationale='[T-SANITY] salary x2.00'),
+    GroupDesign(salary_mult=2.00,
+                 group_rent_mult={'Brown': 2.00, 'Orange': 2.00},
+                 label='sanity-4',
+                 rationale='[T-SANITY] salary x2.00 + Brown/Orange rent x2.00'),
+    # iters 5..7 hold (no change, scored same as iter 4)
+    GroupDesign(salary_mult=2.00,
+                 group_rent_mult={'Brown': 2.00, 'Orange': 2.00},
+                 label='sanity-5', rationale='[T-SANITY] hold'),
+    GroupDesign(salary_mult=2.00,
+                 group_rent_mult={'Brown': 2.00, 'Orange': 2.00},
+                 label='sanity-6', rationale='[T-SANITY] hold'),
+    GroupDesign(salary_mult=2.00,
+                 group_rent_mult={'Brown': 2.00, 'Orange': 2.00},
+                 label='sanity-7', rationale='[T-SANITY] hold'),
+]
+
+# T-SANITY pins every iter's eval seed to iter=0 so the only thing varying
+# across sanity iters is the design — not the per-game schedule. (Other
+# conditions hash iter into the seed for cross-condition alignment; sanity
+# isn't a TUNER condition and doesn't need that alignment, but DOES need
+# apples-to-apples comparison across its own iters.)
+SANITY_PINNED_ITER = 0
+
+
+def assert_sanity_monotone(scores: List[float]) -> Tuple[bool, str]:
+    """Strict monotone decrease over the sanity *design* iters 0..4 in the
+    spec's numbering. The trajectory runner emits an iter-0 baseline before
+    any design is applied, so spec_iter_k corresponds to script iter (k+1).
+    Asserts script iters 1..5 (which are sanity designs 0..4) strictly
+    decrease. Iters >=6 are sanity holds, not asserted.
+
+    Returns (ok, reason)."""
+    if len(scores) < 6:
+        return False, f'incomplete trajectory (need >=6 scores; got {len(scores)})'
+    relevant = scores[1:6]
+    if any(s is None for s in relevant):
+        return False, f'incomplete trajectory: {relevant}'
+    for i in range(len(relevant) - 1):
+        if not (relevant[i] > relevant[i + 1]):
+            return False, (f'non-monotone at sanity iter {i}->{i+1}: '
+                           f'{relevant[i]:.4f} -> {relevant[i+1]:.4f}')
+    return True, 'ok'
+
+
+# --------------------------------------------------------------------------- #
+# Main per-condition trajectory runner                                          #
+# --------------------------------------------------------------------------- #
+
+def _present_groups(cfg) -> List[str]:
+    seen: List[str] = []
+    for c in cfg.cells:
+        if isinstance(c, Property) and c.group not in seen:
+            seen.append(c.group)
+    return seen
+
+
+def _design_to_iter_dict(it: 'Iteration') -> dict:
+    """Slimmed-down view passed to the next iteration's prior_iters block."""
+    return {
+        'iter':            it.iter,
+        'design_diff':     it.design_diff,
+        'rationale':       it.rationale,
+        'score':           it.score,
+        'metrics':         it.metrics,
+        # 'hazard_summary' / 'exploit_summary' are populated by the loop after
+        # we know what hazard/exploit text the LLM saw this round.
+    }
+
+
+_RETRY_REMINDER = (
+    "Your previous response did not parse. Please respond with exactly one "
+    "JSON object inside a fenced ```json``` block matching the schema."
+)
+
+
+def run_trajectory(starting_cfg: GameConfig, board_label: str, seed: int,
+                   pool, matchups, n_games: int, K: int,
+                   condition: str,
+                   designer: Optional[DesignerLLM],
+                   max_turns: int,
+                   out_path: Path,
+                   hazard_summary: Optional[str] = None,
+                   ) -> List[Iteration]:
+    """Run one (board, seed) trajectory for one ablation condition. Writes
+    one JSON line per iteration to `out_path`."""
+    if condition not in CONDITIONS:
+        raise ValueError(f'unknown condition {condition!r}')
+
+    cfg = starting_cfg
+    cumulative_design = GroupDesign(label='cumulative')
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    fh = open(out_path, 'w')
+    iterations: List[Iteration] = []
+    prev_score: Optional[float] = None
+    rand_rng = np.random.default_rng(seed)
+
+    gen_cfg = (designer.gen_cfg
+               if designer is not None
+               else {'condition': condition, 'note': 'no LLM call this condition'})
+    base_eval_seed = eval_seed_for(board_label, seed, 0, 0)
+
+    # Iteration 0: baseline eval (no LLM call).
+    t0 = time.perf_counter()
+    base_eval = _eval_with_aligned_seeds(cfg, pool, matchups, n_games,
+                                           board_label, seed, 0, max_turns)
+    base_ci = bootstrap_score_ci(base_eval['per_game_records'],
+                                   n_resamples=1500, seed=seed)
+    rec0 = Iteration(
+        iter=0, design=cumulative_design.to_dict(),
+        design_diff=_design_diff_summary(cumulative_design),
+        rationale='[baseline]', parser_status='baseline', parser_error=None,
+        converged_request=False, convergence_padded=False,
+        convergence_violation=False, parser_retry=False,
+        score=base_eval['score'], metrics=base_eval['metrics'],
+        score_ci=base_ci, delta_vs_prev=None, improvement=None,
+        n_games=base_eval['n_games_total'], token_count=None,
+        wall_seconds=time.perf_counter() - t0, raw_response='',
+        condition=condition, gen_cfg=gen_cfg, eval_seed_base=base_eval_seed)
+    iterations.append(rec0)
+    fh.write(json.dumps(asdict(rec0)) + '\n'); fh.flush()
+    prev_score = base_eval['score']
+
+    converged_done = False        # True once we honor a {converged} request
+    pad_design = cumulative_design
+
+    for k in range(1, K + 1):
+        t0 = time.perf_counter()
+        ev_seed_base = eval_seed_for(board_label, seed, k, 0)
+        prior_iters = [_design_to_iter_dict(it) for it in iterations]
+
+        # ------------------------------------------------------------------ #
+        # T-CANON: no design intervention; just re-eval the default config.
+        # ------------------------------------------------------------------ #
+        if condition == 'canon':
+            ev = _eval_with_aligned_seeds(cfg, pool, matchups, n_games,
+                                            board_label, seed, k, max_turns)
+            ci = bootstrap_score_ci(ev['per_game_records'],
+                                      n_resamples=1500, seed=seed + k)
+            delta = ev['score'] - prev_score
+            improvement = _is_improvement(prev_score, ev['score'], ci)
+            rec = Iteration(
+                iter=k, design=cumulative_design.to_dict(),
+                design_diff=_design_diff_summary(cumulative_design),
+                rationale='[T-CANON: no intervention]', parser_status='ok',
+                parser_error=None, converged_request=False,
+                convergence_padded=False, convergence_violation=False,
+                parser_retry=False,
+                score=ev['score'], metrics=ev['metrics'], score_ci=ci,
+                delta_vs_prev=delta, improvement=improvement,
+                n_games=ev['n_games_total'], token_count=None,
+                wall_seconds=time.perf_counter() - t0, raw_response='',
+                condition=condition, gen_cfg=gen_cfg,
+                eval_seed_base=ev_seed_base)
+            iterations.append(rec); fh.write(json.dumps(asdict(rec)) + '\n')
+            fh.flush()
+            prev_score = ev['score']
+            continue
+
+        # ------------------------------------------------------------------ #
+        # T-RAND: uniform random parametric edit; no diagnostic feed.
+        # ------------------------------------------------------------------ #
+        if condition == 'rand':
+            new = sample_random_intervention(_present_groups(cfg), rand_rng)
+            cumulative_design = _merge_designs(cumulative_design, new)
+            try:
+                cfg = apply_design(starting_cfg, cumulative_design,
+                                    strict_groups=False)
+            except Exception as ex:
+                rec = Iteration(
+                    iter=k, design=cumulative_design.to_dict(),
+                    design_diff=_design_diff_summary(cumulative_design),
+                    rationale=new.rationale,
+                    parser_status='apply_failure',
+                    parser_error=f'{type(ex).__name__}: {ex}',
+                    converged_request=False, convergence_padded=False,
+                    convergence_violation=False, parser_retry=False,
+                    score=None, metrics=None, score_ci=None,
+                    delta_vs_prev=None, improvement=None,
+                    n_games=0, token_count=None,
+                    wall_seconds=time.perf_counter() - t0, raw_response='',
+                    condition=condition, gen_cfg=gen_cfg,
+                    eval_seed_base=ev_seed_base)
+                iterations.append(rec); fh.write(json.dumps(asdict(rec)) + '\n')
+                fh.flush()
+                continue
+            ev = _eval_with_aligned_seeds(cfg, pool, matchups, n_games,
+                                            board_label, seed, k, max_turns)
+            ci = bootstrap_score_ci(ev['per_game_records'],
+                                      n_resamples=1500, seed=seed + k)
+            delta = ev['score'] - prev_score
+            improvement = _is_improvement(prev_score, ev['score'], ci)
+            rec = Iteration(
+                iter=k, design=cumulative_design.to_dict(),
+                design_diff=_design_diff_summary(cumulative_design),
+                rationale=new.rationale, parser_status='ok',
+                parser_error=None, converged_request=False,
+                convergence_padded=False, convergence_violation=False,
+                parser_retry=False,
+                score=ev['score'], metrics=ev['metrics'], score_ci=ci,
+                delta_vs_prev=delta, improvement=improvement,
+                n_games=ev['n_games_total'], token_count=None,
+                wall_seconds=time.perf_counter() - t0, raw_response='',
+                condition=condition, gen_cfg=gen_cfg,
+                eval_seed_base=ev_seed_base)
+            iterations.append(rec); fh.write(json.dumps(asdict(rec)) + '\n')
+            fh.flush()
+            prev_score = ev['score']
+            continue
+
+        # ------------------------------------------------------------------ #
+        # T-SANITY: hardcoded schedule.
+        # ------------------------------------------------------------------ #
+        if condition == 'sanity':
+            schedule = SANITY_TRAJECTORY
+            new = schedule[(k - 1) % len(schedule)]
+            cumulative_design = GroupDesign(
+                salary_mult=new.salary_mult,
+                drop_groups=list(new.drop_groups),
+                group_cost_mult=dict(new.group_cost_mult),
+                group_rent_mult=dict(new.group_rent_mult),
+                prop_overrides=dict(new.prop_overrides),
+                label='cumulative', rationale=new.rationale,
+            )
+            try:
+                cfg = apply_design(starting_cfg, cumulative_design,
+                                    strict_groups=False)
+            except Exception as ex:
+                rec = Iteration(
+                    iter=k, design=cumulative_design.to_dict(),
+                    design_diff=_design_diff_summary(cumulative_design),
+                    rationale=new.rationale,
+                    parser_status='apply_failure',
+                    parser_error=f'{type(ex).__name__}: {ex}',
+                    converged_request=False, convergence_padded=False,
+                    convergence_violation=False, parser_retry=False,
+                    score=None, metrics=None, score_ci=None,
+                    delta_vs_prev=None, improvement=None,
+                    n_games=0, token_count=None,
+                    wall_seconds=time.perf_counter() - t0, raw_response='',
+                    condition=condition, gen_cfg=gen_cfg,
+                    eval_seed_base=ev_seed_base)
+                iterations.append(rec); fh.write(json.dumps(asdict(rec)) + '\n')
+                fh.flush()
+                continue
+            # Sanity pins every iter to one eval seed so the only thing
+            # varying across iters is the design, not the per-game schedule.
+            ev = _eval_with_aligned_seeds(cfg, pool, matchups, n_games,
+                                            board_label, seed, SANITY_PINNED_ITER,
+                                            max_turns)
+            ci = bootstrap_score_ci(ev['per_game_records'],
+                                      n_resamples=1500, seed=seed + k)
+            delta = ev['score'] - prev_score
+            rec = Iteration(
+                iter=k, design=cumulative_design.to_dict(),
+                design_diff=_design_diff_summary(cumulative_design),
+                rationale=new.rationale, parser_status='ok',
+                parser_error=None, converged_request=False,
+                convergence_padded=False, convergence_violation=False,
+                parser_retry=False,
+                score=ev['score'], metrics=ev['metrics'], score_ci=ci,
+                delta_vs_prev=delta, improvement=None,
+                n_games=ev['n_games_total'], token_count=None,
+                wall_seconds=time.perf_counter() - t0, raw_response='',
+                condition=condition, gen_cfg=gen_cfg,
+                eval_seed_base=eval_seed_for(board_label, seed,
+                                              SANITY_PINNED_ITER, 0))
+            iterations.append(rec); fh.write(json.dumps(asdict(rec)) + '\n')
+            fh.flush()
+            prev_score = ev['score']
+            continue
+
+        # ------------------------------------------------------------------ #
+        # LLM conditions (mute, haz, met, full, blind).
+        # ------------------------------------------------------------------ #
+        # If we already honored convergence, pad remaining iters with
+        # carry-forward design (no LLM call, no eval re-cost), recording
+        # convergence_padded=true.
+        if converged_done:
+            rec = Iteration(
+                iter=k, design=pad_design.to_dict(),
+                design_diff=_design_diff_summary(pad_design),
+                rationale='[converged: carry-forward]', parser_status='ok',
+                parser_error=None, converged_request=True,
+                convergence_padded=True, convergence_violation=False,
+                parser_retry=False,
+                score=iterations[-1].score, metrics=iterations[-1].metrics,
+                score_ci=iterations[-1].score_ci,
+                delta_vs_prev=0.0, improvement=False,
+                n_games=0, token_count=None,
+                wall_seconds=time.perf_counter() - t0, raw_response='',
+                condition=condition, gen_cfg=gen_cfg,
+                eval_seed_base=ev_seed_base)
+            iterations.append(rec); fh.write(json.dumps(asdict(rec)) + '\n')
+            fh.flush()
+            continue
+
+        feed = build_diagnostic_feed(
+            cfg, cumulative_design,
+            eval_out=asdict(iterations[-1]) if iterations else {},
+            prior_eval=(asdict(iterations[-2]) if len(iterations) >= 2 else None),
+            condition=condition, prior_iters=prior_iters,
+            hazard_summary=hazard_summary)
+
+        # Attempt #1
+        retry_used = False
+        try:
+            raw, ntok = designer.query(feed, iteration=k - 1)
+            resp = parse_designer_response(raw)
+            resp.token_count = ntok
+        except Exception as ex:
+            raw, ntok = '', None
+            resp = DesignerResponse(raw_text='', parsed=None, design=None,
+                                     rationale='', converged=False,
+                                     parser_status='backend_failure',
+                                     error=f'{type(ex).__name__}: {ex}')
+
+        # 1-retry on parser_failure with format reminder.
+        if resp.parser_status == 'parser_failure':
+            retry_used = True
+            try:
+                raw2, ntok2 = designer.query(feed + '\n\n' + _RETRY_REMINDER,
+                                              iteration=k - 1)
+                resp2 = parse_designer_response(raw2)
+                resp2.token_count = ntok2
+                if resp2.parser_status == 'ok':
+                    resp = resp2
+                    raw = raw2
+            except Exception:
+                pass
+
+        # If still not parseable (or invalid), carry forward prior design.
+        if resp.parser_status != 'ok' or resp.design is None:
+            rec = Iteration(
+                iter=k, design=cumulative_design.to_dict(),
+                design_diff=_design_diff_summary(cumulative_design),
+                rationale=resp.rationale or '[parser_failure carry-forward]',
+                parser_status='parser_failure',
+                parser_error=resp.error,
+                converged_request=resp.converged,
+                convergence_padded=False, convergence_violation=False,
+                parser_retry=retry_used,
+                score=iterations[-1].score, metrics=iterations[-1].metrics,
+                score_ci=iterations[-1].score_ci,
+                delta_vs_prev=0.0, improvement=False,
+                n_games=0, token_count=resp.token_count,
+                wall_seconds=time.perf_counter() - t0, raw_response=resp.raw_text,
+                condition=condition, gen_cfg=gen_cfg,
+                eval_seed_base=ev_seed_base)
+            iterations.append(rec); fh.write(json.dumps(asdict(rec)) + '\n')
+            fh.flush()
+            continue
+
+        # Convergence handling: condition-aware.
+        violation = False
+        honored = False
+        if resp.converged:
+            if condition in NO_CONVERGE_CONDITIONS:
+                violation = True            # ignore the request; force K iters
+            else:
+                honored = True
+
+        # Apply intervention.
+        cumulative_design = _merge_designs(cumulative_design, resp.design)
+        try:
+            new_cfg = apply_design(starting_cfg, cumulative_design,
+                                    strict_groups=False)
+        except Exception as ex:
+            rec = Iteration(
+                iter=k, design=cumulative_design.to_dict(),
+                design_diff=_design_diff_summary(cumulative_design),
+                rationale=resp.rationale,
+                parser_status='apply_failure',
+                parser_error=f'{type(ex).__name__}: {ex}',
+                converged_request=resp.converged,
+                convergence_padded=False,
+                convergence_violation=violation,
+                parser_retry=retry_used,
+                score=None, metrics=None, score_ci=None,
+                delta_vs_prev=None, improvement=None,
+                n_games=0, token_count=resp.token_count,
+                wall_seconds=time.perf_counter() - t0, raw_response=resp.raw_text,
+                condition=condition, gen_cfg=gen_cfg,
+                eval_seed_base=ev_seed_base)
+            iterations.append(rec); fh.write(json.dumps(asdict(rec)) + '\n')
+            fh.flush()
+            continue
+        cfg = new_cfg
+
+        ev = _eval_with_aligned_seeds(cfg, pool, matchups, n_games,
+                                        board_label, seed, k, max_turns)
+        ci = bootstrap_score_ci(ev['per_game_records'],
+                                  n_resamples=1500, seed=seed + k)
+        delta = ev['score'] - prev_score
+        improvement = _is_improvement(prev_score, ev['score'], ci)
+
+        rec = Iteration(
+            iter=k, design=cumulative_design.to_dict(),
+            design_diff=_design_diff_summary(cumulative_design),
+            rationale=resp.rationale, parser_status='ok',
+            parser_error=None, converged_request=resp.converged,
+            convergence_padded=False, convergence_violation=violation,
+            parser_retry=retry_used,
+            score=ev['score'], metrics=ev['metrics'], score_ci=ci,
+            delta_vs_prev=delta, improvement=improvement,
+            n_games=ev['n_games_total'], token_count=resp.token_count,
+            wall_seconds=time.perf_counter() - t0, raw_response=resp.raw_text,
+            condition=condition, gen_cfg=gen_cfg,
+            eval_seed_base=ev_seed_base)
+        iterations.append(rec); fh.write(json.dumps(asdict(rec)) + '\n')
+        fh.flush()
+        prev_score = ev['score']
+
+        if honored:
+            converged_done = True
+            pad_design = cumulative_design
+
+    fh.close()
+    return iterations
+
+
 # --------------------------------------------------------------------------- #
 # Plot driver                                                                   #
 # --------------------------------------------------------------------------- #
 
 def plot_trajectories(trajectories_by_board: Dict[str, List[List[dict]]],
                       out_path: Path) -> None:
-    """One panel per board; lines are seeds, shaded inter-seed band (CEO #7)."""
     import matplotlib.pyplot as plt
     boards = list(trajectories_by_board.keys())
     n = len(boards)
@@ -514,19 +1076,16 @@ def plot_trajectories(trajectories_by_board: Dict[str, List[List[dict]]],
             ys = [it['score'] if it['score'] is not None else np.nan for it in traj]
             ys = ys + [np.nan] * (max_iters - len(ys))
             ax.plot(iters_axis, ys, label=f'seed{s_idx}', linewidth=1.4, alpha=0.85)
-        # Inter-seed band (mean ± std at each iteration that has data).
         mat = np.full((len(seeds), max_iters), np.nan, dtype=float)
         for i, traj in enumerate(seeds):
             for j, it in enumerate(traj):
                 if it['score'] is not None:
                     mat[i, j] = it['score']
         with np.errstate(all='ignore'):
-            mean = np.nanmean(mat, axis=0)
-            std  = np.nanstd(mat, axis=0)
+            mean = np.nanmean(mat, axis=0); std = np.nanstd(mat, axis=0)
             ax.fill_between(iters_axis, mean - std, mean + std,
                              alpha=0.15, color='#444444')
-        ax.set_title(b, fontsize=10)
-        ax.set_xlabel('iteration')
+        ax.set_title(b, fontsize=10); ax.set_xlabel('iteration')
         ax.grid(True, linestyle=':', alpha=0.4)
         ax.legend(fontsize=7, loc='best', framealpha=0.85)
     axes[0].set_ylabel('score (lower is better)')
@@ -538,7 +1097,6 @@ def plot_trajectories(trajectories_by_board: Dict[str, List[List[dict]]],
 
 def write_rationales_table(trajectories_by_board: Dict[str, List[List[dict]]],
                             out_path: Path, k: int = 4) -> None:
-    """Markdown table of representative rationales (CEO §5e table)."""
     lines = ['| board | seed | iter | score_delta | rationale |',
              '|-------|------|------|-------------|-----------|']
     for board, seeds in trajectories_by_board.items():
@@ -572,7 +1130,7 @@ def main() -> int:
     ap.add_argument('--n-seeds', type=int, default=3)
     ap.add_argument('--seed-offset', type=int, default=0)
     ap.add_argument('--K', type=int, default=8)
-    ap.add_argument('--n-games', type=int, default=100,
+    ap.add_argument('--n-games', type=int, default=200,
                     help='Per-iteration game count for canonical eval.')
     ap.add_argument('--n-matchups', type=int, default=10)
     ap.add_argument('--max-turns', type=int, default=200)
@@ -581,24 +1139,23 @@ def main() -> int:
     ap.add_argument('--backend', choices=('local', 'openai', 'heuristic'),
                     default='local')
     ap.add_argument('--model', default=None)
+    ap.add_argument('--ablation-condition',
+                    choices=CONDITIONS, default='full',
+                    help='Which TUNER condition to run.')
     ap.add_argument('--out-dir', default='report/figures/llm_design_loop')
     ap.add_argument('--hazard-summary-path', default=None,
                     help='Optional path to a text file pasted into the feed.')
-    ap.add_argument('--rb-llm-agreement-path', default=None)
     args = ap.parse_args()
 
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
+    cond = args.ablation_condition
 
-    print('Resolving boards (iteration board = canonical, per ANALYSIS_PLAN §7)...')
+    print(f'TUNER condition: {cond}')
+    print('Resolving boards (iteration board = canonical, ANALYSIS_PLAN §7)...')
     sources = build_five_boards(
         canonical_config=args.canonical_config, mini_config=args.mini_config,
         ga_2p=args.ga_2p, ga_3p=args.ga_3p)
-    # Per Step 0 audit (rho=0.30): iterate on canonical. We pass the canonical
-    # config decoded to the corresponding starting design point. For boards
-    # that are *defined* against mini (salary x2, drop Brown), we re-apply the
-    # design transformation against canonical so the loop iterates against a
-    # canonical-shaped board with the same intent.
     canon_cfg = GameConfig.from_yaml(args.canonical_config)
     starting_cfgs: List[Tuple[str, GameConfig]] = []
     for label, cfg in sources:
@@ -614,6 +1171,11 @@ def main() -> int:
     if args.boards != 'all':
         wanted = set(s.strip() for s in args.boards.split(','))
         starting_cfgs = [(l, c) for l, c in starting_cfgs if l in wanted]
+    if cond == 'sanity':
+        # T-SANITY runs on default board only (per spec).
+        starting_cfgs = [(l, c) for l, c in starting_cfgs if l == 'default']
+        if not starting_cfgs:
+            raise SystemExit('T-SANITY requires the default board to be in the source set.')
     print(f'  starting boards: {[l for l, _ in starting_cfgs]}')
 
     print('Loading strategy pool + matchups...')
@@ -622,47 +1184,68 @@ def main() -> int:
                                     n_matchups=args.n_matchups,
                                     seed=args.matchup_seed)
 
-    designer = DesignerLLM(backend=args.backend, model_name=args.model)
+    designer: Optional[DesignerLLM] = None
+    if cond in LLM_CONDITIONS:
+        goal = 'closed' if cond == 'blind' else 'open'
+        designer = DesignerLLM(backend=args.backend, model_name=args.model,
+                                goal_disclosure=goal)
+        print(f'  designer prompt: {designer.prompt_path} '
+              f'(sha-locked, goal_disclosure={goal})')
 
     hazard_summary = (Path(args.hazard_summary_path).read_text()
                        if args.hazard_summary_path else None)
-    rb_llm_agreement = (Path(args.rb_llm_agreement_path).read_text()
-                          if args.rb_llm_agreement_path else None)
 
     trajectories_by_board: Dict[str, List[List[dict]]] = {}
     for board_label, cfg in starting_cfgs:
         trajectories_by_board[board_label] = []
-        for s in range(args.n_seeds):
+        n_seeds_eff = 1 if cond == 'sanity' else args.n_seeds
+        for s in range(n_seeds_eff):
             seed = args.seed_offset + s * 1000 + 42
-            print(f'\n[{board_label}] seed={seed} (s_idx={s})  K_max={args.K}')
+            print(f'\n[{board_label}|cond={cond}] seed={seed} '
+                  f'(s_idx={s})  K_max={args.K}')
             tag = re.sub(r'[^A-Za-z0-9]+', '_', board_label).strip('_')
-            out_path = out_dir / f'{tag}__seed{seed}.jsonl'
+            out_path = out_dir / f'{cond}__{tag}__seed{seed}.jsonl'
             iters = run_trajectory(
                 starting_cfg=cfg, board_label=board_label, seed=seed,
                 pool=pool, matchups=matchups, n_games=args.n_games, K=args.K,
-                designer=designer, max_turns=args.max_turns,
-                out_path=out_path, hazard_summary=hazard_summary,
-                rb_llm_agreement=rb_llm_agreement)
+                condition=cond, designer=designer, max_turns=args.max_turns,
+                out_path=out_path, hazard_summary=hazard_summary)
             for it in iters:
                 ps = it.parser_status; sc = it.score
                 cv = ' (converged)' if it.converged_request else ''
-                print(f'    iter {it.iter}: parser={ps}  '
-                      f'score={sc:.4f}' if sc is not None else
-                      f'    iter {it.iter}: parser={ps}  score=N/A')
-                if cv: print(f'      {cv.strip()}')
+                pad = ' [PAD]' if it.convergence_padded else ''
+                vio = ' [violation]' if it.convergence_violation else ''
+                if sc is not None:
+                    print(f'    iter {it.iter}: parser={ps}  score={sc:.4f}{cv}{pad}{vio}')
+                else:
+                    print(f'    iter {it.iter}: parser={ps}  score=N/A{cv}{pad}{vio}')
             trajectories_by_board[board_label].append([asdict(i) for i in iters])
 
-    # Aggregate plots + tables.
-    plot_trajectories(trajectories_by_board, out_dir / 'trajectories.pdf')
-    plot_trajectories(trajectories_by_board, out_dir / 'trajectories.png')
-    write_rationales_table(trajectories_by_board, out_dir / 'rationales.md')
-    summary_path = out_dir / 'summary.json'
+        # T-SANITY: assert monotone decrease iter 0->4 on default board.
+        if cond == 'sanity':
+            scores = [it.score for it in iters]
+            ok, reason = assert_sanity_monotone(scores)
+            sanity_path = out_dir / 'SANITY_RESULT.txt'
+            sanity_path.write_text(f'sanity={ok}\nreason={reason}\nscores={scores}\n')
+            print(f'\n  T-SANITY assertion: {"PASS" if ok else "FAIL"}  ({reason})')
+            if not ok:
+                # Write SANITY_FAILED side-channel and abort with non-zero
+                (out_dir / 'SANITY_FAILED').write_text(reason + '\n')
+                return 2
+
+    plot_trajectories(trajectories_by_board, out_dir / f'trajectories_{cond}.pdf')
+    plot_trajectories(trajectories_by_board, out_dir / f'trajectories_{cond}.png')
+    write_rationales_table(trajectories_by_board,
+                            out_dir / f'rationales_{cond}.md')
+    summary_path = out_dir / f'summary_{cond}.json'
     with open(summary_path, 'w') as f:
         json.dump({
             'config': vars(args),
+            'condition': cond,
             'trajectories_by_board': trajectories_by_board,
         }, f, indent=2, default=str)
-    print(f'\nDone. Trajectories -> {out_dir}/{{trajectories.pdf,rationales.md,summary.json}}')
+    print(f'\nDone. Trajectories -> {out_dir}/{{trajectories_{cond}.pdf,'
+          f'rationales_{cond}.md,summary_{cond}.json}}')
     return 0
 
 

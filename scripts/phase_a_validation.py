@@ -14,9 +14,20 @@ Output: a per-knob table comparing the two variants on the same set of
 fixed seeds. Rule-based and LLM rows are reported separately so we can
 see whether they agree on the direction of each effect.
 
+The `--player {guided,neutral}` flag selects which LLM prompt to use:
+  - guided  : 4-shot directive prompt (agents.LLMPlayer; the original
+              Phase A run; in the report).
+  - neutral : no-shot, neutral system prompt loaded from
+              prompts/character_llm_prompt.txt (round-1
+              PHASE-A-ROBUSTNESS re-run, used to test whether the
+              cross-source agreement signal survives without GUIDED-
+              PLAYER's strategic scaffolding and few-shot property-name
+              overlap with the canonical default board).
+
 Usage (from monopoly/):
     set PYTHONPATH=. && python scripts/phase_a_validation.py
     set PYTHONPATH=. && python scripts/phase_a_validation.py --no-llm
+    set PYTHONPATH=. && python scripts/phase_a_validation.py --player neutral
     set PYTHONPATH=. && python scripts/phase_a_validation.py --n-games 20 --llm-model models/qwen2.5-1.5B
 """
 import argparse
@@ -27,10 +38,28 @@ from dataclasses import replace
 
 from tqdm import tqdm
 
-from config import GameConfig
+from agents import LLMPlayer
+from config import GameConfig, _PLAYER_CLASSES
 from monopoly.core.cell import Cell, Property
 from optimizer.simulate import run_single_game
 from player_settings import RuleBasedPlayerSettings, StandardPlayerSettings
+from prompts.loader import load_prompt
+
+
+class NeutralLLMPlayer(LLMPlayer):
+    """LLMPlayer subclass with no few-shot and the neutral system prompt
+    loaded via the hash-locked prompt loader. Used by PHASE-A-ROBUSTNESS
+    to re-run the Phase A matrix without GUIDED-PLAYER's strategic
+    scaffolding (no shots, no archetypes) — same instrument as
+    scripts/llm_character.py:CharacterLLMPlayer but plumbed through the
+    `_PLAYER_CLASSES` registry that simulate.run_single_game uses."""
+
+    _SYSTEM_PROMPT = load_prompt('character_llm_prompt.txt')
+    _FEW_SHOT = []
+
+
+# Register so simulate.py's class lookup can find it via class-name string.
+_PLAYER_CLASSES['NeutralLLMPlayer'] = NeutralLLMPlayer
 
 
 def _modify_salary(cfg, multiplier: float):
@@ -152,6 +181,13 @@ def main():
                     help='Skip the LLM rows. Useful for fast iteration.')
     ap.add_argument('--llm-model',   default=None,
                     help='LLM_MODEL value (HF id or local path). Default: env var.')
+    ap.add_argument('--player',      choices=('guided', 'neutral'), default='guided',
+                    help="Which LLM prompt variant to use. 'guided' is the "
+                         "original 4-shot directive (agents.LLMPlayer; in the "
+                         "report). 'neutral' is the round-1 PHASE-A-ROBUSTNESS "
+                         "re-run with no-shot prompt and no scaffolding.")
+    ap.add_argument('--out-dir',     default=None,
+                    help='Optional directory to write per-knob results JSON.')
     args = ap.parse_args()
 
     if args.llm_model:
@@ -175,10 +211,16 @@ def main():
         ('A', RuleBasedPlayerSettings(), None),
         ('B', RuleBasedPlayerSettings(), None),
     ]
+    llm_class_name = 'NeutralLLMPlayer' if args.player == 'neutral' else 'LLMPlayer'
     llm_specs = [
-        ('A', StandardPlayerSettings(), 'LLMPlayer'),
+        ('A', StandardPlayerSettings(), llm_class_name),
         ('B', RuleBasedPlayerSettings(), None),
     ]
+    print(f'LLM player variant: {args.player.upper()} ({llm_class_name})')
+
+    results: dict = {'player_variant': args.player,
+                     'n_games': args.n_games,
+                     'rb': {}, 'llm': {}}
 
     print()
     print('=== Rule-based baseline (both players RuleBased) ===')
@@ -186,8 +228,10 @@ def main():
           f"{'rounds':>11}    {'draws':>11}    {'xfer':>13}    {'bk':>10}    {'spread':>10}")
     t0 = time.time()
     rb_default = _summarise(_run_batch(base_cfg, rb_specs, args.n_games, args.base_seed, args.max_turns))
+    results['rb']['default'] = rb_default
     for label, mod_cfg in knobs:
         rb_mod = _summarise(_run_batch(mod_cfg, rb_specs, args.n_games, args.base_seed, args.max_turns))
+        results['rb'][label] = rb_mod
         _print_compare(label, rb_default, rb_mod)
     print(f'  [{time.time()-t0:.1f} s for {(1+len(knobs))*args.n_games} games]')
 
@@ -201,6 +245,8 @@ def main():
         llm_default = _summarise(_run_batch(
             base_cfg, llm_specs, n_llm, args.base_seed, args.max_turns,
             progress_label='default'))
+        results['llm']['default'] = llm_default
+        results['llm']['n_games'] = n_llm
         # Print the default result immediately so the user sees progress
         # before each subsequent knob's batch starts.
         print(f"  default        rounds={llm_default['mean_rounds']:>6.1f}            "
@@ -212,8 +258,17 @@ def main():
             llm_mod = _summarise(_run_batch(
                 mod_cfg, llm_specs, n_llm, args.base_seed, args.max_turns,
                 progress_label=label))
+            results['llm'][label] = llm_mod
             _print_compare(label, llm_default, llm_mod)
         print(f'  [{time.time()-t0:.1f} s for {(1+len(knobs))*n_llm} games at n={n_llm}]')
+
+    if args.out_dir:
+        import json as _json
+        from pathlib import Path as _Path
+        out = _Path(args.out_dir); out.mkdir(parents=True, exist_ok=True)
+        (out / f'results_{args.player}.json').write_text(
+            _json.dumps(results, indent=2))
+        print(f'  results -> {out / f"results_{args.player}.json"}')
 
 
 if __name__ == '__main__':
