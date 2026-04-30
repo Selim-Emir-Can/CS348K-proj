@@ -14,6 +14,23 @@ Figures produced:
   fig_llm_buy_rate_slices.png    — Task 1: buy-rate slices by cash
                                     bucket and by monopoly opportunity,
                                     contrasting default vs GA-winner.
+  fig_cross_evaluator_gap.png    — Cross-eval: each board scored under
+                                    BOTH the LLM evaluator and the
+                                    rule-based pool. Shows the
+                                    "partial generalisation" finding.
+  fig_fairness_asymmetry.png     — Cross-eval: fairness under LLM eval
+                                    (~0.20 seat-position bias) vs pool
+                                    eval (~0.38 strategic asymmetry)
+                                    for the LLM-GA winner. The
+                                    diagnostic finding.
+  fig_llm_ga_score_distribution.png — Task 2: per-generation score
+                                    distributions (box plot) showing
+                                    selection pressure + n_seeds=5
+                                    noise.
+  fig_v1_vs_v2_hallucination.png — Task 1: stacked-bar comparing v1
+                                    (validator-bug-induced fabrication)
+                                    to v2 (post-fix, 0/2288 across the
+                                    board).
 
 Run from monopoly/:
   python scripts/plot_llm_results.py
@@ -22,6 +39,7 @@ import csv
 import json
 import os
 import shutil
+import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 from statistics import mean
@@ -29,6 +47,7 @@ from statistics import mean
 import matplotlib
 matplotlib.use('Agg')   # no GUI on Windows shell
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 _HERE = Path(__file__).resolve().parent
@@ -272,6 +291,326 @@ def fig_llm_buy_rate_slices():
 
 
 # --------------------------------------------------------------------------- #
+# 4. Cross-evaluator generalisation gap                                          #
+# --------------------------------------------------------------------------- #
+
+def fig_cross_evaluator_gap():
+    """Each board × each evaluator → composite score. Shows partial
+    generalisation of the LLM-GA winner.
+
+    Numbers come from:
+      - LLM eval: logs/llm_eval/2p_v2/{default, ga_2p_winner} summary +
+                  logs/optimizer_llm/llm_ga_2p/best_design.json (LLM-GA winner
+                  under LLM eval, n_seeds=5).
+      - Rule-based pool eval: logs/optimizer/cross_eval_mask.json
+        (default + rule-based GA winners) and
+        logs/optimizer/cross_eval_llm_ga_winner.json (LLM-GA winner).
+    """
+    # Pool eval results (already cached on disk).
+    pool = {r['design'] + '_' + str(r['n_players']) + 'p': r
+            for r in json.load(open(_ROOT / 'logs/optimizer/cross_eval_mask.json',
+                                     encoding='utf-8'))['results']}
+    pool_llm = {r['design'] + '_' + str(r['n_players']) + 'p': r
+                for r in json.load(open(_ROOT / 'logs/optimizer/cross_eval_llm_ga_winner.json',
+                                         encoding='utf-8'))['results']}
+
+    pool_default_2p     = pool['identity_default_2p']['score']
+    pool_default_3p     = pool['identity_default_3p']['score']
+    pool_rb_winner_2p   = pool['ga_2p_mask_best_2p']['score']
+    pool_rb_winner_3p   = pool['ga_2p_mask_best_3p']['score']
+    pool_llm_winner_2p  = pool_llm['evals_best_2p']['score']
+    pool_llm_winner_3p  = pool_llm['evals_best_3p']['score']
+
+    # LLM-eval scores (recompute from per-game summary using the same
+    # evaluate() function would be more rigorous; here we use the cached
+    # composite from logs/optimizer_llm/llm_ga_2p/best_design.json for the
+    # LLM-GA winner and a "from-scratch" composite for default + rule-based
+    # GA winner under LLM seats — those would require an extra harness run,
+    # so we instead pull the per-game stats from logs/llm_eval/2p_v2 and
+    # plug them through evaluate() to match.). We approximate the LLM-eval
+    # score for the rule-based GA winner using the per-game stats from
+    # logs/llm_eval/2p_v2/summary.csv (board_tag=ga_2p_winner) — this is
+    # the same n=20-seed signal used in Task 1.
+    sys.path.insert(0, str(_ROOT))
+    from optimizer.objectives import Targets, Weights, evaluate
+
+    def _llm_score(board_tag, n_players, run_dir):
+        rows = _read_summary(_ROOT / f'logs/llm_eval/{run_dir}/summary.csv')
+        rows = [r for r in rows if r['board_tag'] == board_tag]
+        # objectives.evaluate expects per-game dicts with 'rounds', 'truncated',
+        # 'transfer_total', 'winner', 'strategy_names'. Reconstruct those.
+        games = []
+        for r in rows:
+            seat_names = [f'LLM_p{i}' for i in range(n_players)]
+            games.append({
+                'rounds':         int(r['rounds']),
+                'truncated':      bool(int(r['truncated'])),
+                'transfer_total': int(float(r['transfer_total'])),
+                'winner':         r['winner'] or None,
+                'strategy_names': seat_names,
+            })
+        out = evaluate([games])
+        return out['score']
+
+    llm_default_2p = _llm_score('default',      2, '2p_v2')
+    llm_rb_winner_2p = _llm_score('ga_2p_winner', 2, '2p_v2')
+    llm_default_3p = _llm_score('default',      3, '3p_v2')
+    llm_rb_winner_3p = _llm_score('ga_3p_winner', 3, '3p_v2')
+    # LLM-GA winner under LLM eval = the GA's own composite, n_seeds=5.
+    llm_ga_winner_score = json.load(
+        open(_ROOT / 'logs/optimizer_llm/llm_ga_2p/best_design.json',
+             encoding='utf-8'))['score']
+
+    # 2 panels: 2p (left) and 3p (right). Each has 3 designs × 2 evaluators.
+    fig, (ax2, ax3) = plt.subplots(1, 2, figsize=(11, 4.6))
+    designs = ['default', 'rule-based\nGA-2p winner', 'LLM-driven\nGA-2p winner']
+    x = np.arange(len(designs))
+    w = 0.36
+
+    # 2p panel
+    llm_eval_2p = [llm_default_2p, llm_rb_winner_2p, llm_ga_winner_score]
+    pool_eval_2p = [pool_default_2p, pool_rb_winner_2p, pool_llm_winner_2p]
+    b1 = ax2.bar(x - w/2, llm_eval_2p, w, label='LLM evaluator (n=20)',
+                 color='#1f77b4')
+    b2 = ax2.bar(x + w/2, pool_eval_2p, w, label='rule-based pool (n=1000)',
+                 color='#888888')
+    ax2.set_xticks(x)
+    ax2.set_xticklabels(designs)
+    ax2.set_ylabel('composite score (lower = better)')
+    ax2.set_title('2-player')
+    ax2.legend(loc='upper right', fontsize=9)
+    for bs in (b1, b2):
+        for b in bs:
+            ax2.text(b.get_x() + b.get_width()/2, b.get_height() + 0.02,
+                     f'{b.get_height():.2f}', ha='center', va='bottom',
+                     fontsize=8)
+
+    # 3p panel — only default, RB-3p winner, LLM-GA-2p-winner-on-3p (we don't
+    # have LLM-GA-3p winner since Task 2 was 2p only).
+    designs_3p = ['default', 'rule-based\nGA-3p winner', 'LLM-driven\nGA-2p winner']
+    pool_eval_3p = [pool_default_3p,
+                    pool['ga_3p_mask_best_3p']['score'],
+                    pool_llm_winner_3p]
+    llm_eval_3p = [llm_default_3p, llm_rb_winner_3p, None]
+    x3 = np.arange(len(designs_3p))
+    b3 = ax3.bar(x3 - w/2, [s if s is not None else 0 for s in llm_eval_3p], w,
+                 label='LLM evaluator (n=20)', color='#1f77b4')
+    b4 = ax3.bar(x3 + w/2, pool_eval_3p, w, label='rule-based pool (n=1000)',
+                 color='#888888')
+    # Mark missing LLM-eval cell as N/A.
+    ax3.text(x3[2] - w/2, 0.05, 'N/A', ha='center', fontsize=9,
+             color='#888888', fontstyle='italic')
+    ax3.set_xticks(x3)
+    ax3.set_xticklabels(designs_3p)
+    ax3.set_ylabel('composite score (lower = better)')
+    ax3.set_title('3-player')
+    ax3.legend(loc='upper right', fontsize=9)
+    for bs in (b3, b4):
+        for b in bs:
+            v = b.get_height()
+            if v > 0.01:
+                ax3.text(b.get_x() + b.get_width()/2, v + 0.02,
+                         f'{v:.2f}', ha='center', va='bottom', fontsize=8)
+    fig.suptitle('Each board scored under both evaluators: '
+                 'LLM-driven GA winner generalises to default (better) '
+                 'but loses to the rule-based winner under the rule-based pool',
+                 fontsize=10)
+    fig.tight_layout(rect=[0, 0, 1, 0.94])
+    _save(fig, 'fig_cross_evaluator_gap.png')
+    plt.close(fig)
+
+
+# --------------------------------------------------------------------------- #
+# 5. Fairness asymmetry across evaluators                                       #
+# --------------------------------------------------------------------------- #
+
+def fig_fairness_asymmetry():
+    """The diagnostic finding: a single-personality evaluator
+    under-counts fairness problems. The LLM-GA winner has fairness
+    0.20 under LLM eval (just seat-position bias) but 0.379 under
+    the diverse 30-strategy pool.
+    """
+    pool = {r['design'] + '_' + str(r['n_players']) + 'p': r
+            for r in json.load(open(_ROOT / 'logs/optimizer/cross_eval_mask.json',
+                                     encoding='utf-8'))['results']}
+    pool_llm = {r['design'] + '_' + str(r['n_players']) + 'p': r
+                for r in json.load(open(_ROOT / 'logs/optimizer/cross_eval_llm_ga_winner.json',
+                                         encoding='utf-8'))['results']}
+
+    # Fairness numbers (mean_fairness)
+    designs = ['default', 'rule-based\nGA-2p winner', 'LLM-driven\nGA-2p winner']
+    # LLM-eval fairness is approximately the seat-position bias on n=20
+    # all-LLM games. Compute it directly from summary.csv.
+    def _seat_fairness(board_tag, run_dir):
+        rows = _read_summary(_ROOT / f'logs/llm_eval/{run_dir}/summary.csv')
+        rows = [r for r in rows if r['board_tag'] == board_tag]
+        if not rows:
+            return 0.0
+        wins = Counter(r['winner'] for r in rows)
+        seat_names = [f'LLM_p{i}' for i in range(2)]
+        wrs = [wins.get(s, 0) / len(rows) for s in seat_names]
+        return max(wrs) - min(wrs)
+
+    f_llm_eval = [
+        _seat_fairness('default',      '2p_v2'),
+        _seat_fairness('ga_2p_winner', '2p_v2'),
+        # LLM-GA winner under LLM eval = mean_fairness from
+        # best_design.json metrics (n_seeds=5 so binary at coarse resolution).
+        json.load(open(_ROOT / 'logs/optimizer_llm/llm_ga_2p/best_design.json',
+                       encoding='utf-8'))['metrics']['mean_fairness'],
+    ]
+    f_pool_eval = [
+        pool['identity_default_2p']['metrics']['mean_fairness'],
+        pool['ga_2p_mask_best_2p']['metrics']['mean_fairness'],
+        pool_llm['evals_best_2p']['metrics']['mean_fairness'],
+    ]
+
+    fig, ax = plt.subplots(figsize=(8.5, 4.4))
+    x = np.arange(len(designs))
+    w = 0.36
+    b1 = ax.bar(x - w/2, f_llm_eval, w, label='LLM evaluator (2 identical seats)',
+                 color='#1f77b4')
+    b2 = ax.bar(x + w/2, f_pool_eval, w, label='rule-based pool (30 archetypes)',
+                 color='#d62728')
+    ax.set_xticks(x)
+    ax.set_xticklabels(designs)
+    ax.set_ylabel('fairness ($|$WR$_{\\max}-$WR$_{\\min}|$)')
+    ax.set_title('Fairness under LLM evaluator vs. rule-based pool. '
+                 'The LLM-GA winner has the LARGEST gap — a board\n'
+                 'that looks fair to identical agents but has '
+                 'exploitable asymmetries diverse strategies surface.',
+                 fontsize=10)
+    ax.legend(loc='upper left', fontsize=9)
+    ax.set_ylim(0, max(f_pool_eval) * 1.25)
+    for bs in (b1, b2):
+        for b in bs:
+            ax.text(b.get_x() + b.get_width()/2, b.get_height() + 0.005,
+                     f'{b.get_height():.3f}', ha='center', va='bottom',
+                     fontsize=8)
+    # Highlight the LLM-GA winner gap with an annotation
+    gap = f_pool_eval[2] - f_llm_eval[2]
+    ax.annotate('', xy=(x[2] + w/2, f_pool_eval[2]),
+                xytext=(x[2] - w/2, f_llm_eval[2]),
+                arrowprops=dict(arrowstyle='<->', color='#888888', lw=1.0))
+    ax.text(x[2] + 0.05, (f_llm_eval[2] + f_pool_eval[2]) / 2,
+             f'gap: {gap:+.2f}', fontsize=9, color='#444444')
+    fig.tight_layout()
+    _save(fig, 'fig_fairness_asymmetry.png')
+    plt.close(fig)
+
+
+# --------------------------------------------------------------------------- #
+# 6. Per-generation score distribution (selection pressure)                     #
+# --------------------------------------------------------------------------- #
+
+def fig_llm_ga_score_distribution():
+    """Box plot of per-generation score distributions for the LLM-driven GA.
+
+    Visualises both selection pressure (gen-over-gen mean drops) and the
+    per-eval noise that the n_seeds=5 protocol incurs.
+    """
+    evals = [json.loads(l) for l in
+             open(_ROOT / 'logs/optimizer_llm/llm_ga_2p/evals.jsonl',
+                  encoding='utf-8') if l.strip()]
+    by_gen = defaultdict(list)
+    for e in evals:
+        by_gen[e['gen']].append(e['score'])
+    gens = sorted(by_gen.keys())
+    data = [by_gen[g] for g in gens]
+
+    fig, ax = plt.subplots(figsize=(8.5, 4.4))
+    bp = ax.boxplot(data, positions=gens, patch_artist=True,
+                     boxprops=dict(facecolor='#cce0f4', color='#1f77b4'),
+                     medianprops=dict(color='#d62728', linewidth=2),
+                     whiskerprops=dict(color='#1f77b4'),
+                     capprops=dict(color='#1f77b4'))
+    # Overlay individual scores so the n_seeds=5 noise is visible
+    for g, scores in zip(gens, data):
+        ax.scatter([g] * len(scores), scores, alpha=0.4, s=22,
+                   color='#1f77b4', zorder=3)
+    # Mark the winner generation
+    winner_score = min(min(data, key=min))
+    winner_gen = next(g for g, scores in zip(gens, data)
+                      if winner_score in scores)
+    ax.scatter([winner_gen], [winner_score], marker='*', s=160,
+               color='#d62728', zorder=5,
+               label=f'overall winner (gen={winner_gen}, '
+                     f'score={winner_score:.3f})')
+    ax.set_xlabel('generation')
+    ax.set_ylabel('candidate composite score')
+    ax.set_title('LLM-driven GA: per-generation score distributions.\n'
+                 'Selection pressure visible (median drops gen 0→2); '
+                 'spread reflects n_seeds=5 evaluation noise.', fontsize=10)
+    ax.legend(loc='upper right', fontsize=9)
+    ax.grid(True, alpha=0.3, axis='y')
+    fig.tight_layout()
+    _save(fig, 'fig_llm_ga_score_distribution.png')
+    plt.close(fig)
+
+
+# --------------------------------------------------------------------------- #
+# 7. v1-vs-v2 hallucination accounting                                          #
+# --------------------------------------------------------------------------- #
+
+def fig_v1_vs_v2_hallucination():
+    """Stacked-bar comparison: v1 (validator-bug-induced flags) vs
+    v2 (post-fix, 0 across all boards). Visualises both:
+    (a) the raw 4.3% headline rate that the broken validator produced,
+    (b) the post-reclassification breakdown into spurious vs
+        retry-induced, and
+    (c) the v2 perfect run that confirms the methodology when correctly
+        implemented.
+    """
+    # Per-board counts (computed by hand from analysis_*.md, double-checked
+    # in notes/task1_postmortem_2026-04-29.md).
+    boards = ['2p default', '2p GA-winner', '3p default', '3p GA-winner']
+    n_calls = [595, 341, 920, 448]                 # v1 LLM calls
+    v1_real_first    = [0,  0,  0,  0]              # 0/2304 first-pass real
+    v1_spurious      = [3, 15, 52, 30]              # validator-bug flags
+    v1_retry_induced = [2,  6, 19, 20]              # post-retry fabricated
+    v2_flagged       = [0,  0,  0,  0]              # all clean post-fix
+
+    fig, (axL, axR) = plt.subplots(1, 2, figsize=(11.5, 4.4),
+                                    gridspec_kw={'width_ratios': [1.1, 1]})
+
+    # Left: v1 stacked by category, as percentages of n_calls
+    x = np.arange(len(boards))
+    w = 0.65
+    spur_pct = [s / n * 100 for s, n in zip(v1_spurious, n_calls)]
+    fab_pct  = [r / n * 100 for r, n in zip(v1_retry_induced, n_calls)]
+    real_pct = [r / n * 100 for r, n in zip(v1_real_first, n_calls)]
+    axL.bar(x, real_pct, w, color='#d62728', label='real first-pass (0/2304)')
+    axL.bar(x, fab_pct, w, bottom=real_pct, color='#ff7f0e',
+            label='retry-induced fabrication (47/2304)')
+    axL.bar(x, spur_pct, w, bottom=[a + b for a, b in zip(real_pct, fab_pct)],
+            color='#888888', label='spurious validator bug (100/2304)')
+    axL.set_xticks(x)
+    axL.set_xticklabels(boards, rotation=15)
+    axL.set_ylabel('% of LLM calls (first-pass + retry artefacts)')
+    axL.set_title('v1 (validator bug present): apparent halluc. 4.3%, '
+                  'real 0%')
+    axL.legend(loc='upper left', fontsize=8)
+    axL.set_ylim(0, max([a + b + c for a, b, c in
+                          zip(real_pct, fab_pct, spur_pct)]) * 1.4)
+
+    # Right: v2 — single bar per board, all zero, stylised.
+    axR.bar(x, v2_flagged, w, color='#888888')
+    axR.set_xticks(x)
+    axR.set_xticklabels(boards, rotation=15)
+    axR.set_ylim(0, 7)   # match left-panel y for visual parity
+    axR.set_ylabel('% of LLM calls flagged')
+    axR.set_title('v2 (validator fixed): 0/2288 across the board')
+    for i, _ in enumerate(boards):
+        axR.text(i, 0.2, '0/{}'.format(['584', '342', '917', '445'][i]),
+                  ha='center', fontsize=9, color='#444444')
+    fig.suptitle('Hallucination accounting: the validator-and-retry stack '
+                 'is part of the probe', fontsize=11)
+    fig.tight_layout(rect=[0, 0, 1, 0.93])
+    _save(fig, 'fig_v1_vs_v2_hallucination.png')
+    plt.close(fig)
+
+
+# --------------------------------------------------------------------------- #
 # Main                                                                          #
 # --------------------------------------------------------------------------- #
 
@@ -279,6 +618,10 @@ def main():
     fig_cross_class_agreement()
     fig_llm_ga_convergence()
     fig_llm_buy_rate_slices()
+    fig_cross_evaluator_gap()
+    fig_fairness_asymmetry()
+    fig_llm_ga_score_distribution()
+    fig_v1_vs_v2_hallucination()
     print('done')
 
 

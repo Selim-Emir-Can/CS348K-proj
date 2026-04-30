@@ -26,6 +26,7 @@ Usage (from monopoly/):
 """
 import argparse
 import json
+import sys
 from pathlib import Path
 
 import matplotlib
@@ -33,6 +34,11 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import numpy as np
+
+# Make ``monopoly/`` importable when run as ``python scripts/render_board.py``
+# from the monopoly directory.
+_HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(_HERE.parent))
 
 from config import GameConfig
 from optimizer.design_space import DesignSpace

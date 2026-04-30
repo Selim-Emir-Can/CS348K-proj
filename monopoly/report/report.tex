@@ -28,25 +28,34 @@ Game designers increasingly need to evaluate more candidate rule sets
 than human playtesting can cover. We present a workflow for using
 imperfect agents as \emph{design probes}: parameterise the game,
 evaluate candidates against a diverse agent population, compare
-directional predictions across agent classes, and reserve scarce human
-playtests for the designs where the automated signals are strongest or
-most conflicted. Monopoly is our reproducible case study. A genetic
-algorithm searches a 66-dim board design space (per-property cost/rent
-multipliers + a keep-mask that structurally shortens the board) against
-a composite of fairness, game length, draw rate, and inter-agent money
-transfer; single-objective ablations and a
-$2p\!\leftrightarrow\!3p$ cross-evaluation at $n{=}1000$ yield
-$\sim$40\% score reductions over the default board. The novel claim is
-not that the resulting Monopoly board is universally better, nor that
-agents are accurate human substitutes. Rather, agent feedback can be
-decision-useful when interpreted as a directional, comparative signal.
-Phase A of our validation is complete: on a 16-cell mini board with
-three pre-declared design knobs, two independent agent classes
-(rule-based + a Qwen2.5-1.5B LLM) agree on direction for $8/12$ metric
-comparisons and \emph{cross-confirm a counterintuitive finding}
-(doubling salary increases draw rate from $50\%$ to $75$--$90\%$ rather
-than reducing it). Phase B human validation is intentionally left as
-the final test of transfer to real play.
+directional predictions across agent classes, and reserve scarce
+human playtests for the designs where the automated signals are
+strongest or most conflicted. Monopoly is our reproducible case
+study. A genetic algorithm searches a 66-dim board design space
+(per-property cost/rent multipliers + a keep-mask that structurally
+shortens the board) against a composite of fairness, game length,
+draw rate, and inter-agent money transfer; single-objective
+ablations and a $2p\!\leftrightarrow\!3p$ cross-evaluation at
+$n{=}1000$ yield $\sim$40\% score reductions over the default board.
+We then run two cross-class validations of the workflow. \emph{Phase
+A} on a 16-cell mini board with three pre-declared knobs has
+rule-based agents and a Qwen2.5-1.5B LLM agreeing on direction for
+$8/12$ metric comparisons and cross-confirming a counter-intuitive
+finding (doubling salary \emph{increases} draw rate). \emph{Phase
+C}, completed, scales the LLM cross-check to the full 40-cell
+board: 80 games of all-LLM play (2{,}288 LLM decisions, 0
+hallucinations under deterministic per-field echo validation)
+reproduce the rule-based GA's directional signal in both 2p and 3p,
+and a mirror-image LLM-driven GA at 32 evaluations finds a board
+that beats the default but loses to the rule-based winner under the
+diverse-strategy pool — with a fairness gap (0.20 LLM eval $\to$
+0.379 pool eval) that diagnoses a single-personality evaluator's
+blind spot. The novel claim is not that the resulting Monopoly board
+is universally better, nor that agents are accurate human
+substitutes; rather, that automated agent feedback is
+decision-useful when treated as a directional, comparative signal,
+and that the validator-and-retry stack around the agent is part of
+the probe and shapes its failure modes.
 Code:
 \url{https://github.com/Selim-Emir-Can/CS348K-proj}.
 \end{abstract}
@@ -311,7 +320,7 @@ design vector produce byte-identical numbers.
 Table~\ref{tab:default} shows the default board's metrics under our
 evaluation harness. It establishes the reference each optimisation must beat.
 
-\begin{table}[h]
+\begin{table}[h!]
 \centering
 \small
 \begin{tabular}{lrrrrrr}
@@ -406,7 +415,7 @@ drive their target metric to (or near) zero, but always at the cost of
 one or more other metrics, confirming the combined objective's
 components are non-redundant.
 
-\begin{table}[h]
+\begin{table}[h!]
 \centering
 \small
 \begin{tabular}{llrrrrrr}
@@ -463,7 +472,7 @@ other?} We re-evaluate three designs (the GA-2p winner, the GA-3p
 winner, and the default board) under both harnesses (2p and 3p matchup
 sets) at $n{=}1000$.
 
-\begin{table}[h]
+\begin{table}[h!]
 \centering
 \small
 \begin{tabular}{llrrrrrr}
@@ -963,7 +972,7 @@ condition) and \texttt{LLMPlayer}-with-Qwen2.5-1.5B-Instruct vs.\
 Table~\ref{tab:phase_a} reports the default-vs-modified comparison
 for each knob.
 
-\begin{table}[h]
+\begin{table}[h!]
 \centering
 \small
 \begin{tabular}{llrrrr}
@@ -1106,7 +1115,7 @@ both metrics side by side. \emph{The LLM and the rule-based pool agree
 on direction for all four cells of the comparison.} This is the
 cross-class agreement Phase C was designed to surface.
 
-\begin{figure}[t]
+\begin{figure}[h!]
 \centering
 \includegraphics[width=0.99\linewidth]{llm/fig_cross_class_agreement.png}
 \caption{\textbf{Task 1 cross-class agreement.}
@@ -1146,7 +1155,24 @@ around the LLM: when the validator is right, it nudges the model
 toward correctness; when the validator is wrong, it nudges the model
 toward fabrication. For the agent-as-design-probe writeup this is
 evidence that the protocol around the LLM is part of the probe, not
-just transport.
+just transport. Figure~\ref{fig:v1_v2_halluc} visualises the v1 vs v2
+comparison with the per-board breakdown of spurious vs retry-induced
+artefacts; v2's flat-zero pattern across the 2{,}288 calls confirms
+the methodology when the validator is correctly implemented.
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.99\linewidth]{llm/fig_v1_vs_v2_hallucination.png}
+\caption{\textbf{Hallucination accounting (v1 vs v2).} The v1 run
+flagged 100/2{,}304 calls — all of them caused by an int()-only
+validator that couldn't parse legitimate float drift in
+\texttt{Player.money}. 47 of those cases also produced retry-induced
+fabrication after 4 corrective rounds. The v2 run with the fixed
+validator: 0/2{,}288 across all four boards. The validator and the
+retry policy are part of the probe; their failure modes show up in
+the data the probe produces.}
+\label{fig:v1_v2_halluc}
+\end{figure}
 
 \paragraph{Buy-rate slices.} Figure~\ref{fig:llm_slices} contrasts the
 LLM's behaviour on the default board vs the GA-winner board. Three
@@ -1160,7 +1186,7 @@ cash-aggressive at high balances on the GA-winner board (0.45 $\to$
 1.00 at \$\geq$1500), consistent with the GA optimising for fast cash
 circulation.
 
-\begin{figure}[t]
+\begin{figure}[h!]
 \centering
 \includegraphics[width=0.99\linewidth]{llm/fig_llm_buy_rate_slices.png}
 \caption{\textbf{LLM buy-rate slices, 2p only.} On the GA-winner board
@@ -1208,7 +1234,7 @@ generation~0's best ($0.565$). Elitism carried the winner unchanged
 through gen~3; gen~4 regressed slightly ($0.513$), consistent with
 n\_seeds=5 noise on top of a real optimum.
 
-\begin{figure}[t]
+\begin{figure}[h!]
 \centering
 \includegraphics[width=0.99\linewidth]{llm/fig_llm_ga_convergence.png}
 \caption{\textbf{Task 2 LLM-driven GA convergence.} 32 candidate
@@ -1220,12 +1246,29 @@ two scores are not directly comparable — see caveats below.}
 \label{fig:llm_ga_convergence}
 \end{figure}
 
+Figure~\ref{fig:llm_ga_distribution} unpacks the same 32 evaluations
+as a per-generation distribution to make both selection pressure and
+n\_seeds=5 evaluation noise visible. The median drops gen 0$\to$2
+(selection is real); the spread within each generation is wide
+(noise from the 5-seed protocol).
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.92\linewidth]{llm/fig_llm_ga_score_distribution.png}
+\caption{\textbf{LLM-driven GA: per-generation score distributions.}
+Median composite score drops from gen 0 (best 0.565) to gen 2
+(winner 0.465); generation~4 regresses on top of a real optimum, a
+signature of n\_seeds=5 evaluation noise. The within-generation
+spread is the budget cost of using LLM-only play in the inner loop.}
+\label{fig:llm_ga_distribution}
+\end{figure}
+
 \paragraph{Comparison vs the rule-based GA winner.} Both winners are
 44-dim continuous vectors plus a 22-bit keep-mask, but they live in
 different regions of the design space. Evaluated each by its own
 evaluator:
 
-\begin{table}[h]
+\begin{table}[h!]
 \centering
 \small
 \begin{tabular}{lrrrr}
@@ -1253,6 +1296,20 @@ meaningful is the per-component metric direction: the LLM-driven GA
 amplifies the same direction the rule-based GA chose, finding a more
 extreme corner of the same design space.
 
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.95\linewidth]{llm/board_llm_ga_2p.png}
+\caption{\textbf{The LLM-driven GA's winning board.} Rendered using
+the same canonical 11×11 layout used elsewhere in the report; cells
+the GA dropped (keep-mask=0) appear as REMOVED placeholders so the
+reader can see which property positions the search retired.
+Compared with the rule-based GA winner, this board pushes
+cost/rent multipliers further from 1.0 in several groups, removes a
+larger fraction of mid-cost properties, and yields the shorter,
+more cash-mobile games quantified above.}
+\label{fig:board_llm_ga}
+\end{figure}
+
 \paragraph{Caveats.} (1) n\_seeds=5 per candidate is noisy by
 construction; some of the score gap is search-noise advantage rather
 than real preference. (2) The LLM evaluator is more aggressive than
@@ -1266,7 +1323,7 @@ evaluator-specific — we re-evaluated the LLM-driven winner under the
 \emph{rule-based} 30-strategy pool's standard protocol (1{,}000 games
 × 10 strategy matchups, both 2p and 3p). Results:
 
-\begin{table}[h]
+\begin{table}[h!]
 \centering
 \small
 \begin{tabular}{lrrrrr}
@@ -1313,6 +1370,43 @@ space. For design problems where fairness is a target, evaluator
 diversity is non-optional even when the chosen agent class is otherwise
 strong.
 
+Figure~\ref{fig:cross_evaluator_gap} plots the same data as
+Table~\ref{tab:llm_ga_cross_eval} but with each board scored under
+\emph{both} evaluators side-by-side, so the partial-generalisation
+pattern is visible at a glance: the LLM-driven winner sits between
+the default board and the rule-based winner under the rule-based
+pool. Figure~\ref{fig:fairness_asymmetry} isolates the fairness
+diagnostic — the LLM-driven winner has by far the largest gap
+between its LLM-evaluator fairness ($\approx$0.20, just seat-position
+bias) and its rule-based-pool fairness ($\approx$0.379), which is
+exactly the failure mode the diverse pool is designed to surface.
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.99\linewidth]{llm/fig_cross_evaluator_gap.png}
+\caption{\textbf{Cross-evaluator generalisation gap.} Each board
+under both evaluators (where applicable). The LLM-driven GA winner
+beats the default board on \emph{both} evaluators in 2p (and on the
+rule-based pool in 3p), confirming a real design improvement; but
+under the rule-based pool it loses to the rule-based GA's own winner.
+Each search algorithm finds an optimum inside its evaluator's
+distribution.}
+\label{fig:cross_evaluator_gap}
+\end{figure}
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.95\linewidth]{llm/fig_fairness_asymmetry.png}
+\caption{\textbf{Fairness gap is the diagnostic.} A single-personality
+evaluator (the LLM, two identical seats) measures only seat-position
+bias; a diverse pool (30 strategy archetypes) measures real
+strategic asymmetry. The LLM-driven GA winner has the LARGEST gap
+between these two measurements — its low fairness under the LLM
+evaluator was a false negative on board fairness, hidden by
+evaluator homogeneity.}
+\label{fig:fairness_asymmetry}
+\end{figure}
+
 \paragraph{Decision-log analysis on the winner.} Figure~\ref{fig:llm_slices}
 already shows that the LLM's behaviour shifts when playing on a GA-
 optimised board (right cluster). The same analysis on the LLM-driven
@@ -1326,7 +1420,7 @@ for boards where the strategically-correct move is unambiguous from
 
 \subsection{Pre-declared statistics across all three phases}
 
-\begin{table}[h]
+\begin{table}[h!]
 \centering
 \small
 \begin{tabular}{lp{6cm}}
@@ -1368,26 +1462,51 @@ tested.
 
 \section{Conclusion}
 
-We built a closed-loop game-design optimiser for Monopoly, but the main
-result is the design workflow rather than the board it outputs. A
-diverse parametric strategy pool evaluates candidate boards and improves
-a combined fairness/length/draw/interactivity score by 32\%--46\%
-($n{=}1000$) on both 2-player and 3-player versions, beating random
-search by 16--17\% at equal evaluation budget. A second agent class
-(Qwen2.5-1.5B) then lets us interpret those simulations as designer
-signals: agreement cross-confirms robust effects, while disagreement
-identifies where human playtesting has the highest value. The framework,
-and its nine extracted MAS principles, generalises to environment design
-problems where (i) the environment can be parameterised, (ii) a diverse
-agent population can be assembled, and (iii) evaluation is cheap relative
-to the search budget. Human validation remains the final test of whether
-these directional signals transfer to real play.
+We built a closed-loop game-design optimiser for Monopoly, but the
+main result is the design workflow rather than the board it outputs.
+A diverse parametric strategy pool evaluates candidate boards and
+improves a combined fairness/length/draw/interactivity score by
+32\%--46\% ($n{=}1000$) on both 2-player and 3-player versions,
+beating random search by 16--17\% at equal evaluation budget. A
+second agent class (Qwen2.5-1.5B with deterministic per-field echo
+validation) provides cross-class corroboration: 80 all-LLM games on
+the rule-based GA winners reproduce the same rounds-down,
+transfer-up direction in both 2p and 3p, with 0/2{,}288
+hallucinations once the validator is fixed. Flipping the LLM into
+the evaluator role and re-running the GA produces a board that
+generalises partially under the rule-based pool — better than
+default in both player counts, worse than the rule-based GA's own
+winner — and exposes a fairness gap (0.20 LLM eval $\to$ 0.379
+pool eval) that diagnoses the limits of single-personality
+evaluation. Together these results argue for a particular workflow
+shape: \emph{multiple agent classes with diverse strategy
+distributions, agreement-as-evidence, disagreement-as-diagnostic, and
+human validation reserved for the cases where automated signals
+diverge or the score is on the boundary}. The protocol around the
+agent (validator, retry policy, eval distribution) is part of the
+probe; it has its own failure modes and must be reported alongside
+the agent itself. The framework, and its extracted MAS principles
+(robust aggregation, evaluator diversity, behavioural-interactivity
+metrics, variance-reduction discipline), generalises to environment
+design problems where (i) the environment can be parameterised, (ii)
+a diverse agent population can be assembled, and (iii) evaluation is
+cheap relative to the search budget. Human validation remains the
+final test of whether these directional signals transfer to real
+play.
 
 \paragraph{Reproducibility.} All experiments live under
-\texttt{monopoly/logs/optimizer/} as JSONL run logs and JSON summaries.
-Every figure and table number can be regenerated by re-running
-\texttt{scripts/optimize\_board.py}, \texttt{scripts/cross\_eval.py},
-\texttt{scripts/strategy\_heatmap.py}, and \texttt{scripts/report\_runs.py}
+\texttt{monopoly/logs/optimizer/} (rule-based) and
+\texttt{monopoly/logs/llm\_eval/}, \texttt{monopoly/logs/optimizer\_llm/}
+(LLM) as JSONL run logs and JSON summaries. Every figure and table
+number can be regenerated by re-running
+\texttt{scripts/optimize\_board.py},
+\texttt{scripts/optimize\_board\_llm.py},
+\texttt{scripts/eval\_llm\_on\_boards.py},
+\texttt{scripts/cross\_eval.py},
+\texttt{scripts/strategy\_heatmap.py},
+\texttt{scripts/analyze\_llm\_decisions.py},
+\texttt{scripts/plot\_llm\_results.py}, and
+\texttt{scripts/report\_runs.py}
 with the seeds recorded in each run's \texttt{.meta.json}.
 
 \appendix
@@ -1478,7 +1597,7 @@ population/generation settings.
 \texttt{ParametricPlayerSettings} dataclass with $17$ fields
 (Table~\ref{tab:paramspec}).
 
-\begin{table}[h]
+\begin{table}[h!]
 \centering
 \small
 \begin{tabular}{llp{8cm}}
@@ -1510,7 +1629,7 @@ behaviourally distinct regions of the parameter space. Their exact
 parameter values are listed in Table~\ref{tab:archetypes}; rationales
 follow the table.
 
-\begin{table}[h]
+\begin{table}[h!]
 \centering
 \scriptsize
 \begin{tabular}{lrrrrccccl}
