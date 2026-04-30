@@ -594,13 +594,22 @@ class LLMPlayer(Player):
                 opp_total    += len(other.owned)
         # Structured key:value block. Small LLMs read these far more
         # reliably than the prose form did — see notes/llm_hallucination_*.
+        # Numeric fields are int-coerced before formatting because Player.money
+        # can be a float in some games (rent×multiplier rounding, tax/fine
+        # interactions). A float like 411.79999999999995 in the prompt makes
+        # the model echo "$411.79999999999995", which then trips the echo
+        # validator's int() parse — see the 2026-04-29 Task 1 post-mortem in
+        # notes/. Coercing to int here means STATE always shows whole dollars.
+        cash_i      = int(round(self.money))
+        cost_i      = int(round(prop.cost_base))
+        base_rent_i = int(round(prop.rent_base))
         return (
             "STATE:\n"
-            f"  cash: ${self.money}\n"
+            f"  cash: ${cash_i}\n"
             f"  property: {prop.name}\n"
             f"  group: {prop.group}\n"
-            f"  cost: ${prop.cost_base}\n"
-            f"  base_rent: ${prop.rent_base}\n"
+            f"  cost: ${cost_i}\n"
+            f"  base_rent: ${base_rent_i}\n"
             f"  you_own_total: {owned_count}\n"
             f"  you_own_in_group: {same_group_self}\n"
             f"  group_size: {group_size}\n"
@@ -712,16 +721,34 @@ class LLMPlayer(Player):
                 continue
             raw = echoed[k]
             cleaned = raw.lstrip('$').replace('$', '').strip()
+            # Try int first; fall through to float so legitimate float values
+            # (e.g. cash=$411.79999... from rent×multiplier rounding) are
+            # accepted as long as they round-match STATE within 0.5 dollars.
+            got = None
             try:
                 got = int(cleaned)
             except ValueError:
-                issues.append(
-                    f'echo unparseable for {k!r}: {raw!r} (STATE.{k}={expected})')
-                continue
-            if expected is None or got != int(expected):
+                try:
+                    got = float(cleaned)
+                except ValueError:
+                    issues.append(
+                        f'echo unparseable for {k!r}: {raw!r} (STATE.{k}={expected})')
+                    continue
+            if expected is None:
                 issues.append(
                     f'echo mismatch on {k!r}: model echoed {got}, '
-                    f'STATE.{k}={expected}')
+                    f'STATE.{k} is missing')
+                continue
+            # Compare with float tolerance — covers both pure-int matches
+            # and legitimate float echoes (e.g. 411.8 vs 411.79999999999995).
+            try:
+                if abs(float(got) - float(expected)) > 0.5:
+                    issues.append(
+                        f'echo mismatch on {k!r}: model echoed {got}, '
+                        f'STATE.{k}={expected}')
+            except (TypeError, ValueError):
+                issues.append(
+                    f'echo unparseable for {k!r}: {raw!r} (STATE.{k}={expected})')
 
         for k in LLMPlayer._ECHO_STR_FIELDS:
             expected = ctx.get(k)

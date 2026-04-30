@@ -4,6 +4,19 @@ Reads ``logs/llm_eval/<run>/decisions/<board_tag>/seed_*.jsonl`` and the
 top-level ``summary.csv`` produced by the driver, and emits one
 ``analysis.md`` per board tag plus a top-level ``analysis_combined.md``.
 
+Float-drift reclassification (added 2026-04-29):
+The pre-2026-04-29T11 echo validator parsed numeric STATE fields with
+``int()`` and treated values like ``$411.79999999999995`` (legitimate
+float drift in ``Player.money``) as ``echo unparseable``. The model
+itself echoed those values *correctly* — it just copied STATE
+verbatim. The Task 1 80-game logs contain a few hundred of these
+spurious "hallucination" flags. This analyser detects them by
+re-parsing the original mismatch string with ``float()`` + a $0.50
+tolerance against STATE, and reclassifies them as
+``validator_bug_float_drift`` so the report's hallucination headline
+reflects the actual model behaviour rather than the validator's
+limitations.
+
 Metrics reported per board:
   - per-game aggregates (mean rounds, draw rate, mean transfer rate)
   - decision counts split into prefilter PASSes vs LLM calls
@@ -66,6 +79,58 @@ def _monopoly_opportunity(rec: dict) -> str:
     if own > 0:
         return 'partial_self'
     return 'fresh'
+
+
+_UNPARSEABLE_RE = __import__('re').compile(
+    r"echo unparseable for '([a-z_]+)': '([^']*)' \(STATE\.\1=([^)]+)\)"
+)
+_MISMATCH_RE = __import__('re').compile(
+    r"echo mismatch on '([a-z_]+)': model echoed (.+?), STATE\.\1=(.+)"
+)
+
+
+def _classify_issue(issue: str) -> str:
+    """Reclassify a pre-2026-04-29T11 issue string.
+
+    Returns one of:
+      'real'                       — actual mismatch the model got wrong
+      'validator_bug_float_drift'  — model echoed STATE correctly but the
+                                     old validator tripped on float
+                                     parsing (STATE itself contained a
+                                     float like 411.79999999999995)
+      'unparseable_other'          — value really doesn't parse as a number;
+                                     keep as a real flag
+
+    The reclassification is purely string-based — it inspects the
+    original issue text the validator wrote into the JSONL, not the
+    raw response. This means it works on any historical run without
+    needing to re-tokenise.
+    """
+    m = _UNPARSEABLE_RE.match(issue)
+    if m:
+        _field, model_str, state_str = m.group(1), m.group(2), m.group(3)
+        try:
+            mv = float(model_str.lstrip('$').replace('$', '').strip())
+            sv = float(state_str.strip())
+            if abs(mv - sv) <= 0.5:
+                return 'validator_bug_float_drift'
+            return 'real'
+        except ValueError:
+            return 'unparseable_other'
+    m = _MISMATCH_RE.match(issue)
+    if m:
+        _field, model_str, state_str = m.group(1), m.group(2), m.group(3)
+        # Even fully-formed mismatches can be float-drift if both parse
+        # numerically and round-match.
+        try:
+            mv = float(model_str.lstrip("'\"").rstrip("'\"").lstrip('$').replace('$', '').strip())
+            sv = float(state_str.lstrip("'\"").rstrip("'\"").strip())
+            if abs(mv - sv) <= 0.5:
+                return 'validator_bug_float_drift'
+        except ValueError:
+            pass
+        return 'real'
+    return 'real'
 
 
 def _bucket_buy_rate(records, key_fn):
@@ -185,6 +250,17 @@ def _analyse_board(board_tag: str, records, summary_rows, out_md_path: Path):
     n_with_attempts = 0
     n_unresolved_after_retries = 0
     field_mismatch_counts = Counter()
+    # Post-2026-04-29T11 reclassification. The original validator counted
+    # any "echo unparseable" issue as a hallucination, including legitimate
+    # float drift in Player.money (e.g. STATE.cash=411.79999999999995 with
+    # the model echoing $411.79999...). Reclassifying those lets us report
+    # the true model-side hallucination rate.
+    n_hallucinated_real     = 0    # at least one real issue on first attempt
+    n_hallucinated_spurious = 0    # all issues on first attempt are validator bugs
+    n_unresolved_real       = 0    # post-retry, still has a real issue
+    n_unresolved_spurious   = 0    # post-retry, only validator-bug issues remain
+    field_real_counts       = Counter()
+    field_spurious_counts   = Counter()
 
     for r in records:
         pre = r.get('prefilter')
@@ -222,19 +298,38 @@ def _analyse_board(board_tag: str, records, summary_rows, out_md_path: Path):
             n_retries_total += int(r.get('n_retries') or 0)
             if not r.get('final_resolved'):
                 n_unresolved_after_retries += 1
-            # Count first-attempt mismatches by field.
+            # Count first-attempt mismatches by field, AND reclassify each
+            # issue as real-vs-validator-bug.
             first = attempts[0] if attempts else {}
-            for issue in (first.get('echo_mismatches') or []):
-                # Issue text shape:
-                #   "echo mismatch on 'cash': model echoed 80, STATE.cash=1500"
-                #   "echo missing field 'base_rent' (STATE.base_rent=6)"
+            first_issues = first.get('echo_mismatches') or []
+            first_classifications = [_classify_issue(issue) for issue in first_issues]
+            any_real_first = any(c != 'validator_bug_float_drift'
+                                  for c in first_classifications)
+            if first_issues:
+                if any_real_first:
+                    n_hallucinated_real += 1
+                else:
+                    n_hallucinated_spurious += 1
+            for issue, kind in zip(first_issues, first_classifications):
                 # Pull the field name with a small regex.
                 import re as _re
-                m = _re.search(r"on '([a-z_]+)'|field '([a-z_]+)'", issue)
-                if m:
-                    field_mismatch_counts[m.group(1) or m.group(2)] += 1
+                m = _re.search(r"on '([a-z_]+)'|field '([a-z_]+)'|for '([a-z_]+)'",
+                                issue)
+                field = (m.group(1) or m.group(2) or m.group(3)) if m else '<unparsed>'
+                field_mismatch_counts[field] += 1
+                if kind == 'validator_bug_float_drift':
+                    field_spurious_counts[field] += 1
                 else:
-                    field_mismatch_counts['<unparsed>'] += 1
+                    field_real_counts[field] += 1
+            # Same reclassification for the FINAL attempt to compute the
+            # post-retries "still flagged" stat correctly.
+            if not r.get('final_resolved'):
+                last_issues = (attempts[-1].get('echo_mismatches') or [])
+                last_kinds = [_classify_issue(i) for i in last_issues]
+                if any(k != 'validator_bug_float_drift' for k in last_kinds):
+                    n_unresolved_real += 1
+                else:
+                    n_unresolved_spurious += 1
 
     by_cash = _bucket_buy_rate(records, lambda r: _cash_bucket(r.get('cash', 0)))
     by_op   = _bucket_buy_rate(records, _monopoly_opportunity)
@@ -272,9 +367,16 @@ def _analyse_board(board_tag: str, records, summary_rows, out_md_path: Path):
     if n_llm_calls == 0:
         md.append('_No LLM calls in this run._')
     else:
-        rate = n_hallucinated / n_llm_calls
-        md.append(f'- LLM calls flagged as contradicting STATE: '
-                  f'**{n_hallucinated} / {n_llm_calls}** ({rate*100:.1f}%)')
+        rate_raw  = n_hallucinated / n_llm_calls
+        rate_real = n_hallucinated_real / n_llm_calls
+        md.append(f'- LLM calls flagged by the validator: '
+                  f'**{n_hallucinated} / {n_llm_calls}** ({rate_raw*100:.1f}%)')
+        md.append(f'- of those, **real** model-side hallucinations '
+                  f'(post 2026-04-29 reclassification): '
+                  f'**{n_hallucinated_real} / {n_llm_calls}** '
+                  f'({rate_real*100:.1f}%)')
+        md.append(f'- and **spurious** validator-bug flags from float-drift '
+                  f'on Player.money: **{n_hallucinated_spurious}**')
         md.append(f'- retries attempted (any): **{n_retried}**, of which '
                   f'**{n_retry_resolved}** ({(n_retry_resolved/n_retried*100) if n_retried else 0.0:.0f}%) '
                   f'cleared by the LAST attempt')
@@ -283,10 +385,16 @@ def _analyse_board(board_tag: str, records, summary_rows, out_md_path: Path):
                       f'**{n_retries_total}** '
                       f'(avg {n_retries_total/n_with_attempts:.2f} retries per LLM-call)')
             md.append(f'- decisions still flagged after MAX_RETRIES: '
-                      f'**{n_unresolved_after_retries}**')
-        if field_mismatch_counts:
-            md.append('- per-field first-attempt mismatch counts:')
-            for k, v in field_mismatch_counts.most_common():
+                      f'**{n_unresolved_after_retries}** '
+                      f'(of which **{n_unresolved_real}** real, '
+                      f'**{n_unresolved_spurious}** spurious)')
+        if field_real_counts:
+            md.append('- per-field first-attempt mismatch counts (real):')
+            for k, v in field_real_counts.most_common():
+                md.append(f'  - `{k}`: {v}')
+        if field_spurious_counts:
+            md.append('- per-field first-attempt mismatch counts (spurious — validator bug):')
+            for k, v in field_spurious_counts.most_common():
                 md.append(f'  - `{k}`: {v}')
         if issue_label_counts:
             md.append('- legacy issue labels (regex detector, kept for back-compat):')
