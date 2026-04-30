@@ -136,6 +136,15 @@ def load_board(tag: str, base_cfg, args):
         meta = {'tag': 'ga_3p_winner', 'source': args.ga_3p_jsonl,
                 'iter': rec.get('iter'), 'score': rec.get('score')}
         return space.decode(vec), vec.tolist(), meta
+    if tag == 'llm_ga_2p_winner':
+        if not args.llm_ga_2p_jsonl:
+            raise ValueError('--llm-ga-2p-jsonl required to resolve '
+                             'llm_ga_2p_winner')
+        rec = _best_vec_from_jsonl(args.llm_ga_2p_jsonl)
+        vec = np.asarray(rec['vec'])
+        meta = {'tag': 'llm_ga_2p_winner', 'source': args.llm_ga_2p_jsonl,
+                'iter': rec.get('iter'), 'score': rec.get('score')}
+        return space.decode(vec), vec.tolist(), meta
     raise ValueError(f'unknown board tag: {tag}')
 
 
@@ -255,6 +264,11 @@ def main():
     ap.add_argument('--max-turns', type=int, default=200)
     ap.add_argument('--ga-2p-jsonl', default='logs/optimizer/ga_2p_mask.jsonl')
     ap.add_argument('--ga-3p-jsonl', default='logs/optimizer/ga_3p_mask.jsonl')
+    ap.add_argument('--llm-ga-2p-jsonl',
+                    default='logs/optimizer_llm/llm_ga_2p/evals.jsonl',
+                    help='Path to the LLM-driven GA evaluation log; the '
+                         'best-scoring entry is decoded as the '
+                         'llm_ga_2p_winner board.')
     ap.add_argument('--model-name', default=None,
                     help='Override default LLM model. Default: env LLM_MODEL '
                          'or Qwen/Qwen2.5-1.5B-Instruct.')

@@ -356,10 +356,14 @@ def fig_cross_evaluator_gap():
     llm_rb_winner_2p = _llm_score('ga_2p_winner', 2, '2p_v2')
     llm_default_3p = _llm_score('default',      3, '3p_v2')
     llm_rb_winner_3p = _llm_score('ga_3p_winner', 3, '3p_v2')
-    # LLM-GA winner under LLM eval = the GA's own composite, n_seeds=5.
+    # LLM-GA winner under LLM eval at 2p = the GA's own composite (n_seeds=5).
     llm_ga_winner_score = json.load(
         open(_ROOT / 'logs/optimizer_llm/llm_ga_2p/best_design.json',
              encoding='utf-8'))['score']
+    # LLM-GA winner under LLM eval at 3p — separate run (n_seeds=20), to
+    # match the apples-to-apples sample size of the other 3p cells.
+    llm_ga_winner_score_3p = _llm_score('llm_ga_2p_winner', 3,
+                                         'llm_ga_winner_3p')
 
     # 2 panels: 2p (left) and 3p (right). Each has 3 designs × 2 evaluators.
     fig, (ax2, ax3) = plt.subplots(1, 2, figsize=(11, 4.6))
@@ -385,21 +389,20 @@ def fig_cross_evaluator_gap():
                      f'{b.get_height():.2f}', ha='center', va='bottom',
                      fontsize=8)
 
-    # 3p panel — only default, RB-3p winner, LLM-GA-2p-winner-on-3p (we don't
-    # have LLM-GA-3p winner since Task 2 was 2p only).
+    # 3p panel: default, RB-3p winner, LLM-GA-2p-winner-on-3p
+    # (we don't have an LLM-GA-3p winner since Task 2 was 2p only,
+    # but we do evaluate the 2p-trained winner under 3p LLM seats so
+    # the cross-evaluator gap is fully populated).
     designs_3p = ['default', 'rule-based\nGA-3p winner', 'LLM-driven\nGA-2p winner']
     pool_eval_3p = [pool_default_3p,
                     pool['ga_3p_mask_best_3p']['score'],
                     pool_llm_winner_3p]
-    llm_eval_3p = [llm_default_3p, llm_rb_winner_3p, None]
+    llm_eval_3p = [llm_default_3p, llm_rb_winner_3p, llm_ga_winner_score_3p]
     x3 = np.arange(len(designs_3p))
-    b3 = ax3.bar(x3 - w/2, [s if s is not None else 0 for s in llm_eval_3p], w,
+    b3 = ax3.bar(x3 - w/2, llm_eval_3p, w,
                  label='LLM evaluator (n=20)', color='#1f77b4')
     b4 = ax3.bar(x3 + w/2, pool_eval_3p, w, label='rule-based pool (n=1000)',
                  color='#888888')
-    # Mark missing LLM-eval cell as N/A.
-    ax3.text(x3[2] - w/2, 0.05, 'N/A', ha='center', fontsize=9,
-             color='#888888', fontstyle='italic')
     ax3.set_xticks(x3)
     ax3.set_xticklabels(designs_3p)
     ax3.set_ylabel('composite score (lower = better)')

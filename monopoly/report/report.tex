@@ -1392,9 +1392,13 @@ Practical takeaway: a single-personality evaluator can drive useful
 GA convergence on metrics that depend on the board's mechanics
 (length, money flow), but it systematically under-counts fairness
 problems that only show up when diverse strategies probe the design
-space. For design problems where fairness is a target, evaluator
-diversity is non-optional even when the chosen agent class is otherwise
-strong.
+space. The fairness gap is in fact \emph{larger} at 3p than at 2p
+(0.05 LLM eval vs 0.404 pool eval at 3p; 0.20 vs 0.379 at 2p):
+adding more identical-personality seats narrows the LLM evaluator's
+fairness even further, while the diverse pool's fairness measurement
+holds steady. For design problems where fairness is a target,
+evaluator diversity is non-optional even when the chosen agent class
+is otherwise strong.
 
 Figure~\ref{fig:cross_evaluator_gap} plots the same data as
 Table~\ref{tab:llm_ga_cross_eval} but with each board scored under
@@ -1411,12 +1415,14 @@ exactly the failure mode the diverse pool is designed to surface.
 \centering
 \includegraphics[width=0.99\linewidth]{llm/fig_cross_evaluator_gap.png}
 \caption{\textbf{Cross-evaluator generalisation gap.} Each board
-under both evaluators (where applicable). The LLM-driven GA winner
-beats the default board on \emph{both} evaluators in 2p (and on the
-rule-based pool in 3p), confirming a real design improvement; but
-under the rule-based pool it loses to the rule-based GA's own winner.
-Each search algorithm finds an optimum inside its evaluator's
-distribution.}
+scored under both evaluators. The LLM-driven GA winner beats the
+default board under both evaluators and in both player counts,
+confirming a real design improvement; but under the rule-based pool
+it loses to the rule-based GA winner in each player count. Each
+search algorithm finds an optimum inside its evaluator's distribution.
+The 3p LLM-eval point for the LLM-GA-2p winner is computed at
+$n{=}20$ all-LLM 3p games on the same board, matching the $n{=}20$
+sample used for the other 3p cells.}
 \label{fig:cross_evaluator_gap}
 \end{figure}
 
