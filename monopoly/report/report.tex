@@ -1414,15 +1414,20 @@ exactly the failure mode the diverse pool is designed to surface.
 \begin{figure}[h!]
 \centering
 \includegraphics[width=0.99\linewidth]{llm/fig_cross_evaluator_gap.png}
-\caption{\textbf{Cross-evaluator generalisation gap.} Each board
-scored under both evaluators. The LLM-driven GA winner beats the
-default board under both evaluators and in both player counts,
-confirming a real design improvement; but under the rule-based pool
-it loses to the rule-based GA winner in each player count. Each
-search algorithm finds an optimum inside its evaluator's distribution.
-The 3p LLM-eval point for the LLM-GA-2p winner is computed at
-$n{=}20$ all-LLM 3p games on the same board, matching the $n{=}20$
-sample used for the other 3p cells.}
+\caption{\textbf{Cross-evaluator comparison, per-component metrics.}
+Each panel: 3 boards (default, rule-based GA winner, LLM-driven
+GA-2p winner) under both evaluators (LLM, blue, $n{=}20$; rule-based
+30-strategy pool, grey, $n{=}1000$). Top row: mean rounds. Bottom
+row: fairness. \textbf{Rounds transfer.} Both evaluators agree on
+the ordering of game length: default longest, optimised boards
+shorter, LLM-driven GA winner shortest. \textbf{Fairness does not.}
+On the LLM evaluator, fairness measures only seat-position bias
+between identical seats and shows the LLM-driven GA winner as
+\emph{fairer} than the rule-based winner; on the pool evaluator,
+fairness measures real strategic asymmetry and the same board scores
+as the \emph{least fair}. The fairness gap is the diagnostic
+finding: a single-personality evaluator systematically under-counts
+asymmetries that diverse strategies surface.}
 \label{fig:cross_evaluator_gap}
 \end{figure}
 

@@ -365,62 +365,113 @@ def fig_cross_evaluator_gap():
     llm_ga_winner_score_3p = _llm_score('llm_ga_2p_winner', 3,
                                          'llm_ga_winner_3p')
 
-    # 2 panels: 2p (left) and 3p (right). Each has 3 designs × 2 evaluators.
-    fig, (ax2, ax3) = plt.subplots(1, 2, figsize=(11, 4.6))
-    designs = ['default', 'rule-based\nGA-2p winner', 'LLM-driven\nGA-2p winner']
+    # The cross-evaluator story is most legible on the per-component
+    # metrics (mean rounds and mean fairness), not on the composite
+    # score, because the composite at 3p cancels out (round penalty
+    # for the default board offsets transfer-overshoot penalty for the
+    # optimised boards, leaving the LLM evaluator nearly flat across
+    # three very different boards). Two metric rows × two player counts
+    # = 4 panels. Within each panel: 3 designs × 2 evaluators = 6 bars.
+    pool_fair_default_2p = pool['identity_default_2p']['metrics']['mean_fairness']
+    pool_fair_rb_2p      = pool['ga_2p_mask_best_2p']['metrics']['mean_fairness']
+    pool_fair_llm_2p     = pool_llm['evals_best_2p']['metrics']['mean_fairness']
+    pool_fair_default_3p = pool['identity_default_3p']['metrics']['mean_fairness']
+    pool_fair_rb_3p      = pool['ga_3p_mask_best_3p']['metrics']['mean_fairness']
+    pool_fair_llm_3p     = pool_llm['evals_best_3p']['metrics']['mean_fairness']
+    pool_rounds_default_2p = pool['identity_default_2p']['metrics']['mean_rounds']
+    pool_rounds_rb_2p      = pool['ga_2p_mask_best_2p']['metrics']['mean_rounds']
+    pool_rounds_llm_2p     = pool_llm['evals_best_2p']['metrics']['mean_rounds']
+    pool_rounds_default_3p = pool['identity_default_3p']['metrics']['mean_rounds']
+    pool_rounds_rb_3p      = pool['ga_3p_mask_best_3p']['metrics']['mean_rounds']
+    pool_rounds_llm_3p     = pool_llm['evals_best_3p']['metrics']['mean_rounds']
+
+    # LLM-eval per-component (recompute via evaluate() so it's apples-to-apples).
+    def _llm_metrics(board_tag, n_players, run_dir):
+        rows = _read_summary(_ROOT / f'logs/llm_eval/{run_dir}/summary.csv')
+        rows = [r for r in rows if r['board_tag'] == board_tag]
+        games = []
+        for r in rows:
+            games.append({
+                'rounds':         int(r['rounds']),
+                'truncated':      bool(int(r['truncated'])),
+                'transfer_total': int(float(r['transfer_total'])),
+                'winner':         r['winner'] or None,
+                'strategy_names': [f'LLM_p{i}' for i in range(n_players)],
+            })
+        return evaluate([games])['metrics']
+
+    llm_m_def_2p = _llm_metrics('default',          2, '2p_v2')
+    llm_m_rb_2p  = _llm_metrics('ga_2p_winner',     2, '2p_v2')
+    llm_ga_best  = json.load(open(_ROOT / 'logs/optimizer_llm/llm_ga_2p/best_design.json',
+                                   encoding='utf-8'))['metrics']
+    llm_m_def_3p = _llm_metrics('default',          3, '3p_v2')
+    llm_m_rb_3p  = _llm_metrics('ga_3p_winner',     3, '3p_v2')
+    llm_m_lga_3p = _llm_metrics('llm_ga_2p_winner', 3, 'llm_ga_winner_3p')
+
+    # Pull the data into per-panel arrays.
+    designs = ['default', 'rule-based\nGA winner', 'LLM-driven\nGA-2p winner']
+    panels = [
+        ('Mean rounds, 2p', 'rounds',
+         [llm_m_def_2p['mean_rounds'], llm_m_rb_2p['mean_rounds'],
+          llm_ga_best['mean_rounds']],
+         [pool_rounds_default_2p, pool_rounds_rb_2p, pool_rounds_llm_2p]),
+        ('Mean rounds, 3p', 'rounds',
+         [llm_m_def_3p['mean_rounds'], llm_m_rb_3p['mean_rounds'],
+          llm_m_lga_3p['mean_rounds']],
+         [pool_rounds_default_3p, pool_rounds_rb_3p, pool_rounds_llm_3p]),
+        ('Fairness ($|$WR$_{\\max}-$WR$_{\\min}|$), 2p', 'fairness',
+         [_seat_fairness_2p('default', '2p_v2'),
+          _seat_fairness_2p('ga_2p_winner', '2p_v2'),
+          llm_ga_best['mean_fairness']],
+         [pool_fair_default_2p, pool_fair_rb_2p, pool_fair_llm_2p]),
+        ('Fairness, 3p', 'fairness',
+         [llm_m_def_3p['mean_fairness'], llm_m_rb_3p['mean_fairness'],
+          llm_m_lga_3p['mean_fairness']],
+         [pool_fair_default_3p, pool_fair_rb_3p, pool_fair_llm_3p]),
+    ]
+
+    fig, axes = plt.subplots(2, 2, figsize=(12, 7.5))
+    flat = [axes[0,0], axes[0,1], axes[1,0], axes[1,1]]
     x = np.arange(len(designs))
-    w = 0.36
-
-    # 2p panel
-    llm_eval_2p = [llm_default_2p, llm_rb_winner_2p, llm_ga_winner_score]
-    pool_eval_2p = [pool_default_2p, pool_rb_winner_2p, pool_llm_winner_2p]
-    b1 = ax2.bar(x - w/2, llm_eval_2p, w, label='LLM evaluator (n=20)',
-                 color='#1f77b4')
-    b2 = ax2.bar(x + w/2, pool_eval_2p, w, label='rule-based pool (n=1000)',
-                 color='#888888')
-    ax2.set_xticks(x)
-    ax2.set_xticklabels(designs)
-    ax2.set_ylabel('composite score (lower = better)')
-    ax2.set_title('2-player')
-    ax2.legend(loc='upper right', fontsize=9)
-    for bs in (b1, b2):
-        for b in bs:
-            ax2.text(b.get_x() + b.get_width()/2, b.get_height() + 0.02,
-                     f'{b.get_height():.2f}', ha='center', va='bottom',
-                     fontsize=8)
-
-    # 3p panel: default, RB-3p winner, LLM-GA-2p-winner-on-3p
-    # (we don't have an LLM-GA-3p winner since Task 2 was 2p only,
-    # but we do evaluate the 2p-trained winner under 3p LLM seats so
-    # the cross-evaluator gap is fully populated).
-    designs_3p = ['default', 'rule-based\nGA-3p winner', 'LLM-driven\nGA-2p winner']
-    pool_eval_3p = [pool_default_3p,
-                    pool['ga_3p_mask_best_3p']['score'],
-                    pool_llm_winner_3p]
-    llm_eval_3p = [llm_default_3p, llm_rb_winner_3p, llm_ga_winner_score_3p]
-    x3 = np.arange(len(designs_3p))
-    b3 = ax3.bar(x3 - w/2, llm_eval_3p, w,
-                 label='LLM evaluator (n=20)', color='#1f77b4')
-    b4 = ax3.bar(x3 + w/2, pool_eval_3p, w, label='rule-based pool (n=1000)',
-                 color='#888888')
-    ax3.set_xticks(x3)
-    ax3.set_xticklabels(designs_3p)
-    ax3.set_ylabel('composite score (lower = better)')
-    ax3.set_title('3-player')
-    ax3.legend(loc='upper right', fontsize=9)
-    for bs in (b3, b4):
-        for b in bs:
-            v = b.get_height()
-            if v > 0.01:
-                ax3.text(b.get_x() + b.get_width()/2, v + 0.02,
-                         f'{v:.2f}', ha='center', va='bottom', fontsize=8)
-    fig.suptitle('Each board scored under both evaluators: '
-                 'LLM-driven GA winner generalises to default (better) '
-                 'but loses to the rule-based winner under the rule-based pool',
+    w = 0.38
+    for ax, (title, kind, llm_v, pool_v) in zip(flat, panels):
+        b1 = ax.bar(x - w/2, llm_v, w, label='LLM evaluator',
+                    color='#1f77b4')
+        b2 = ax.bar(x + w/2, pool_v, w, label='rule-based pool',
+                    color='#888888')
+        ax.set_xticks(x)
+        ax.set_xticklabels(designs)
+        ax.set_title(title, fontsize=10)
+        ax.set_ylabel('rounds' if kind == 'rounds' else 'fairness (max-min WR)')
+        if kind == 'fairness':
+            ax.set_ylim(0, max(max(pool_v), max(llm_v)) * 1.4)
+        for bs in (b1, b2):
+            for b in bs:
+                v = b.get_height()
+                fmt = f'{v:.0f}' if kind == 'rounds' else f'{v:.2f}'
+                ax.text(b.get_x() + b.get_width()/2, v + (max(b1.datavalues)*0.02 if kind=='rounds' else 0.005),
+                        fmt, ha='center', va='bottom', fontsize=8)
+        ax.legend(loc='upper right', fontsize=8)
+    fig.suptitle('Cross-evaluator comparison: rounds-effect transfers across '
+                 'evaluators; fairness-effect does not (single-personality '
+                 'evaluator under-counts strategic asymmetry)',
                  fontsize=10)
     fig.tight_layout(rect=[0, 0, 1, 0.94])
     _save(fig, 'fig_cross_evaluator_gap.png')
     plt.close(fig)
+
+
+def _seat_fairness_2p(board_tag, run_dir):
+    """Helper used by fig_cross_evaluator_gap to compute the 2p LLM-eval
+    fairness as the seat-position bias on n=20 all-LLM games."""
+    rows = _read_summary(_ROOT / f'logs/llm_eval/{run_dir}/summary.csv')
+    rows = [r for r in rows if r['board_tag'] == board_tag]
+    if not rows:
+        return 0.0
+    wins = Counter(r['winner'] for r in rows)
+    seats = [f'LLM_p{i}' for i in range(2)]
+    wrs = [wins.get(s, 0) / len(rows) for s in seats]
+    return max(wrs) - min(wrs)
 
 
 # --------------------------------------------------------------------------- #
