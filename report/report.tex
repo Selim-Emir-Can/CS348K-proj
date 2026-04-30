@@ -1075,27 +1075,205 @@ $p<0.1$. The agent loop is judged \emph{not decision-useful} if humans
 report no perceptible difference between the boards, or if the sign of
 the effect contradicts the agent's prediction on $\geq 2$ of $3$ knobs.
 
-\subsection{Phase C: LLM-agent cross-check}
+\subsection{Phase C: LLM-only cross-check (completed)}\label{sec:phase_c}
 
 A third independent signal is provided by an LLM-based player
-(\texttt{LLMPlayer}, registered in our codebase using a lightweight
-local Qwen2.5-0.5B-Instruct model). The LLM is given the current game
-state (cash, owned properties, board occupancy, colour-group
-completion) and asked at each decision point to choose buy/no-buy or
-build/no-build. We run the same boards from Phase B with the LLM in
-place of the rule-based agents and compare the same statistics.
+(\texttt{LLMPlayer}, registered in our codebase using a local
+Qwen2.5-1.5B-Instruct model). The LLM is given a structured \texttt{STATE}
+block containing the buy decision's full context (cash, property,
+group, cost, base rent, own/opponent ownership counts, group size) and
+asked to first emit an \texttt{ECHO} block copying every \texttt{STATE}
+field verbatim, then a \texttt{REASON} sentence, then
+\texttt{ANSWER: BUY} or \texttt{ANSWER: PASS}. The echo block is checked
+deterministically against ground-truth \texttt{STATE}; on any mismatch
+the model is given up to 4 corrective retries before its final answer
+is used. Build, trade, and jail decisions fall through to the base
+\texttt{Player} logic to keep latency manageable.
+
+\paragraph{Setup.} 80 games total: 2 player counts × \{default board,
+GA-winner board\} × 20 seeds, all seats are \texttt{LLMPlayer}. Greedy
+decoding, \texttt{max\_new\_tokens=160}. Wall time 5h 14min on a single
+11~GB GPU. Decision log is 2{,}288 LLM calls with full prompt, raw
+response, parse path, timing, and echo-validation trace per call.
+
+\paragraph{Cross-class directional agreement.} The headline result is
+that the LLM, when used as both player and evaluator, reproduces the
+rule-based GA's directional signal with almost no friction: GA-winner
+boards are shorter and more cash-mobile in 2p (rounds $60.5\!\to\!46.8$,
+transfer $50.1\!\to\!78.5$~\$/r) and 3p (rounds $76.0\!\to\!43.2$,
+transfer $100.5\!\to\!127.4$~\$/r). Figure~\ref{fig:cross_class} plots
+both metrics side by side. \emph{The LLM and the rule-based pool agree
+on direction for all four cells of the comparison.} This is the
+cross-class agreement Phase C was designed to surface.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.99\linewidth]{llm/fig_cross_class_agreement.png}
+\caption{\textbf{Task 1 cross-class agreement.}
+80 games of all-LLM play (Qwen2.5-1.5B, deterministic echo
+validation) on the default board vs the rule-based GA winner. The
+LLM reproduces the same directional signal the rule-based GA pool
+produced: shorter games, more inter-player money flow on the
+optimised board, in both 2p and 3p. Composite scores are not directly
+comparable across evaluators (rule-based: 1{,}000 games × 10 strategy
+matchups per candidate; LLM: 5 games per candidate), but the
+\emph{per-component metrics} are unit-comparable.}
+\label{fig:cross_class}
+\end{figure}
+
+\paragraph{Hallucination accounting.} Across 2{,}288 LLM calls the
+deterministic echo validator flagged \emph{zero} mismatches. The model
+copied \texttt{STATE} verbatim on every first attempt; no retries
+fired. This is the post-fix number after a previous run of the same
+pipeline (v1) revealed a validator bug — the original \texttt{int()}-only
+parser failed on legitimate float drift in \texttt{Player.money}
+(e.g.\ \$411.79999999999995 from rent-multiplier rounding). Once the
+validator was extended to accept floats within \$0.50 of \texttt{STATE},
+the pipeline produced 0/2{,}288 false positives.
+
+\paragraph{Second-order finding: retry-induced fabrication.} The v1
+run, by contrast, falsely flagged 100/2{,}304 calls (4.3\%). Tracing
+those cases reveals an interesting failure mode: when the validator
+incorrectly rejected the model's clean first-pass echo, the model
+faithfully ran through the retry budget (4 attempts), and after
+repeated ``you failed echo validation'' feedback it began \emph{making
+up} numbers that didn't appear anywhere in \texttt{STATE} ---
+e.g.\ ``I have \$1000, cost is only \$100'' on a turn where
+\texttt{STATE} actually said cash=\$416.0, cost=\$180. We thus
+observed 47 retry-induced fabrications in v1 that did not exist in v2.
+The validator-and-retry stack is therefore not a neutral wrapper
+around the LLM: when the validator is right, it nudges the model
+toward correctness; when the validator is wrong, it nudges the model
+toward fabrication. For the agent-as-design-probe writeup this is
+evidence that the protocol around the LLM is part of the probe, not
+just transport.
+
+\paragraph{Buy-rate slices.} Figure~\ref{fig:llm_slices} contrasts the
+LLM's behaviour on the default board vs the GA-winner board. Three
+patterns are worth highlighting. (1) The model is correctly more
+cautious as cash falls (buy-rate slope vs cash bucket). (2) The
+opponent-dominates slice drops sharply on the GA-winner board (0.30
+default $\to$ 0.13 winner) — the optimised board has rent multipliers
+that punish buying into a contested group, and the model picks up the
+signal from \texttt{base\_rent} alone. (3) The model becomes more
+cash-aggressive at high balances on the GA-winner board (0.45 $\to$
+1.00 at \$\geq$1500), consistent with the GA optimising for fast cash
+circulation.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.99\linewidth]{llm/fig_llm_buy_rate_slices.png}
+\caption{\textbf{LLM buy-rate slices, 2p only.} On the GA-winner board
+the model becomes both more cash-aggressive at high balances
+(\$\geq$1500: 0.45$\to$1.00) and more strict on contested groups
+(opp\_dominates: 0.30$\to$0.13). Both shifts are coherent with the
+board the GA selected: rents are amped, monopoly paths are scarcer,
+and money is meant to circulate faster.}
+\label{fig:llm_slices}
+\end{figure}
 
 \paragraph{Why a third signal.} The rule-based pool, the LLM, and the
 human cohort exhibit fundamentally different reasoning styles. If all
-three agree on the direction of an effect, we have very strong evidence
-that the design change is real. If they disagree, the disagreement
-itself is informative: it tells us which agent class the designer can
-trust on which dimension. Specifically: rule-based agents are likely
-most reliable on \emph{quantitative} effects (game length, transfer
-rate); LLMs are likely more reliable on \emph{strategic/contextual}
-effects (which strategy archetype actually wins under which board);
-humans are the only signal on \emph{subjective} effects (perceived
-fairness, fun).
+three agree on the direction of an effect, we have strong evidence
+that the design change is real. Phase C now provides two of those
+three signals (rule-based + LLM); the human cohort remains future
+work. With both automated agent classes agreeing on direction across
+4/4 (board, player-count) cells, the rule-based GA's design choices
+gain significant external validity from a fundamentally different
+agent architecture.
+
+\subsection{LLM-driven GA: optimising the board for the LLM
+            evaluator}\label{sec:llm_ga}
+
+A natural follow-up to Phase~C is to flip the LLM's role: instead of
+evaluating the rule-based GA's winner, use the LLM as the GA's
+\emph{evaluator}, and ask whether it selects different boards.
+
+\paragraph{Setup.} 2-player only. Population 8, 5 generations,
+elitism 2 → 32 candidate evaluations (\texttt{pop +
+(generations-1)×(pop-elitism)}). Each candidate is scored against 5
+seeded all-LLM games using the same combined objective as the
+rule-based GA. The 66-dim design space, the \texttt{StandardPlayerSettings},
+the dice/deck seeding, the score formula, and the \texttt{evaluate()}
+function are all identical to the rule-based pipeline; only the
+players are swapped.
+
+\paragraph{Wall time.} 4h 58min end-to-end on a single 11~GB GPU.
+
+\paragraph{Convergence and winner.}
+Figure~\ref{fig:llm_ga_convergence} shows the per-evaluation score and
+the best-so-far envelope. The GA found its winner at evaluation
+index 15 (gen~2) with composite score $0.465$, down 18\% from
+generation~0's best ($0.565$). Elitism carried the winner unchanged
+through gen~3; gen~4 regressed slightly ($0.513$), consistent with
+n\_seeds=5 noise on top of a real optimum.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.99\linewidth]{llm/fig_llm_ga_convergence.png}
+\caption{\textbf{Task 2 LLM-driven GA convergence.} 32 candidate
+evaluations, pop=8 × generations=5 × elitism=2, n\_seeds=5 per
+candidate. The dashed line marks the rule-based GA-2p winner's
+composite score for orientation; the LLM-driven GA finds a board
+with lower composite under its (much smaller) game budget but the
+two scores are not directly comparable — see caveats below.}
+\label{fig:llm_ga_convergence}
+\end{figure}
+
+\paragraph{Comparison vs the rule-based GA winner.} Both winners are
+44-dim continuous vectors plus a 22-bit keep-mask, but they live in
+different regions of the design space. Evaluated each by its own
+evaluator:
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lrrrr}
+\toprule
+                              & rounds & fairness & xfer/r & composite \\
+\midrule
+Rule-based GA-2p winner       & 61.0   & 0.24     & 73.2   & 0.728 \\
+\textbf{LLM-driven GA-2p winner}
+                              & \textbf{43.6}
+                                       & \textbf{0.20}
+                                                  & \textbf{90.6}
+                                                           & \textbf{0.465} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The LLM-driven GA found a board that is shorter (-28\%), fairer
+(-17\%), and more inter-player-cash-mobile (+24\%) than the
+rule-based GA winner, when each is evaluated under its own player
+class. \emph{This does not mean the LLM-driven board is universally
+better}: the composite scores are computed under fundamentally
+different evaluators (rule-based: 1{,}000 games × 10 strategy
+matchups per candidate; LLM: 5 games per candidate). What \emph{is}
+meaningful is the per-component metric direction: the LLM-driven GA
+amplifies the same direction the rule-based GA chose, finding a more
+extreme corner of the same design space.
+
+\paragraph{Caveats.} (1) n\_seeds=5 per candidate is noisy by
+construction; some of the score gap is search-noise advantage rather
+than real preference. (2) The LLM evaluator is more aggressive than
+the average rule-based strategy (buy-rate by group is 0.65--1.00 even
+on the GA-winner board), so the GA is implicitly optimising against an
+``aggressive-buyer-only'' eval distribution. A board designed for an
+aggressive evaluator should naturally have shorter games. (3) A
+proper apples-to-apples test requires re-evaluating the LLM-driven
+winner under the rule-based pool's 1{,}000-game protocol; we leave
+that as a one-off cross-evaluation in future work.
+
+\paragraph{Decision-log analysis on the winner.} Figure~\ref{fig:llm_slices}
+already shows that the LLM's behaviour shifts when playing on a GA-
+optimised board (right cluster). The same analysis on the LLM-driven
+GA winner specifically: 0/74 hallucinations across the 5 winning
+games, buy-rate by monopoly opportunity goes
+fresh=1.00, partial\_self=1.00, opp\_dominates=0.13 — the model
+plays the optimal strategy archetype almost mechanically on this
+particular board, which is consistent with the GA having selected
+for boards where the strategically-correct move is unambiguous from
+\texttt{STATE} alone.
 
 \subsection{Pre-declared statistics across all three phases}
 
