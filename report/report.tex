@@ -48,7 +48,7 @@ hallucinations under deterministic per-field echo validation)
 reproduce the rule-based GA's directional signal in both 2p and 3p,
 and a mirror-image LLM-driven GA at 32 evaluations finds a board
 that beats the default but loses to the rule-based winner under the
-diverse-strategy pool — with a fairness gap (0.20 LLM eval $\to$
+diverse-strategy pool; with a fairness gap (0.20 LLM eval $\to$
 0.379 pool eval) that diagnoses a single-personality evaluator's
 blind spot. The novel claim is not that the resulting Monopoly board
 is universally better, nor that agents are accurate human
@@ -140,26 +140,19 @@ single-objective ablations, two search algorithms at matched budget,
 $2p\!\leftrightarrow\!3p$ cross-evaluation at $n{=}1000$, and per-strategy
 heatmaps that visualise \emph{which} matchups the optimiser actually fixed.
 
-\paragraph{Background and context.} Automated game-design tuning has a
-long but uneven history. Search-based game design and procedural-content
-generation show that parameters can be optimised against computational
-objectives; automated playtesting shows that agents can expose bugs,
-dominant strategies, and balance failures; multi-agent RL often fixes
-the environment and evolves increasingly strong agents. Our setting sits
-between these lines of work. The \emph{environment} is the search
-variable, while the \emph{agent population} is fixed, diverse, and
-intentionally imperfect. The novelty is the interpretation layer: we do
-not ask whether any one agent is ``the human''. We ask whether multiple
-agent classes agree on the direction of a design effect, and whether
-their disagreements identify the playtest conditions a designer should
-spend human time on. This framing gives the designer actionable leverage
-(environment parameters are cheap to change; retraining agents for every
-candidate design is not) while retaining the honesty of a population-level
-evaluation (the optimum must generalise across strategies, not just
-overfit to one reference agent). The same framing applies to matchmaker
-design, auction-parameter tuning, platform-rules optimisation, and any
-other multi-agent system whose designer can instrument the environment
-independently of the agents that populate it.
+\paragraph{Positioning vs prior work.} Search-based game design and
+automated playtesting establish that parameters can be tuned against
+computational objectives and that agents can expose dominant
+strategies. Multi-agent RL typically fixes the environment and evolves
+agents. Our setting sits between these lines: the \emph{environment}
+is the search variable; the \emph{agent population} is fixed, diverse,
+and intentionally imperfect. The novelty is the interpretation layer.
+We do not ask whether any one agent is ``the human''; we ask whether
+multiple agent classes agree on the direction of a design effect,
+reserving human time for the cases where they disagree. The framing
+applies to matchmaker design, auction tuning, platform-rules
+optimisation, and other multi-agent systems whose designer instruments
+the environment independently of the agents.
 
 \paragraph{What an ``improvement'' means here.} Throughout the paper we
 describe a design as ``improved'' when its weighted combined score
@@ -172,6 +165,42 @@ target simultaneously, which is physically impossible for any non-trivial
 strategy pool). Throughout, we report both the composite score and the
 underlying per-metric numbers so a reader who cares about only one
 dimension (e.g.\ \emph{only} game length) can read that column directly.
+
+
+\section{Related work}\label{sec:related}
+
+\paragraph{Agents as design probes.} Using simulated agents to playtest
+games is well established. Recent work has used reinforcement learning,
+search agents, and hand-coded heuristics to surface balance issues in
+both digital and tabletop games. Our contribution is not the use of
+agents per se but the protocol for using \emph{multiple agent classes
+with diverse strategy distributions} as cross-checks, with
+disagreement-as-diagnostic and human playtesting reserved for the
+boundary cases.
+
+\paragraph{LLM-based agents.} Small instruction-tuned LLMs (Qwen2.5,
+Llama 3) have been used as decision-making agents in board games,
+simulations, and tool-use evaluations. Our setup uses a 1.5B model with
+greedy decoding, a structured \texttt{STATE}/\texttt{ECHO}/\texttt{REASON}/\texttt{ANSWER}
+prompt, and a deterministic per-field validator with a bounded retry
+budget. The validator-and-retry stack is closer in spirit to
+constrained decoding and self-consistency than to standard chain of
+thought; we report failure modes specific to that protocol (Section
+\ref{sec:phase_c}).
+
+\paragraph{Genetic algorithms over environment design.} GAs and
+evolutionary search are routine for environment design problems. Our
+GA is unremarkable on its own (population 20, generations 10,
+tournament selection, uniform crossover, Gaussian + bit-flip
+mutation); the contribution lies in the evaluator: a 30-strategy
+parametric pool, with a single-personality LLM evaluator as a
+cross-class control.
+
+\paragraph{Robust evaluation.} Variance reduction via shared random
+numbers (CRN) is standard in stochastic simulation; per-objective
+single-knob ablations are standard in optimisation. We adopt both
+because they are cheap, reproducible, and orthogonal. The novelty in
+this work is connecting them to the agent-as-design-probe framing.
 
 \section{Problem definition}\label{sec:problem}
 
@@ -285,7 +314,7 @@ Appendix~\ref{app:impl} details the simulator instrumentation,
 design-space encoding, GA hyperparameters, and the determinism guarantees
 that make every reported number reproducible from its run's meta file.
 
-\section{Evaluation}\label{sec:eval}
+\section{Experiments}\label{sec:eval}
 
 \subsection{Experimental setup and reading guide}
 
@@ -807,7 +836,7 @@ beta-testing loop worth building rather than running each design change
 by hand: the loop surfaces structural patterns that intuition would not
 have predicted, but that hold up under scrutiny once seen.
 
-\section{Generalisation: lessons for multi-agent system design}\label{sec:gen}
+\section{Discussion: lessons for multi-agent system design}\label{sec:gen}
 
 The framework here transfers to any multi-agent system whose designer can
 parameterise the environment and evaluate it against a population of
@@ -926,14 +955,15 @@ ablation that decouples the two is left for future work.
 
 \section{Validation plan and Phase A results}\label{sec:validation}
 
-The central claim of this project (agent feedback is directionally
-predictive of human play) is operationalised by a three-phase
-validation plan with pre-declared methodology, statistics, and
-falsification criteria. Each phase generates a different kind of
-evidence about \emph{when} agent feedback is decision-useful and when
-it is not. As of this writing, Phase A is complete and reported in
-Section~\ref{sec:phase_a_results}; Phases B and C remain future work
-with a concrete protocol committed below.
+The central claim (agent feedback is directionally predictive of
+real play) is operationalised by a three-phase validation plan with
+pre-declared methodology, statistics, and falsification criteria.
+Each phase generates a different kind of evidence about \emph{when}
+agent feedback is decision-useful. As of this writing, Phase A and
+Phase C are complete; Phase A is reported in
+Section~\ref{sec:phase_a_results} and Phase C in
+Section~\ref{sec:phase_c}. Phase B (human cohort) remains future
+work with a concrete protocol committed below.
 
 \subsection{Phase A: simplified-board sanity check}
 
@@ -1134,7 +1164,7 @@ matchups per candidate; LLM: 5 games per candidate), but the
 deterministic echo validator flagged \emph{zero} mismatches. The model
 copied \texttt{STATE} verbatim on every first attempt; no retries
 fired. This is the post-fix number after a previous run of the same
-pipeline (v1) revealed a validator bug — the original \texttt{int()}-only
+pipeline (v1) revealed a validator bug; the original \texttt{int()}-only
 parser failed on legitimate float drift in \texttt{Player.money}
 (e.g.\ \$411.79999999999995 from rent-multiplier rounding). Once the
 validator was extended to accept floats within \$0.50 of \texttt{STATE},
@@ -1146,7 +1176,7 @@ those cases reveals an interesting failure mode: when the validator
 incorrectly rejected the model's clean first-pass echo, the model
 faithfully ran through the retry budget (4 attempts), and after
 repeated ``you failed echo validation'' feedback it began \emph{making
-up} numbers that didn't appear anywhere in \texttt{STATE} ---
+up} numbers that didn't appear anywhere in \texttt{STATE} , 
 e.g.\ ``I have \$1000, cost is only \$100'' on a turn where
 \texttt{STATE} actually said cash=\$416.0, cost=\$180. We thus
 observed 47 retry-induced fabrications in v1 that did not exist in v2.
@@ -1164,7 +1194,7 @@ the methodology when the validator is correctly implemented.
 \centering
 \includegraphics[width=0.99\linewidth]{llm/fig_v1_vs_v2_hallucination.png}
 \caption{\textbf{Hallucination accounting (v1 vs v2).} The v1 run
-flagged 100/2{,}304 calls — all of them caused by an int()-only
+flagged 100/2{,}304 calls; all of them caused by an int()-only
 validator that couldn't parse legitimate float drift in
 \texttt{Player.money}. 47 of those cases also produced retry-induced
 fabrication after 4 corrective rounds. The v2 run with the fixed
@@ -1179,7 +1209,7 @@ LLM's behaviour on the default board vs the GA-winner board. Three
 patterns are worth highlighting. (1) The model is correctly more
 cautious as cash falls (buy-rate slope vs cash bucket). (2) The
 opponent-dominates slice drops sharply on the GA-winner board (0.30
-default $\to$ 0.13 winner) — the optimised board has rent multipliers
+default $\to$ 0.13 winner); the optimised board has rent multipliers
 that punish buying into a contested group, and the model picks up the
 signal from \texttt{base\_rent} alone. (3) The model becomes more
 cash-aggressive at high balances on the GA-winner board (0.45 $\to$
@@ -1242,7 +1272,7 @@ evaluations, pop=8 × generations=5 × elitism=2, n\_seeds=5 per
 candidate. The dashed line marks the rule-based GA-2p winner's
 composite score for orientation; the LLM-driven GA finds a board
 with lower composite under its (much smaller) game budget but the
-two scores are not directly comparable — see caveats below.}
+two scores are not directly comparable; see caveats below.}
 \label{fig:llm_ga_convergence}
 \end{figure}
 
@@ -1318,8 +1348,8 @@ on the GA-winner board), so the GA is implicitly optimising against
 an ``aggressive-buyer-only'' eval distribution.
 
 \paragraph{Cross-evaluation under the rule-based pool.} To stress-test
-how board-level the LLM-driven GA's win is — versus how
-evaluator-specific — we re-evaluated the LLM-driven winner under the
+how board-level the LLM-driven GA's win is; versus how
+evaluator-specific; we re-evaluated the LLM-driven winner under the
 \emph{rule-based} 30-strategy pool's standard protocol (1{,}000 games
 × 10 strategy matchups, both 2p and 3p). Results:
 
@@ -1350,7 +1380,7 @@ partially}: under the rule-based pool's eval it scores 1.045 (vs
 1.463 default) at 2p and 1.015 (vs 1.230 default) at 3p. The board is
 a real improvement over the default; it is not just an artefact of the
 LLM evaluator. Second, the rule-based GA's own 2p winner remains
-better when scored on its own protocol (0.817 vs 1.045) — the
+better when scored on its own protocol (0.817 vs 1.045); the
 search algorithms each found optima inside their evaluator's
 distribution. Third, and most diagnostic: the
 LLM-driven winner's \emph{fairness} balloons under the pool's eval,
@@ -1376,7 +1406,7 @@ Table~\ref{tab:llm_ga_cross_eval} but with each board scored under
 pattern is visible at a glance: the LLM-driven winner sits between
 the default board and the rule-based winner under the rule-based
 pool. Figure~\ref{fig:fairness_asymmetry} isolates the fairness
-diagnostic — the LLM-driven winner has by far the largest gap
+diagnostic; the LLM-driven winner has by far the largest gap
 between its LLM-evaluator fairness ($\approx$0.20, just seat-position
 bias) and its rule-based-pool fairness ($\approx$0.379), which is
 exactly the failure mode the diverse pool is designed to surface.
@@ -1401,7 +1431,7 @@ distribution.}
 evaluator (the LLM, two identical seats) measures only seat-position
 bias; a diverse pool (30 strategy archetypes) measures real
 strategic asymmetry. The LLM-driven GA winner has the LARGEST gap
-between these two measurements — its low fairness under the LLM
+between these two measurements; its low fairness under the LLM
 evaluator was a false negative on board fairness, hidden by
 evaluator homogeneity.}
 \label{fig:fairness_asymmetry}
@@ -1412,7 +1442,7 @@ already shows that the LLM's behaviour shifts when playing on a GA-
 optimised board (right cluster). The same analysis on the LLM-driven
 GA winner specifically: 0/74 hallucinations across the 5 winning
 games, buy-rate by monopoly opportunity goes
-fresh=1.00, partial\_self=1.00, opp\_dominates=0.13 — the model
+fresh=1.00, partial\_self=1.00, opp\_dominates=0.13; the model
 plays the optimal strategy archetype almost mechanically on this
 particular board, which is consistent with the GA having selected
 for boards where the strategically-correct move is unambiguous from
@@ -1474,9 +1504,9 @@ the rule-based GA winners reproduce the same rounds-down,
 transfer-up direction in both 2p and 3p, with 0/2{,}288
 hallucinations once the validator is fixed. Flipping the LLM into
 the evaluator role and re-running the GA produces a board that
-generalises partially under the rule-based pool — better than
+generalises partially under the rule-based pool; better than
 default in both player counts, worse than the rule-based GA's own
-winner — and exposes a fairness gap (0.20 LLM eval $\to$ 0.379
+winner; and exposes a fairness gap (0.20 LLM eval $\to$ 0.379
 pool eval) that diagnoses the limits of single-personality
 evaluation. Together these results argue for a particular workflow
 shape: \emph{multiple agent classes with diverse strategy
@@ -1636,15 +1666,15 @@ follow the table.
 \toprule
 Name & cash & build & $t_{\text{abs}}$ & $t_{\text{rel}}$ & trades & aggr.\ build & util & rail & ignore groups \\
 \midrule
-AggressiveBuilder & 0    & 0    & 200 & 2.0 & F & T & T & T & --- \\
-CashHoarder       & 1000 & 1200 & 200 & 2.0 & F & F & T & T & --- \\
-Trader            & 300  & 400  & 400 & 3.5 & T & T & T & T & --- \\
+AggressiveBuilder & 0    & 0    & 200 & 2.0 & F & T & T & T &; \\
+CashHoarder       & 1000 & 1200 & 200 & 2.0 & F & F & T & T &; \\
+Trader            & 300  & 400  & 400 & 3.5 & T & T & T & T &; \\
 RailroadKing      & 100  & 100  & 200 & 2.0 & F & T & F & T & all 8 colour groups \\
 LowCostOnly       & 200  & 250  & 200 & 2.0 & T & T & T & T & Orange, Red, Yellow, Green, Indigo \\
 HighCostOnly      & 400  & 500  & 200 & 2.0 & T & T & F & T & Brown, Lightblue, Pink \\
-Balanced          & 300  & 350  & 250 & 2.5 & T & T & T & T & --- \\
-Passive           & 500  & 700  & 200 & 2.0 & F & F & F & F & --- \\
-Bully             & 50   & 0    & 500 & 5.0 & T & T & T & T & --- \\
+Balanced          & 300  & 350  & 250 & 2.5 & T & T & T & T &; \\
+Passive           & 500  & 700  & 200 & 2.0 & F & F & F & F &; \\
+Bully             & 50   & 0    & 500 & 5.0 & T & T & T & T &; \\
 RiskAverse        & 800  & 1000 & 200 & 2.0 & F & F & F & T & Indigo, Green \\
 \bottomrule
 \end{tabular}
