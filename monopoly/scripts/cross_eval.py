@@ -19,10 +19,16 @@ which numbers stay stable across player counts and which collapse.
 import argparse
 import json
 import math
+import sys
 from pathlib import Path
 
 import numpy as np
 from tqdm import tqdm
+
+# Make ``monopoly/`` importable when run as ``python scripts/cross_eval.py``
+# from the monopoly directory.
+_HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(_HERE.parent))
 
 from config import GameConfig
 from optimizer.design_space import DesignSpace

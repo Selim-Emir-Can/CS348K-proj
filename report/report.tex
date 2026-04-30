@@ -1257,12 +1257,61 @@ extreme corner of the same design space.
 construction; some of the score gap is search-noise advantage rather
 than real preference. (2) The LLM evaluator is more aggressive than
 the average rule-based strategy (buy-rate by group is 0.65--1.00 even
-on the GA-winner board), so the GA is implicitly optimising against an
-``aggressive-buyer-only'' eval distribution. A board designed for an
-aggressive evaluator should naturally have shorter games. (3) A
-proper apples-to-apples test requires re-evaluating the LLM-driven
-winner under the rule-based pool's 1{,}000-game protocol; we leave
-that as a one-off cross-evaluation in future work.
+on the GA-winner board), so the GA is implicitly optimising against
+an ``aggressive-buyer-only'' eval distribution.
+
+\paragraph{Cross-evaluation under the rule-based pool.} To stress-test
+how board-level the LLM-driven GA's win is — versus how
+evaluator-specific — we re-evaluated the LLM-driven winner under the
+\emph{rule-based} 30-strategy pool's standard protocol (1{,}000 games
+× 10 strategy matchups, both 2p and 3p). Results:
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lrrrrr}
+\toprule
+                              & n\_p & score  & fairness & rounds & xfer/r \\
+\midrule
+Default board (identity)      & 2    & 1.463  & 0.454    & 103.9  & 49.7 \\
+Rule-based GA-2p winner       & 2    & 0.817  & 0.237    & 62.5   & 74.7 \\
+\textbf{LLM-driven GA-2p winner} & 2 & \textbf{1.045} & \textbf{0.379} & \textbf{45.9} & \textbf{82.4} \\
+\midrule
+Default board (identity)      & 3    & 1.230  & 0.412    & 110.8  & 99.4 \\
+Rule-based GA-3p winner       & 3    & 0.787  & 0.361    & 64.4   & 127.0 \\
+\textbf{LLM-driven GA-2p winner} & 3 & \textbf{1.015} & \textbf{0.404} & \textbf{47.1} & \textbf{160.6} \\
+\bottomrule
+\end{tabular}
+\caption{LLM-driven GA winner re-evaluated under the rule-based
+30-strategy pool. Generalises partially: beats the default board on
+both 2p and 3p, but loses to the rule-based GA's own winners.}
+\label{tab:llm_ga_cross_eval}
+\end{table}
+
+Three findings stand out. First, the LLM-driven winner \emph{generalises
+partially}: under the rule-based pool's eval it scores 1.045 (vs
+1.463 default) at 2p and 1.015 (vs 1.230 default) at 3p. The board is
+a real improvement over the default; it is not just an artefact of the
+LLM evaluator. Second, the rule-based GA's own 2p winner remains
+better when scored on its own protocol (0.817 vs 1.045) — the
+search algorithms each found optima inside their evaluator's
+distribution. Third, and most diagnostic: the
+LLM-driven winner's \emph{fairness} balloons under the pool's eval,
+from 0.20 (LLM evaluator: two identical seats, only seat-position
+bias measured) to 0.379 (pool evaluator: 30 different strategy
+archetypes, real strategic asymmetry). The board has \emph{exploitable
+asymmetries} that the LLM evaluator missed because it played the same
+strategy from every seat. Game-length effects transfer cleanly across
+evaluators (rounds 43.6 LLM vs 45.9 pool; 28\% shorter than the
+rule-based winner in either case); fairness effects do not.
+
+Practical takeaway: a single-personality evaluator can drive useful
+GA convergence on metrics that depend on the board's mechanics
+(length, money flow), but it systematically under-counts fairness
+problems that only show up when diverse strategies probe the design
+space. For design problems where fairness is a target, evaluator
+diversity is non-optional even when the chosen agent class is otherwise
+strong.
 
 \paragraph{Decision-log analysis on the winner.} Figure~\ref{fig:llm_slices}
 already shows that the LLM's behaviour shifts when playing on a GA-
