@@ -1,0 +1,236 @@
+{
+  "design": "ga_3p_mask_best",
+  "n_players": 3,
+  "n_games_per_pair": 20,
+  "main": {
+    "mean_abs_diff": 0.20522222222222222,
+    "top_asymmetric": [
+      {
+        "A": "Balanced",
+        "B": "Sampled_07",
+        "P_A_wins": 0.95,
+        "P_B_wins": 0.0,
+        "abs_gap": 0.95
+      },
+      {
+        "A": "RailroadKing",
+        "B": "Sampled_11",
+        "P_A_wins": 0.0,
+        "P_B_wins": 0.9,
+        "abs_gap": 0.9
+      },
+      {
+        "A": "RailroadKing",
+        "B": "Bully",
+        "P_A_wins": 0.0,
+        "P_B_wins": 0.9,
+        "abs_gap": 0.9
+      },
+      {
+        "A": "Bully",
+        "B": "Sampled_01",
+        "P_A_wins": 0.95,
+        "P_B_wins": 0.05,
+        "abs_gap": 0.8999999999999999
+      },
+      {
+        "A": "AggressiveBuilder",
+        "B": "Sampled_17",
+        "P_A_wins": 0.95,
+        "P_B_wins": 0.05,
+        "abs_gap": 0.8999999999999999
+      },
+      {
+        "A": "Sampled_00",
+        "B": "Sampled_16",
+        "P_A_wins": 0.8,
+        "P_B_wins": 0.0,
+        "abs_gap": 0.8
+      },
+      {
+        "A": "Passive",
+        "B": "Sampled_06",
+        "P_A_wins": 0.85,
+        "P_B_wins": 0.05,
+        "abs_gap": 0.7999999999999999
+      },
+      {
+        "A": "RailroadKing",
+        "B": "Sampled_18",
+        "P_A_wins": 0.0,
+        "P_B_wins": 0.75,
+        "abs_gap": 0.75
+      },
+      {
+        "A": "RailroadKing",
+        "B": "Sampled_12",
+        "P_A_wins": 0.0,
+        "P_B_wins": 0.75,
+        "abs_gap": 0.75
+      },
+      {
+        "A": "RailroadKing",
+        "B": "Sampled_09",
+        "P_A_wins": 0.0,
+        "P_B_wins": 0.75,
+        "abs_gap": 0.75
+      }
+    ],
+    "matrix_min": 0.0,
+    "matrix_max": 0.95
+  },
+  "baseline": {
+    "mean_abs_diff": 0.25566666666666665,
+    "top_asymmetric": [
+      {
+        "A": "Bully",
+        "B": "Sampled_09",
+        "P_A_wins": 1.0,
+        "P_B_wins": 0.0,
+        "abs_gap": 1.0
+      },
+      {
+        "A": "Trader",
+        "B": "Sampled_08",
+        "P_A_wins": 0.95,
+        "P_B_wins": 0.0,
+        "abs_gap": 0.95
+      },
+      {
+        "A": "AggressiveBuilder",
+        "B": "Sampled_09",
+        "P_A_wins": 0.95,
+        "P_B_wins": 0.0,
+        "abs_gap": 0.95
+      },
+      {
+        "A": "AggressiveBuilder",
+        "B": "Sampled_07",
+        "P_A_wins": 0.95,
+        "P_B_wins": 0.0,
+        "abs_gap": 0.95
+      },
+      {
+        "A": "RailroadKing",
+        "B": "Sampled_12",
+        "P_A_wins": 0.0,
+        "P_B_wins": 0.9,
+        "abs_gap": 0.9
+      },
+      {
+        "A": "RailroadKing",
+        "B": "Sampled_11",
+        "P_A_wins": 0.0,
+        "P_B_wins": 0.9,
+        "abs_gap": 0.9
+      },
+      {
+        "A": "Bully",
+        "B": "Sampled_07",
+        "P_A_wins": 0.9,
+        "P_B_wins": 0.0,
+        "abs_gap": 0.9
+      },
+      {
+        "A": "Bully",
+        "B": "Sampled_01",
+        "P_A_wins": 0.9,
+        "P_B_wins": 0.0,
+        "abs_gap": 0.9
+      },
+      {
+        "A": "Trader",
+        "B": "Sampled_09",
+        "P_A_wins": 0.85,
+        "P_B_wins": 0.0,
+        "abs_gap": 0.85
+      },
+      {
+        "A": "RailroadKing",
+        "B": "Sampled_18",
+        "P_A_wins": 0.0,
+        "P_B_wins": 0.85,
+        "abs_gap": 0.85
+      }
+    ],
+    "matrix_min": 0.0,
+    "matrix_max": 1.0
+  },
+  "diff": {
+    "mean_abs_diff": 0.4717777777777778,
+    "top_asymmetric": [
+      {
+        "A": "RiskAverse",
+        "B": "Sampled_19",
+        "P_A_wins": 0.55,
+        "P_B_wins": -0.4,
+        "abs_gap": 0.9500000000000001
+      },
+      {
+        "A": "AggressiveBuilder",
+        "B": "Sampled_07",
+        "P_A_wins": -0.6499999999999999,
+        "P_B_wins": 0.3,
+        "abs_gap": 0.95
+      },
+      {
+        "A": "AggressiveBuilder",
+        "B": "Sampled_00",
+        "P_A_wins": -0.35,
+        "P_B_wins": 0.5499999999999999,
+        "abs_gap": 0.8999999999999999
+      },
+      {
+        "A": "Sampled_14",
+        "B": "Sampled_17",
+        "P_A_wins": 0.45000000000000007,
+        "P_B_wins": -0.4,
+        "abs_gap": 0.8500000000000001
+      },
+      {
+        "A": "Sampled_11",
+        "B": "Sampled_14",
+        "P_A_wins": -0.4,
+        "P_B_wins": 0.4,
+        "abs_gap": 0.8
+      },
+      {
+        "A": "Sampled_00",
+        "B": "Sampled_16",
+        "P_A_wins": 0.6000000000000001,
+        "P_B_wins": -0.15,
+        "abs_gap": 0.7500000000000001
+      },
+      {
+        "A": "Trader",
+        "B": "Sampled_00",
+        "P_A_wins": -0.4,
+        "P_B_wins": 0.35000000000000003,
+        "abs_gap": 0.75
+      },
+      {
+        "A": "Sampled_17",
+        "B": "Sampled_19",
+        "P_A_wins": -0.35000000000000003,
+        "P_B_wins": 0.4,
+        "abs_gap": 0.75
+      },
+      {
+        "A": "Sampled_11",
+        "B": "Sampled_19",
+        "P_A_wins": -0.5,
+        "P_B_wins": 0.24999999999999997,
+        "abs_gap": 0.75
+      },
+      {
+        "A": "RiskAverse",
+        "B": "Sampled_01",
+        "P_A_wins": 0.5,
+        "P_B_wins": -0.25,
+        "abs_gap": 0.75
+      }
+    ],
+    "matrix_min": -0.6499999999999999,
+    "matrix_max": 0.6000000000000001
+  }
+}

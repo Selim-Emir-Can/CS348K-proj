@@ -1,0 +1,236 @@
+{
+  "design": "ga_2p_mask_best",
+  "n_players": 2,
+  "n_games_per_pair": 20,
+  "main": {
+    "mean_abs_diff": 0.16894444444444445,
+    "top_asymmetric": [
+      {
+        "A": "Trader",
+        "B": "RailroadKing",
+        "P_A_wins": 1.0,
+        "P_B_wins": 0.0,
+        "abs_gap": 1.0
+      },
+      {
+        "A": "RiskAverse",
+        "B": "Sampled_01",
+        "P_A_wins": 1.0,
+        "P_B_wins": 0.0,
+        "abs_gap": 1.0
+      },
+      {
+        "A": "RailroadKing",
+        "B": "Sampled_19",
+        "P_A_wins": 0.0,
+        "P_B_wins": 1.0,
+        "abs_gap": 1.0
+      },
+      {
+        "A": "RailroadKing",
+        "B": "Sampled_15",
+        "P_A_wins": 0.0,
+        "P_B_wins": 1.0,
+        "abs_gap": 1.0
+      },
+      {
+        "A": "RailroadKing",
+        "B": "Sampled_14",
+        "P_A_wins": 0.0,
+        "P_B_wins": 1.0,
+        "abs_gap": 1.0
+      },
+      {
+        "A": "RailroadKing",
+        "B": "Sampled_13",
+        "P_A_wins": 0.0,
+        "P_B_wins": 1.0,
+        "abs_gap": 1.0
+      },
+      {
+        "A": "RailroadKing",
+        "B": "Sampled_12",
+        "P_A_wins": 0.0,
+        "P_B_wins": 1.0,
+        "abs_gap": 1.0
+      },
+      {
+        "A": "RailroadKing",
+        "B": "Sampled_10",
+        "P_A_wins": 0.0,
+        "P_B_wins": 1.0,
+        "abs_gap": 1.0
+      },
+      {
+        "A": "RailroadKing",
+        "B": "Sampled_06",
+        "P_A_wins": 0.0,
+        "P_B_wins": 1.0,
+        "abs_gap": 1.0
+      },
+      {
+        "A": "RailroadKing",
+        "B": "Sampled_04",
+        "P_A_wins": 0.0,
+        "P_B_wins": 1.0,
+        "abs_gap": 1.0
+      }
+    ],
+    "matrix_min": 0.0,
+    "matrix_max": 1.0
+  },
+  "baseline": {
+    "mean_abs_diff": 0.20983333333333337,
+    "top_asymmetric": [
+      {
+        "A": "Sampled_09",
+        "B": "Sampled_18",
+        "P_A_wins": 0.0,
+        "P_B_wins": 1.0,
+        "abs_gap": 1.0
+      },
+      {
+        "A": "Sampled_09",
+        "B": "Sampled_12",
+        "P_A_wins": 0.0,
+        "P_B_wins": 1.0,
+        "abs_gap": 1.0
+      },
+      {
+        "A": "Sampled_01",
+        "B": "Sampled_19",
+        "P_A_wins": 0.0,
+        "P_B_wins": 1.0,
+        "abs_gap": 1.0
+      },
+      {
+        "A": "Sampled_01",
+        "B": "Sampled_18",
+        "P_A_wins": 0.0,
+        "P_B_wins": 1.0,
+        "abs_gap": 1.0
+      },
+      {
+        "A": "Sampled_01",
+        "B": "Sampled_02",
+        "P_A_wins": 0.0,
+        "P_B_wins": 1.0,
+        "abs_gap": 1.0
+      },
+      {
+        "A": "RailroadKing",
+        "B": "Sampled_18",
+        "P_A_wins": 0.0,
+        "P_B_wins": 1.0,
+        "abs_gap": 1.0
+      },
+      {
+        "A": "RailroadKing",
+        "B": "Sampled_15",
+        "P_A_wins": 0.0,
+        "P_B_wins": 1.0,
+        "abs_gap": 1.0
+      },
+      {
+        "A": "RailroadKing",
+        "B": "Sampled_12",
+        "P_A_wins": 0.0,
+        "P_B_wins": 1.0,
+        "abs_gap": 1.0
+      },
+      {
+        "A": "RailroadKing",
+        "B": "Sampled_08",
+        "P_A_wins": 0.0,
+        "P_B_wins": 1.0,
+        "abs_gap": 1.0
+      },
+      {
+        "A": "RailroadKing",
+        "B": "Sampled_04",
+        "P_A_wins": 0.0,
+        "P_B_wins": 1.0,
+        "abs_gap": 1.0
+      }
+    ],
+    "matrix_min": 0.0,
+    "matrix_max": 1.0
+  },
+  "diff": {
+    "mean_abs_diff": 0.485,
+    "top_asymmetric": [
+      {
+        "A": "Balanced",
+        "B": "Sampled_14",
+        "P_A_wins": -0.5,
+        "P_B_wins": 0.5,
+        "abs_gap": 1.0
+      },
+      {
+        "A": "LowCostOnly",
+        "B": "Sampled_14",
+        "P_A_wins": -0.45,
+        "P_B_wins": 0.45000000000000007,
+        "abs_gap": 0.9000000000000001
+      },
+      {
+        "A": "Sampled_00",
+        "B": "Sampled_10",
+        "P_A_wins": -0.44999999999999996,
+        "P_B_wins": 0.45,
+        "abs_gap": 0.8999999999999999
+      },
+      {
+        "A": "LowCostOnly",
+        "B": "Sampled_15",
+        "P_A_wins": 0.35,
+        "P_B_wins": -0.5499999999999999,
+        "abs_gap": 0.8999999999999999
+      },
+      {
+        "A": "CashHoarder",
+        "B": "Bully",
+        "P_A_wins": 0.45,
+        "P_B_wins": -0.44999999999999996,
+        "abs_gap": 0.8999999999999999
+      },
+      {
+        "A": "Balanced",
+        "B": "Sampled_10",
+        "P_A_wins": -0.44999999999999996,
+        "P_B_wins": 0.44999999999999996,
+        "abs_gap": 0.8999999999999999
+      },
+      {
+        "A": "Balanced",
+        "B": "Sampled_03",
+        "P_A_wins": -0.44999999999999996,
+        "P_B_wins": 0.44999999999999996,
+        "abs_gap": 0.8999999999999999
+      },
+      {
+        "A": "Sampled_11",
+        "B": "Sampled_15",
+        "P_A_wins": -0.35,
+        "P_B_wins": 0.45,
+        "abs_gap": 0.8
+      },
+      {
+        "A": "Sampled_08",
+        "B": "Sampled_10",
+        "P_A_wins": -0.39999999999999997,
+        "P_B_wins": 0.4,
+        "abs_gap": 0.8
+      },
+      {
+        "A": "Sampled_03",
+        "B": "Sampled_10",
+        "P_A_wins": -0.4,
+        "P_B_wins": 0.39999999999999997,
+        "abs_gap": 0.8
+      }
+    ],
+    "matrix_min": -0.5499999999999999,
+    "matrix_max": 0.7
+  }
+}

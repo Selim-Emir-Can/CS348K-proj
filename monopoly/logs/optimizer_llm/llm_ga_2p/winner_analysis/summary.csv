@@ -1,0 +1,6 @@
+board_tag,n_players,seed,game_id,winner,rounds,truncated,transfer_total,transfer_rate,net_worth,bankrupt,n_decisions,n_llm_calls,n_prefiltered,wall_ms,log_path
+llm_ga_2p_winner,2,42,eval015_s42,LLM_p0,53,0,0,0,{},{},40,16,24,0,
+llm_ga_2p_winner,2,43,eval015_s43,LLM_p1,40,0,0,0,{},{},28,14,14,0,
+llm_ga_2p_winner,2,44,eval015_s44,LLM_p1,52,0,0,0,{},{},24,16,8,0,
+llm_ga_2p_winner,2,45,eval015_s45,LLM_p0,41,0,0,0,{},{},35,15,20,0,
+llm_ga_2p_winner,2,46,eval015_s46,LLM_p1,32,0,0,0,{},{},21,13,8,0,

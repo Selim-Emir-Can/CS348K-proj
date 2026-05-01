@@ -1,0 +1,1546 @@
+{
+  "configs": {
+    "runs": [
+      "logs/optimizer/ga_2p_mask.jsonl",
+      "logs/optimizer/ga_3p_mask.jsonl"
+    ],
+    "vec": null,
+    "identity": true,
+    "config": "default_config.yaml",
+    "pool": "optimizer/strategy_pool.json",
+    "n_games": 1000,
+    "n_matchups": 10,
+    "base_seed": 42,
+    "matchup_seed": 1234,
+    "max_turns": 200,
+    "removal_direction": "cheapest",
+    "w_fair": 1.0,
+    "w_fmax": 0.5,
+    "w_len": 0.5,
+    "w_draw": 0.3,
+    "w_money": 0.3,
+    "target_rounds": 60.0,
+    "target_transfer": 100.0,
+    "out": "logs/optimizer/cross_eval_mask.json"
+  },
+  "results": [
+    {
+      "design": "identity_default",
+      "source": "identity",
+      "n_players": 2,
+      "score": 1.4632928801490763,
+      "metrics": {
+        "mean_fairness": 0.454,
+        "max_fairness": 0.94,
+        "mean_rounds": 103.934,
+        "mean_draw_rate": 0.074,
+        "mean_transfer_rate": 49.67459550586339,
+        "length_penalty": 0.7322333333333333,
+        "transfer_penalty": 0.5032540449413662
+      },
+      "per_matchup": [
+        {
+          "fairness": 0.08000000000000002,
+          "draw_rate": 0.1,
+          "mean_rounds": 118.54,
+          "transfer_rate": 51.267996073129744,
+          "n_games": 100,
+          "win_rates": {
+            "CashHoarder": 0.41,
+            "Passive": 0.49
+          },
+          "win_rates_ci": {
+            "CashHoarder": [
+              0.31867157095664655,
+              0.5079874943890338
+            ],
+            "Passive": [
+              0.39421830092386145,
+              0.5865215952256586
+            ]
+          }
+        },
+        {
+          "fairness": 0.48000000000000004,
+          "draw_rate": 0.12,
+          "mean_rounds": 105.35,
+          "transfer_rate": 46.26676601906249,
+          "n_games": 100,
+          "win_rates": {
+            "AggressiveBuilder": 0.68,
+            "CashHoarder": 0.2
+          },
+          "win_rates_ci": {
+            "AggressiveBuilder": [
+              0.5833719774632081,
+              0.7633098918454312
+            ],
+            "CashHoarder": [
+              0.1333659225590988,
+              0.28883096192650237
+            ]
+          }
+        },
+        {
+          "fairness": 0.5800000000000001,
+          "draw_rate": 0.06,
+          "mean_rounds": 112.21,
+          "transfer_rate": 48.84870206528226,
+          "n_games": 100,
+          "win_rates": {
+            "AggressiveBuilder": 0.76,
+            "RiskAverse": 0.18
+          },
+          "win_rates_ci": {
+            "AggressiveBuilder": [
+              0.6676748127670786,
+              0.8330878873454004
+            ],
+            "RiskAverse": [
+              0.11700131654251038,
+              0.26667536024213084
+            ]
+          }
+        },
+        {
+          "fairness": 0.94,
+          "draw_rate": 0.06,
+          "mean_rounds": 104.68,
+          "transfer_rate": 59.45713525550272,
+          "n_games": 100,
+          "win_rates": {
+            "RailroadKing": 0.0,
+            "HighCostOnly": 0.94
+          },
+          "win_rates_ci": {
+            "RailroadKing": [
+              0.0,
+              0.03699480747600191
+            ],
+            "HighCostOnly": [
+              0.8752303146877748,
+              0.9722142547333433
+            ]
+          }
+        },
+        {
+          "fairness": 0.38,
+          "draw_rate": 0.12,
+          "mean_rounds": 113.49,
+          "transfer_rate": 46.879609607035036,
+          "n_games": 100,
+          "win_rates": {
+            "CashHoarder": 0.25,
+            "Trader": 0.63
+          },
+          "win_rates_ci": {
+            "CashHoarder": [
+              0.1754509400372426,
+              0.3430464637007583
+            ],
+            "Trader": [
+              0.5322034757513312,
+              0.7181778743049083
+            ]
+          }
+        },
+        {
+          "fairness": 0.08999999999999997,
+          "draw_rate": 0.13,
+          "mean_rounds": 105.33,
+          "transfer_rate": 44.60116338301904,
+          "n_games": 100,
+          "win_rates": {
+            "AggressiveBuilder": 0.48,
+            "Bully": 0.39
+          },
+          "win_rates_ci": {
+            "AggressiveBuilder": [
+              0.38464384320080547,
+              0.5768359490982345
+            ],
+            "Bully": [
+              0.300167219319702,
+              0.48797163832501844
+            ]
+          }
+        },
+        {
+          "fairness": 0.41000000000000003,
+          "draw_rate": 0.05,
+          "mean_rounds": 79.89,
+          "transfer_rate": 48.897379435529736,
+          "n_games": 100,
+          "win_rates": {
+            "LowCostOnly": 0.68,
+            "Bully": 0.27
+          },
+          "win_rates_ci": {
+            "LowCostOnly": [
+              0.5833719774632081,
+              0.7633098918454312
+            ],
+            "Bully": [
+              0.1926946091766482,
+              0.3643230022623127
+            ]
+          }
+        },
+        {
+          "fairness": 0.6599999999999999,
+          "draw_rate": 0.0,
+          "mean_rounds": 94.83,
+          "transfer_rate": 51.99406684642249,
+          "n_games": 100,
+          "win_rates": {
+            "Trader": 0.83,
+            "Sampled_10": 0.17
+          },
+          "win_rates_ci": {
+            "Trader": [
+              0.7445181876635703,
+              0.8910652394022684
+            ],
+            "Sampled_10": [
+              0.10893476059773154,
+              0.25548181233642975
+            ]
+          }
+        },
+        {
+          "fairness": 0.24,
+          "draw_rate": 0.0,
+          "mean_rounds": 91.06,
+          "transfer_rate": 48.967531464574485,
+          "n_games": 100,
+          "win_rates": {
+            "RiskAverse": 0.62,
+            "Sampled_05": 0.38
+          },
+          "win_rates_ci": {
+            "RiskAverse": [
+              0.5220957382071033,
+              0.7090255079986562
+            ],
+            "Sampled_05": [
+              0.2909744920013438,
+              0.47790426179289663
+            ]
+          }
+        },
+        {
+          "fairness": 0.68,
+          "draw_rate": 0.1,
+          "mean_rounds": 113.96,
+          "transfer_rate": 49.56560490907662,
+          "n_games": 100,
+          "win_rates": {
+            "Sampled_01": 0.11,
+            "Sampled_17": 0.79
+          },
+          "win_rates_ci": {
+            "Sampled_01": [
+              0.06254131955225126,
+              0.18631463027903022
+            ],
+            "Sampled_17": [
+              0.7001985069803768,
+              0.8583445046835422
+            ]
+          }
+        }
+      ],
+      "n_games": 1000
+    },
+    {
+      "design": "identity_default",
+      "source": "identity",
+      "n_players": 3,
+      "score": 1.2297743287281062,
+      "metrics": {
+        "mean_fairness": 0.41200000000000003,
+        "max_fairness": 0.68,
+        "mean_rounds": 110.776,
+        "mean_draw_rate": 0.176,
+        "mean_transfer_rate": 99.38633486840904,
+        "length_penalty": 0.8462666666666666,
+        "transfer_penalty": 0.006136651315909632
+      },
+      "per_matchup": [
+        {
+          "fairness": 0.34,
+          "draw_rate": 0.39,
+          "mean_rounds": 132.67,
+          "transfer_rate": 87.99247416735494,
+          "n_games": 100,
+          "win_rates": {
+            "AggressiveBuilder": 0.4,
+            "CashHoarder": 0.06,
+            "Passive": 0.15
+          },
+          "win_rates_ci": {
+            "AggressiveBuilder": [
+              0.3093997461136028,
+              0.4979992153815976
+            ],
+            "CashHoarder": [
+              0.02778574526665662,
+              0.12476968531222507
+            ],
+            "Passive": [
+              0.09305903191162297,
+              0.23283733332157835
+            ]
+          }
+        },
+        {
+          "fairness": 0.57,
+          "draw_rate": 0.25,
+          "mean_rounds": 121.14,
+          "transfer_rate": 91.13528320609419,
+          "n_games": 100,
+          "win_rates": {
+            "AggressiveBuilder": 0.61,
+            "CashHoarder": 0.1,
+            "RiskAverse": 0.04
+          },
+          "win_rates_ci": {
+            "AggressiveBuilder": [
+              0.5120283616749817,
+              0.699832780680298
+            ],
+            "CashHoarder": [
+              0.05522854161313613,
+              0.1743673043676654
+            ],
+            "RiskAverse": [
+              0.015663050551848016,
+              0.09837217232607373
+            ]
+          }
+        },
+        {
+          "fairness": 0.68,
+          "draw_rate": 0.02,
+          "mean_rounds": 100.15,
+          "transfer_rate": 109.55523749042263,
+          "n_games": 100,
+          "win_rates": {
+            "CashHoarder": 0.3,
+            "RailroadKing": 0.0,
+            "HighCostOnly": 0.68
+          },
+          "win_rates_ci": {
+            "CashHoarder": [
+              0.21894753866228117,
+              0.39585038432811953
+            ],
+            "RailroadKing": [
+              0.0,
+              0.03699480747600191
+            ],
+            "HighCostOnly": [
+              0.5833719774632081,
+              0.7633098918454312
+            ]
+          }
+        },
+        {
+          "fairness": 0.26,
+          "draw_rate": 0.35,
+          "mean_rounds": 127.75,
+          "transfer_rate": 84.34122925157016,
+          "n_games": 100,
+          "win_rates": {
+            "AggressiveBuilder": 0.32,
+            "Bully": 0.27,
+            "RiskAverse": 0.06
+          },
+          "win_rates_ci": {
+            "AggressiveBuilder": [
+              0.2366901081545688,
+              0.4166280225367919
+            ],
+            "Bully": [
+              0.1926946091766482,
+              0.3643230022623127
+            ],
+            "RiskAverse": [
+              0.02778574526665662,
+              0.12476968531222507
+            ]
+          }
+        },
+        {
+          "fairness": 0.44000000000000006,
+          "draw_rate": 0.23,
+          "mean_rounds": 123.12,
+          "transfer_rate": 93.07079904737986,
+          "n_games": 100,
+          "win_rates": {
+            "CashHoarder": 0.13,
+            "Trader": 0.54,
+            "RiskAverse": 0.1
+          },
+          "win_rates_ci": {
+            "CashHoarder": [
+              0.07757093858414264,
+              0.20980521894809878
+            ],
+            "Trader": [
+              0.44264685393523856,
+              0.6343935614666815
+            ],
+            "RiskAverse": [
+              0.05522854161313613,
+              0.1743673043676654
+            ]
+          }
+        },
+        {
+          "fairness": 0.5900000000000001,
+          "draw_rate": 0.1,
+          "mean_rounds": 102.72,
+          "transfer_rate": 105.29459559655346,
+          "n_games": 100,
+          "win_rates": {
+            "CashHoarder": 0.08,
+            "LowCostOnly": 0.15,
+            "Bully": 0.67
+          },
+          "win_rates_ci": {
+            "CashHoarder": [
+              0.04109296948581091,
+              0.14998266879403072
+            ],
+            "LowCostOnly": [
+              0.09305903191162297,
+              0.23283733332157835
+            ],
+            "Bully": [
+              0.5730516033971139,
+              0.7543701620610456
+            ]
+          }
+        },
+        {
+          "fairness": 0.18999999999999997,
+          "draw_rate": 0.18,
+          "mean_rounds": 101.13,
+          "transfer_rate": 95.53024887976419,
+          "n_games": 100,
+          "win_rates": {
+            "AggressiveBuilder": 0.16,
+            "Trader": 0.31,
+            "Balanced": 0.35
+          },
+          "win_rates_ci": {
+            "AggressiveBuilder": [
+              0.10095202349473717,
+              0.24420444558894414
+            ],
+            "Trader": [
+              0.22779563206132378,
+              0.40626239477955695
+            ],
+            "Balanced": [
+              0.2636410465347802,
+              0.4474573957080203
+            ]
+          }
+        },
+        {
+          "fairness": 0.24000000000000002,
+          "draw_rate": 0.23,
+          "mean_rounds": 120.47,
+          "transfer_rate": 104.14552449751294,
+          "n_games": 100,
+          "win_rates": {
+            "Trader": 0.33,
+            "Sampled_05": 0.34,
+            "Sampled_08": 0.1
+          },
+          "win_rates_ci": {
+            "Trader": [
+              0.24562983793895452,
+              0.4269483966028862
+            ],
+            "Sampled_05": [
+              0.25461379497543,
+              0.43722454341689065
+            ],
+            "Sampled_08": [
+              0.05522854161313613,
+              0.1743673043676654
+            ]
+          }
+        },
+        {
+          "fairness": 0.51,
+          "draw_rate": 0.0,
+          "mean_rounds": 79.55,
+          "transfer_rate": 107.99292488308397,
+          "n_games": 100,
+          "win_rates": {
+            "Trader": 0.53,
+            "HighCostOnly": 0.45,
+            "Sampled_07": 0.02
+          },
+          "win_rates_ci": {
+            "Trader": [
+              0.4328868313724773,
+              0.6248934801789626
+            ],
+            "HighCostOnly": [
+              0.3561437510640346,
+              0.5475557296835656
+            ],
+            "Sampled_07": [
+              0.005501852234968178,
+              0.07001316294199367
+            ]
+          }
+        },
+        {
+          "fairness": 0.3,
+          "draw_rate": 0.01,
+          "mean_rounds": 99.06,
+          "transfer_rate": 114.80503166435562,
+          "n_games": 100,
+          "win_rates": {
+            "Sampled_01": 0.13,
+            "Sampled_14": 0.43,
+            "Sampled_19": 0.43
+          },
+          "win_rates_ci": {
+            "Sampled_01": [
+              0.07757093858414264,
+              0.20980521894809878
+            ],
+            "Sampled_14": [
+              0.3373313900052838,
+              0.5278478830413564
+            ],
+            "Sampled_19": [
+              0.3373313900052838,
+              0.5278478830413564
+            ]
+          }
+        }
+      ],
+      "n_games": 1000
+    },
+    {
+      "design": "ga_2p_mask_best",
+      "source": "logs/optimizer/ga_2p_mask.jsonl",
+      "n_players": 2,
+      "score": 0.8174259013858581,
+      "metrics": {
+        "mean_fairness": 0.23699999999999996,
+        "max_fairness": 0.96,
+        "mean_rounds": 62.475,
+        "mean_draw_rate": 0.013,
+        "mean_transfer_rate": 74.69969953804728,
+        "length_penalty": 0.04125000000000002,
+        "transfer_penalty": 0.2530030046195272
+      },
+      "per_matchup": [
+        {
+          "fairness": 0.07,
+          "draw_rate": 0.01,
+          "mean_rounds": 68.02,
+          "transfer_rate": 77.79243956830359,
+          "n_games": 100,
+          "win_rates": {
+            "CashHoarder": 0.53,
+            "Passive": 0.46
+          },
+          "win_rates_ci": {
+            "CashHoarder": [
+              0.4328868313724773,
+              0.6248934801789626
+            ],
+            "Passive": [
+              0.36560643853331865,
+              0.5573531460647615
+            ]
+          }
+        },
+        {
+          "fairness": 0.09000000000000002,
+          "draw_rate": 0.01,
+          "mean_rounds": 61.71,
+          "transfer_rate": 74.26351706630574,
+          "n_games": 100,
+          "win_rates": {
+            "AggressiveBuilder": 0.54,
+            "CashHoarder": 0.45
+          },
+          "win_rates_ci": {
+            "AggressiveBuilder": [
+              0.44264685393523856,
+              0.6343935614666815
+            ],
+            "CashHoarder": [
+              0.3561437510640346,
+              0.5475557296835656
+            ]
+          }
+        },
+        {
+          "fairness": 0.04999999999999999,
+          "draw_rate": 0.03,
+          "mean_rounds": 62.89,
+          "transfer_rate": 72.9017713120446,
+          "n_games": 100,
+          "win_rates": {
+            "AggressiveBuilder": 0.51,
+            "RiskAverse": 0.46
+          },
+          "win_rates_ci": {
+            "AggressiveBuilder": [
+              0.4134784047743415,
+              0.6057816990761385
+            ],
+            "RiskAverse": [
+              0.36560643853331865,
+              0.5573531460647615
+            ]
+          }
+        },
+        {
+          "fairness": 0.96,
+          "draw_rate": 0.02,
+          "mean_rounds": 81.12,
+          "transfer_rate": 77.63599581484425,
+          "n_games": 100,
+          "win_rates": {
+            "RailroadKing": 0.01,
+            "HighCostOnly": 0.97
+          },
+          "win_rates_ci": {
+            "RailroadKing": [
+              0.0017673865655472645,
+              0.0544875247609346
+            ],
+            "HighCostOnly": [
+              0.915479219195973,
+              0.9897456617765851
+            ]
+          }
+        },
+        {
+          "fairness": 0.31,
+          "draw_rate": 0.01,
+          "mean_rounds": 61.97,
+          "transfer_rate": 75.30466959579435,
+          "n_games": 100,
+          "win_rates": {
+            "CashHoarder": 0.34,
+            "Trader": 0.65
+          },
+          "win_rates_ci": {
+            "CashHoarder": [
+              0.25461379497543,
+              0.43722454341689065
+            ],
+            "Trader": [
+              0.5525426042919797,
+              0.7363589534652197
+            ]
+          }
+        },
+        {
+          "fairness": 0.030000000000000027,
+          "draw_rate": 0.01,
+          "mean_rounds": 41.87,
+          "transfer_rate": 72.83601112755632,
+          "n_games": 100,
+          "win_rates": {
+            "AggressiveBuilder": 0.48,
+            "Bully": 0.51
+          },
+          "win_rates_ci": {
+            "AggressiveBuilder": [
+              0.38464384320080547,
+              0.5768359490982345
+            ],
+            "Bully": [
+              0.4134784047743415,
+              0.6057816990761385
+            ]
+          }
+        },
+        {
+          "fairness": 0.040000000000000036,
+          "draw_rate": 0.02,
+          "mean_rounds": 54.88,
+          "transfer_rate": 82.5659825981852,
+          "n_games": 100,
+          "win_rates": {
+            "LowCostOnly": 0.47,
+            "Bully": 0.51
+          },
+          "win_rates_ci": {
+            "LowCostOnly": [
+              0.3751065198210374,
+              0.5671131686275227
+            ],
+            "Bully": [
+              0.4134784047743415,
+              0.6057816990761385
+            ]
+          }
+        },
+        {
+          "fairness": 0.15999999999999998,
+          "draw_rate": 0.0,
+          "mean_rounds": 60.14,
+          "transfer_rate": 76.0472729773078,
+          "n_games": 100,
+          "win_rates": {
+            "Trader": 0.58,
+            "Sampled_10": 0.42
+          },
+          "win_rates_ci": {
+            "Trader": [
+              0.48206307998895276,
+              0.672017750814887
+            ],
+            "Sampled_10": [
+              0.32798224918511304,
+              0.5179369200110473
+            ]
+          }
+        },
+        {
+          "fairness": 0.32,
+          "draw_rate": 0.0,
+          "mean_rounds": 59.19,
+          "transfer_rate": 68.50272695233076,
+          "n_games": 100,
+          "win_rates": {
+            "RiskAverse": 0.66,
+            "Sampled_05": 0.34
+          },
+          "win_rates_ci": {
+            "RiskAverse": [
+              0.5627754565831095,
+              0.74538620502457
+            ],
+            "Sampled_05": [
+              0.25461379497543,
+              0.43722454341689065
+            ]
+          }
+        },
+        {
+          "fairness": 0.34,
+          "draw_rate": 0.02,
+          "mean_rounds": 72.96,
+          "transfer_rate": 69.14660836780108,
+          "n_games": 100,
+          "win_rates": {
+            "Sampled_01": 0.32,
+            "Sampled_17": 0.66
+          },
+          "win_rates_ci": {
+            "Sampled_01": [
+              0.2366901081545688,
+              0.4166280225367919
+            ],
+            "Sampled_17": [
+              0.5627754565831095,
+              0.74538620502457
+            ]
+          }
+        }
+      ],
+      "n_games": 1000
+    },
+    {
+      "design": "ga_2p_mask_best",
+      "source": "logs/optimizer/ga_2p_mask.jsonl",
+      "n_players": 3,
+      "score": 0.723632746175671,
+      "metrics": {
+        "mean_fairness": 0.251,
+        "max_fairness": 0.57,
+        "mean_rounds": 66.821,
+        "mean_draw_rate": 0.012,
+        "mean_transfer_rate": 142.3970265030014,
+        "length_penalty": 0.1136833333333333,
+        "transfer_penalty": 0.423970265030014
+      },
+      "per_matchup": [
+        {
+          "fairness": 0.14,
+          "draw_rate": 0.01,
+          "mean_rounds": 67.54,
+          "transfer_rate": 141.50898395955323,
+          "n_games": 100,
+          "win_rates": {
+            "AggressiveBuilder": 0.38,
+            "CashHoarder": 0.24,
+            "Passive": 0.37
+          },
+          "win_rates_ci": {
+            "AggressiveBuilder": [
+              0.2909744920013438,
+              0.47790426179289663
+            ],
+            "CashHoarder": [
+              0.16691211265459965,
+              0.3323251872329213
+            ],
+            "Passive": [
+              0.28182212569509163,
+              0.46779652424866885
+            ]
+          }
+        },
+        {
+          "fairness": 0.25,
+          "draw_rate": 0.01,
+          "mean_rounds": 69.82,
+          "transfer_rate": 133.69094933704056,
+          "n_games": 100,
+          "win_rates": {
+            "AggressiveBuilder": 0.46,
+            "CashHoarder": 0.21,
+            "RiskAverse": 0.32
+          },
+          "win_rates_ci": {
+            "AggressiveBuilder": [
+              0.36560643853331865,
+              0.5573531460647615
+            ],
+            "CashHoarder": [
+              0.14165549531645788,
+              0.2998014930196232
+            ],
+            "RiskAverse": [
+              0.2366901081545688,
+              0.4166280225367919
+            ]
+          }
+        },
+        {
+          "fairness": 0.57,
+          "draw_rate": 0.01,
+          "mean_rounds": 72.95,
+          "transfer_rate": 144.40750993912053,
+          "n_games": 100,
+          "win_rates": {
+            "CashHoarder": 0.57,
+            "RailroadKing": 0.0,
+            "HighCostOnly": 0.42
+          },
+          "win_rates_ci": {
+            "CashHoarder": [
+              0.4721521169586435,
+              0.6626686099947162
+            ],
+            "RailroadKing": [
+              0.0,
+              0.03699480747600191
+            ],
+            "HighCostOnly": [
+              0.32798224918511304,
+              0.5179369200110473
+            ]
+          }
+        },
+        {
+          "fairness": 0.23999999999999996,
+          "draw_rate": 0.03,
+          "mean_rounds": 58.87,
+          "transfer_rate": 137.11038788391267,
+          "n_games": 100,
+          "win_rates": {
+            "AggressiveBuilder": 0.39,
+            "Bully": 0.41,
+            "RiskAverse": 0.17
+          },
+          "win_rates_ci": {
+            "AggressiveBuilder": [
+              0.300167219319702,
+              0.48797163832501844
+            ],
+            "Bully": [
+              0.31867157095664655,
+              0.5079874943890338
+            ],
+            "RiskAverse": [
+              0.10893476059773154,
+              0.25548181233642975
+            ]
+          }
+        },
+        {
+          "fairness": 0.22999999999999998,
+          "draw_rate": 0.02,
+          "mean_rounds": 75.57,
+          "transfer_rate": 145.8949526980996,
+          "n_games": 100,
+          "win_rates": {
+            "CashHoarder": 0.24,
+            "Trader": 0.47,
+            "RiskAverse": 0.27
+          },
+          "win_rates_ci": {
+            "CashHoarder": [
+              0.16691211265459965,
+              0.3323251872329213
+            ],
+            "Trader": [
+              0.3751065198210374,
+              0.5671131686275227
+            ],
+            "RiskAverse": [
+              0.1926946091766482,
+              0.3643230022623127
+            ]
+          }
+        },
+        {
+          "fairness": 0.16999999999999998,
+          "draw_rate": 0.0,
+          "mean_rounds": 60.75,
+          "transfer_rate": 144.7694991074997,
+          "n_games": 100,
+          "win_rates": {
+            "CashHoarder": 0.27,
+            "LowCostOnly": 0.29,
+            "Bully": 0.44
+          },
+          "win_rates_ci": {
+            "CashHoarder": [
+              0.1926946091766482,
+              0.3643230022623127
+            ],
+            "LowCostOnly": [
+              0.21014706973984146,
+              0.38539074940007934
+            ],
+            "Bully": [
+              0.34671865400968327,
+              0.537720722887437
+            ]
+          }
+        },
+        {
+          "fairness": 0.03999999999999998,
+          "draw_rate": 0.0,
+          "mean_rounds": 54.67,
+          "transfer_rate": 132.76519417645895,
+          "n_games": 100,
+          "win_rates": {
+            "AggressiveBuilder": 0.34,
+            "Trader": 0.35,
+            "Balanced": 0.31
+          },
+          "win_rates_ci": {
+            "AggressiveBuilder": [
+              0.25461379497543,
+              0.43722454341689065
+            ],
+            "Trader": [
+              0.2636410465347802,
+              0.4474573957080203
+            ],
+            "Balanced": [
+              0.22779563206132378,
+              0.40626239477955695
+            ]
+          }
+        },
+        {
+          "fairness": 0.31,
+          "draw_rate": 0.02,
+          "mean_rounds": 65.45,
+          "transfer_rate": 139.91582108388573,
+          "n_games": 100,
+          "win_rates": {
+            "Trader": 0.49,
+            "Sampled_05": 0.31,
+            "Sampled_08": 0.18
+          },
+          "win_rates_ci": {
+            "Trader": [
+              0.39421830092386145,
+              0.5865215952256586
+            ],
+            "Sampled_05": [
+              0.22779563206132378,
+              0.40626239477955695
+            ],
+            "Sampled_08": [
+              0.11700131654251038,
+              0.26667536024213084
+            ]
+          }
+        },
+        {
+          "fairness": 0.4,
+          "draw_rate": 0.01,
+          "mean_rounds": 61.69,
+          "transfer_rate": 148.02741467194454,
+          "n_games": 100,
+          "win_rates": {
+            "Trader": 0.56,
+            "HighCostOnly": 0.27,
+            "Sampled_07": 0.16
+          },
+          "win_rates_ci": {
+            "Trader": [
+              0.4622792771125631,
+              0.6532813459903167
+            ],
+            "HighCostOnly": [
+              0.1926946091766482,
+              0.3643230022623127
+            ],
+            "Sampled_07": [
+              0.10095202349473717,
+              0.24420444558894414
+            ]
+          }
+        },
+        {
+          "fairness": 0.15999999999999998,
+          "draw_rate": 0.01,
+          "mean_rounds": 80.9,
+          "transfer_rate": 155.87955217249834,
+          "n_games": 100,
+          "win_rates": {
+            "Sampled_01": 0.25,
+            "Sampled_14": 0.41,
+            "Sampled_19": 0.33
+          },
+          "win_rates_ci": {
+            "Sampled_01": [
+              0.1754509400372426,
+              0.3430464637007583
+            ],
+            "Sampled_14": [
+              0.31867157095664655,
+              0.5079874943890338
+            ],
+            "Sampled_19": [
+              0.24562983793895452,
+              0.4269483966028862
+            ]
+          }
+        }
+      ],
+      "n_games": 1000
+    },
+    {
+      "design": "ga_3p_mask_best",
+      "source": "logs/optimizer/ga_3p_mask.jsonl",
+      "n_players": 2,
+      "score": 0.9234895946721593,
+      "metrics": {
+        "mean_fairness": 0.29400000000000004,
+        "max_fairness": 0.99,
+        "mean_rounds": 63.752,
+        "mean_draw_rate": 0.004,
+        "mean_transfer_rate": 65.99235733150248,
+        "length_penalty": 0.06253333333333337,
+        "transfer_penalty": 0.34007642668497523
+      },
+      "per_matchup": [
+        {
+          "fairness": 0.10000000000000003,
+          "draw_rate": 0.0,
+          "mean_rounds": 72.63,
+          "transfer_rate": 67.64512254857938,
+          "n_games": 100,
+          "win_rates": {
+            "CashHoarder": 0.45,
+            "Passive": 0.55
+          },
+          "win_rates_ci": {
+            "CashHoarder": [
+              0.3561437510640346,
+              0.5475557296835656
+            ],
+            "Passive": [
+              0.4524442703164344,
+              0.6438562489359654
+            ]
+          }
+        },
+        {
+          "fairness": 0.12000000000000005,
+          "draw_rate": 0.0,
+          "mean_rounds": 62.44,
+          "transfer_rate": 63.52101498415436,
+          "n_games": 100,
+          "win_rates": {
+            "AggressiveBuilder": 0.56,
+            "CashHoarder": 0.44
+          },
+          "win_rates_ci": {
+            "AggressiveBuilder": [
+              0.4622792771125631,
+              0.6532813459903167
+            ],
+            "CashHoarder": [
+              0.34671865400968327,
+              0.537720722887437
+            ]
+          }
+        },
+        {
+          "fairness": 0.26,
+          "draw_rate": 0.02,
+          "mean_rounds": 63.59,
+          "transfer_rate": 62.88051733021308,
+          "n_games": 100,
+          "win_rates": {
+            "AggressiveBuilder": 0.62,
+            "RiskAverse": 0.36
+          },
+          "win_rates_ci": {
+            "AggressiveBuilder": [
+              0.5220957382071033,
+              0.7090255079986562
+            ],
+            "RiskAverse": [
+              0.2727107459049014,
+              0.45764780018837914
+            ]
+          }
+        },
+        {
+          "fairness": 0.99,
+          "draw_rate": 0.01,
+          "mean_rounds": 76.68,
+          "transfer_rate": 70.50024639506645,
+          "n_games": 100,
+          "win_rates": {
+            "RailroadKing": 0.0,
+            "HighCostOnly": 0.99
+          },
+          "win_rates_ci": {
+            "RailroadKing": [
+              0.0,
+              0.03699480747600191
+            ],
+            "HighCostOnly": [
+              0.9455124752390653,
+              0.9982326134344526
+            ]
+          }
+        },
+        {
+          "fairness": 0.34,
+          "draw_rate": 0.0,
+          "mean_rounds": 65.71,
+          "transfer_rate": 67.06727755431208,
+          "n_games": 100,
+          "win_rates": {
+            "CashHoarder": 0.33,
+            "Trader": 0.67
+          },
+          "win_rates_ci": {
+            "CashHoarder": [
+              0.24562983793895452,
+              0.4269483966028862
+            ],
+            "Trader": [
+              0.5730516033971139,
+              0.7543701620610456
+            ]
+          }
+        },
+        {
+          "fairness": 0.21999999999999997,
+          "draw_rate": 0.0,
+          "mean_rounds": 46.49,
+          "transfer_rate": 60.85010050459174,
+          "n_games": 100,
+          "win_rates": {
+            "AggressiveBuilder": 0.39,
+            "Bully": 0.61
+          },
+          "win_rates_ci": {
+            "AggressiveBuilder": [
+              0.300167219319702,
+              0.48797163832501844
+            ],
+            "Bully": [
+              0.5120283616749817,
+              0.699832780680298
+            ]
+          }
+        },
+        {
+          "fairness": 0.0,
+          "draw_rate": 0.0,
+          "mean_rounds": 54.14,
+          "transfer_rate": 69.87980837937745,
+          "n_games": 100,
+          "win_rates": {
+            "LowCostOnly": 0.5,
+            "Bully": 0.5
+          },
+          "win_rates_ci": {
+            "LowCostOnly": [
+              0.40382982859014716,
+              0.5961701714098528
+            ],
+            "Bully": [
+              0.40382982859014716,
+              0.5961701714098528
+            ]
+          }
+        },
+        {
+          "fairness": 0.42,
+          "draw_rate": 0.0,
+          "mean_rounds": 65.79,
+          "transfer_rate": 68.9623312157221,
+          "n_games": 100,
+          "win_rates": {
+            "Trader": 0.71,
+            "Sampled_10": 0.29
+          },
+          "win_rates_ci": {
+            "Trader": [
+              0.6146092505999207,
+              0.7898529302601586
+            ],
+            "Sampled_10": [
+              0.21014706973984146,
+              0.38539074940007934
+            ]
+          }
+        },
+        {
+          "fairness": 0.030000000000000027,
+          "draw_rate": 0.01,
+          "mean_rounds": 55.74,
+          "transfer_rate": 64.83492593785587,
+          "n_games": 100,
+          "win_rates": {
+            "RiskAverse": 0.48,
+            "Sampled_05": 0.51
+          },
+          "win_rates_ci": {
+            "RiskAverse": [
+              0.38464384320080547,
+              0.5768359490982345
+            ],
+            "Sampled_05": [
+              0.4134784047743415,
+              0.6057816990761385
+            ]
+          }
+        },
+        {
+          "fairness": 0.45999999999999996,
+          "draw_rate": 0.0,
+          "mean_rounds": 74.31,
+          "transfer_rate": 63.78222846515192,
+          "n_games": 100,
+          "win_rates": {
+            "Sampled_01": 0.27,
+            "Sampled_17": 0.73
+          },
+          "win_rates_ci": {
+            "Sampled_01": [
+              0.1926946091766482,
+              0.3643230022623127
+            ],
+            "Sampled_17": [
+              0.6356769977376873,
+              0.8073053908233518
+            ]
+          }
+        }
+      ],
+      "n_games": 1000
+    },
+    {
+      "design": "ga_3p_mask_best",
+      "source": "logs/optimizer/ga_3p_mask.jsonl",
+      "n_players": 3,
+      "score": 0.7871391120488814,
+      "metrics": {
+        "mean_fairness": 0.36100000000000004,
+        "max_fairness": 0.61,
+        "mean_rounds": 64.415,
+        "mean_draw_rate": 0.011,
+        "mean_transfer_rate": 127.01581512740492,
+        "length_penalty": 0.07358333333333343,
+        "transfer_penalty": 0.2701581512740492
+      },
+      "per_matchup": [
+        {
+          "fairness": 0.19,
+          "draw_rate": 0.01,
+          "mean_rounds": 63.02,
+          "transfer_rate": 126.55100376720009,
+          "n_games": 100,
+          "win_rates": {
+            "AggressiveBuilder": 0.43,
+            "CashHoarder": 0.24,
+            "Passive": 0.32
+          },
+          "win_rates_ci": {
+            "AggressiveBuilder": [
+              0.3373313900052838,
+              0.5278478830413564
+            ],
+            "CashHoarder": [
+              0.16691211265459965,
+              0.3323251872329213
+            ],
+            "Passive": [
+              0.2366901081545688,
+              0.4166280225367919
+            ]
+          }
+        },
+        {
+          "fairness": 0.44999999999999996,
+          "draw_rate": 0.03,
+          "mean_rounds": 69.45,
+          "transfer_rate": 123.51548828909414,
+          "n_games": 100,
+          "win_rates": {
+            "AggressiveBuilder": 0.6,
+            "CashHoarder": 0.22,
+            "RiskAverse": 0.15
+          },
+          "win_rates_ci": {
+            "AggressiveBuilder": [
+              0.5020007846184025,
+              0.6906002538863971
+            ],
+            "CashHoarder": [
+              0.15001174503655804,
+              0.3107053471500031
+            ],
+            "RiskAverse": [
+              0.09305903191162297,
+              0.23283733332157835
+            ]
+          }
+        },
+        {
+          "fairness": 0.61,
+          "draw_rate": 0.0,
+          "mean_rounds": 69.57,
+          "transfer_rate": 128.95141577547562,
+          "n_games": 100,
+          "win_rates": {
+            "CashHoarder": 0.39,
+            "RailroadKing": 0.0,
+            "HighCostOnly": 0.61
+          },
+          "win_rates_ci": {
+            "CashHoarder": [
+              0.300167219319702,
+              0.48797163832501844
+            ],
+            "RailroadKing": [
+              0.0,
+              0.03699480747600191
+            ],
+            "HighCostOnly": [
+              0.5120283616749817,
+              0.699832780680298
+            ]
+          }
+        },
+        {
+          "fairness": 0.42,
+          "draw_rate": 0.01,
+          "mean_rounds": 58.34,
+          "transfer_rate": 116.72372991520427,
+          "n_games": 100,
+          "win_rates": {
+            "AggressiveBuilder": 0.41,
+            "Bully": 0.5,
+            "RiskAverse": 0.08
+          },
+          "win_rates_ci": {
+            "AggressiveBuilder": [
+              0.31867157095664655,
+              0.5079874943890338
+            ],
+            "Bully": [
+              0.40382982859014716,
+              0.5961701714098528
+            ],
+            "RiskAverse": [
+              0.04109296948581091,
+              0.14998266879403072
+            ]
+          }
+        },
+        {
+          "fairness": 0.31000000000000005,
+          "draw_rate": 0.03,
+          "mean_rounds": 65.98,
+          "transfer_rate": 125.57181760458485,
+          "n_games": 100,
+          "win_rates": {
+            "CashHoarder": 0.21,
+            "Trader": 0.52,
+            "RiskAverse": 0.24
+          },
+          "win_rates_ci": {
+            "CashHoarder": [
+              0.14165549531645788,
+              0.2998014930196232
+            ],
+            "Trader": [
+              0.4231640509017654,
+              0.6153561567991945
+            ],
+            "RiskAverse": [
+              0.16691211265459965,
+              0.3323251872329213
+            ]
+          }
+        },
+        {
+          "fairness": 0.45999999999999996,
+          "draw_rate": 0.0,
+          "mean_rounds": 60.29,
+          "transfer_rate": 131.8920699506049,
+          "n_games": 100,
+          "win_rates": {
+            "CashHoarder": 0.14,
+            "LowCostOnly": 0.26,
+            "Bully": 0.6
+          },
+          "win_rates_ci": {
+            "CashHoarder": [
+              0.08526265754464905,
+              0.22137360383807236
+            ],
+            "LowCostOnly": [
+              0.18404578126986462,
+              0.35371172631861636
+            ],
+            "Bully": [
+              0.5020007846184025,
+              0.6906002538863971
+            ]
+          }
+        },
+        {
+          "fairness": 0.040000000000000036,
+          "draw_rate": 0.02,
+          "mean_rounds": 56.87,
+          "transfer_rate": 123.00086102833453,
+          "n_games": 100,
+          "win_rates": {
+            "AggressiveBuilder": 0.34,
+            "Trader": 0.3,
+            "Balanced": 0.34
+          },
+          "win_rates_ci": {
+            "AggressiveBuilder": [
+              0.25461379497543,
+              0.43722454341689065
+            ],
+            "Trader": [
+              0.21894753866228117,
+              0.39585038432811953
+            ],
+            "Balanced": [
+              0.25461379497543,
+              0.43722454341689065
+            ]
+          }
+        },
+        {
+          "fairness": 0.33,
+          "draw_rate": 0.01,
+          "mean_rounds": 64.02,
+          "transfer_rate": 127.96813945491022,
+          "n_games": 100,
+          "win_rates": {
+            "Trader": 0.51,
+            "Sampled_05": 0.3,
+            "Sampled_08": 0.18
+          },
+          "win_rates_ci": {
+            "Trader": [
+              0.4134784047743415,
+              0.6057816990761385
+            ],
+            "Sampled_05": [
+              0.21894753866228117,
+              0.39585038432811953
+            ],
+            "Sampled_08": [
+              0.11700131654251038,
+              0.26667536024213084
+            ]
+          }
+        },
+        {
+          "fairness": 0.47,
+          "draw_rate": 0.0,
+          "mean_rounds": 65.82,
+          "transfer_rate": 137.52581562287511,
+          "n_games": 100,
+          "win_rates": {
+            "Trader": 0.57,
+            "HighCostOnly": 0.33,
+            "Sampled_07": 0.1
+          },
+          "win_rates_ci": {
+            "Trader": [
+              0.4721521169586435,
+              0.6626686099947162
+            ],
+            "HighCostOnly": [
+              0.24562983793895452,
+              0.4269483966028862
+            ],
+            "Sampled_07": [
+              0.05522854161313613,
+              0.1743673043676654
+            ]
+          }
+        },
+        {
+          "fairness": 0.32999999999999996,
+          "draw_rate": 0.0,
+          "mean_rounds": 70.79,
+          "transfer_rate": 128.45780986576492,
+          "n_games": 100,
+          "win_rates": {
+            "Sampled_01": 0.16,
+            "Sampled_14": 0.35,
+            "Sampled_19": 0.49
+          },
+          "win_rates_ci": {
+            "Sampled_01": [
+              0.10095202349473717,
+              0.24420444558894414
+            ],
+            "Sampled_14": [
+              0.2636410465347802,
+              0.4474573957080203
+            ],
+            "Sampled_19": [
+              0.39421830092386145,
+              0.5865215952256586
+            ]
+          }
+        }
+      ],
+      "n_games": 1000
+    }
+  ]
+}

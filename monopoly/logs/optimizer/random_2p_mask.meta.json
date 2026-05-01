@@ -1,0 +1,103 @@
+{
+  "run_name": "random_2p_mask",
+  "search": "random",
+  "n_players": 2,
+  "n_games": 100,
+  "n_games_per_matchup": 10,
+  "max_turns": 200,
+  "matchups": [
+    [
+      1,
+      7
+    ],
+    [
+      0,
+      1
+    ],
+    [
+      0,
+      9
+    ],
+    [
+      3,
+      5
+    ],
+    [
+      1,
+      2
+    ],
+    [
+      0,
+      8
+    ],
+    [
+      4,
+      8
+    ],
+    [
+      2,
+      20
+    ],
+    [
+      9,
+      15
+    ],
+    [
+      11,
+      27
+    ]
+  ],
+  "pool_path": "optimizer/strategy_pool.json",
+  "pool_names": [
+    "AggressiveBuilder",
+    "CashHoarder",
+    "Trader",
+    "RailroadKing",
+    "LowCostOnly",
+    "HighCostOnly",
+    "Balanced",
+    "Passive",
+    "Bully",
+    "RiskAverse",
+    "Sampled_00",
+    "Sampled_01",
+    "Sampled_02",
+    "Sampled_03",
+    "Sampled_04",
+    "Sampled_05",
+    "Sampled_06",
+    "Sampled_07",
+    "Sampled_08",
+    "Sampled_09",
+    "Sampled_10",
+    "Sampled_11",
+    "Sampled_12",
+    "Sampled_13",
+    "Sampled_14",
+    "Sampled_15",
+    "Sampled_16",
+    "Sampled_17",
+    "Sampled_18",
+    "Sampled_19"
+  ],
+  "weights": {
+    "w_fair": 1.0,
+    "w_fmax": 0.5,
+    "w_len": 0.5,
+    "w_draw": 0.3,
+    "w_money": 0.3
+  },
+  "targets": {
+    "target_rounds": 60.0,
+    "target_transfer": 100.0
+  },
+  "base_seed": 42,
+  "search_seed": 0,
+  "matchup_seed": 1234,
+  "config": "default_config.yaml",
+  "iters": 362,
+  "pop": 20,
+  "generations": 10,
+  "elitism": 2,
+  "removal_direction": "cheapest"
+}

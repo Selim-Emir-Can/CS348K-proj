@@ -1,0 +1,26 @@
+{
+  "run_name": "llm_ga_2p",
+  "search": "ga_llm",
+  "n_players": 2,
+  "n_seeds": 5,
+  "max_turns": 200,
+  "pop": 8,
+  "generations": 5,
+  "elitism": 2,
+  "weights": {
+    "w_fair": 1.0,
+    "w_fmax": 0.5,
+    "w_len": 0.5,
+    "w_draw": 0.3,
+    "w_money": 0.3
+  },
+  "targets": {
+    "target_rounds": 60.0,
+    "target_transfer": 100.0
+  },
+  "base_seed": 42,
+  "search_seed": 0,
+  "config": "default_config.yaml",
+  "model_name": "models/qwen2.5-1.5B",
+  "decision_log": true
+}

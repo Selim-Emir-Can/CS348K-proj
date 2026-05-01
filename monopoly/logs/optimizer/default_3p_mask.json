@@ -1,0 +1,151 @@
+{
+  "n_players": 3,
+  "n_games": 100,
+  "n_games_per_matchup": 10,
+  "matchups": [
+    [
+      0,
+      1,
+      7
+    ],
+    [
+      0,
+      1,
+      9
+    ],
+    [
+      1,
+      3,
+      5
+    ],
+    [
+      0,
+      8,
+      9
+    ],
+    [
+      1,
+      2,
+      9
+    ],
+    [
+      1,
+      4,
+      8
+    ],
+    [
+      0,
+      2,
+      6
+    ],
+    [
+      2,
+      15,
+      18
+    ],
+    [
+      2,
+      5,
+      17
+    ],
+    [
+      11,
+      24,
+      29
+    ]
+  ],
+  "weights": {
+    "w_fair": 1.0,
+    "w_fmax": 0.5,
+    "w_len": 0.5,
+    "w_draw": 0.3,
+    "w_money": 0.3
+  },
+  "targets": {
+    "target_rounds": 60.0,
+    "target_transfer": 100.0
+  },
+  "max_turns": 200,
+  "score": 1.5045278383892249,
+  "metrics": {
+    "mean_fairness": 0.5399999999999999,
+    "max_fairness": 0.9,
+    "mean_rounds": 113.19,
+    "mean_draw_rate": 0.22,
+    "mean_transfer_rate": 98.24072053692502,
+    "length_penalty": 0.8865,
+    "transfer_penalty": 0.01759279463074975
+  },
+  "per_matchup": [
+    {
+      "fairness": 0.19999999999999998,
+      "draw_rate": 0.5,
+      "mean_rounds": 146.4,
+      "transfer_rate": 97.71266060884743,
+      "n_games": 10
+    },
+    {
+      "fairness": 0.7,
+      "draw_rate": 0.2,
+      "mean_rounds": 118.6,
+      "transfer_rate": 90.40075666067598,
+      "n_games": 10
+    },
+    {
+      "fairness": 0.9,
+      "draw_rate": 0.0,
+      "mean_rounds": 78.1,
+      "transfer_rate": 105.77296790686137,
+      "n_games": 10
+    },
+    {
+      "fairness": 0.30000000000000004,
+      "draw_rate": 0.3,
+      "mean_rounds": 139.3,
+      "transfer_rate": 91.1725522514566,
+      "n_games": 10
+    },
+    {
+      "fairness": 0.4,
+      "draw_rate": 0.4,
+      "mean_rounds": 144.8,
+      "transfer_rate": 85.2695085477693,
+      "n_games": 10
+    },
+    {
+      "fairness": 0.6,
+      "draw_rate": 0.2,
+      "mean_rounds": 114.4,
+      "transfer_rate": 107.29708601218358,
+      "n_games": 10
+    },
+    {
+      "fairness": 0.5,
+      "draw_rate": 0.4,
+      "mean_rounds": 123.8,
+      "transfer_rate": 83.52604312345163,
+      "n_games": 10
+    },
+    {
+      "fairness": 0.4,
+      "draw_rate": 0.2,
+      "mean_rounds": 128.3,
+      "transfer_rate": 97.67746779387896,
+      "n_games": 10
+    },
+    {
+      "fairness": 0.8,
+      "draw_rate": 0.0,
+      "mean_rounds": 63.9,
+      "transfer_rate": 110.19731092436976,
+      "n_games": 10
+    },
+    {
+      "fairness": 0.6,
+      "draw_rate": 0.0,
+      "mean_rounds": 74.3,
+      "transfer_rate": 113.38085153975553,
+      "n_games": 10
+    }
+  ]
+}
