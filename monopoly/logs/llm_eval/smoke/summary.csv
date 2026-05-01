@@ -1,0 +1,3 @@
+board_tag,n_players,seed,game_id,winner,rounds,truncated,transfer_total,transfer_rate,net_worth,bankrupt,n_decisions,n_llm_calls,n_prefiltered,wall_ms,log_path
+default,2,42,default_n2_s42,LLM_p1,55,0,2694.0,48.981818181818184,"{""LLM_p0"": 0, ""LLM_p1"": 6181}","{""LLM_p0"": true, ""LLM_p1"": false}",40,27,13,10362.37170000095,logs\llm_eval\smoke\decisions\default\seed_42.jsonl
+ga_2p_winner,2,42,ga_2p_winner_n2_s42,LLM_p1,48,0,3057.0,63.6875,"{""LLM_p0"": 0, ""LLM_p1"": 5070}","{""LLM_p0"": true, ""LLM_p1"": false}",26,16,10,3015.734800021164,logs\llm_eval\smoke\decisions\ga_2p_winner\seed_42.jsonl

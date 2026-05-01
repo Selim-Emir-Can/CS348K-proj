@@ -1,0 +1,2 @@
+board_tag,n_players,seed,game_id,winner,rounds,truncated,transfer_total,transfer_rate,net_worth,bankrupt,n_decisions,n_llm_calls,n_prefiltered,wall_ms,log_path
+default,2,42,default_n2_s42,LLM_p1,46,0,3429.0,74.54347826086956,"{""LLM_p0"": 0, ""LLM_p1"": 6378}","{""LLM_p0"": true, ""LLM_p1"": false}",38,28,10,71215.23939998588,logs\llm_eval\smoke4\decisions\default\seed_42.jsonl
