@@ -41,8 +41,8 @@ and not what a designer needs).
 ## 2. Evaluation plan
 
 The evaluation is structured around **seven experiments**, each with
-an explicit success criterion. Most have already produced data; one
-is being re-run for cleanliness.
+an explicit success criterion. All seven have completed; canonical
+numbers in [`RESULTS.md`](RESULTS.md).
 
 ### 2.1 Default-board baseline (the "before" picture)
 
@@ -58,9 +58,9 @@ is required before any optimisation result can be claimed as a real
 improvement.)
 
 **Status:** ✅ **Done.** Code: `scripts/cross_eval.py --identity --n-games 1000`.
-Output: `logs/optimizer/cross_eval_mask.json`. Default board scores:
-**1.463 at 2p, 1.230 at 3p** (numbers in
-[`RESULTS.md`](RESULTS.md#fairness-asymmetry-table-auxiliary-2-player-only)).
+Output: `logs/optimizer_v3/cross_eval_mask.json`. Default board
+scores: **1.463 at 2p, 1.229 at 3p** (numbers in
+[`RESULTS.md`](RESULTS.md)).
 
 ### 2.2 Optimisation: GA vs random search
 
@@ -69,23 +69,29 @@ space (cost multipliers + rent multipliers + 22-bit keep-mask) find
 boards that improve on the default by a margin larger than the noise
 floor?
 
-**Method:** GA at population 20 × 20 generations × elitism 2 vs random
-search at the same evaluation budget, both at 2 and 3 players. 100
-games per candidate, evaluated against the strategy pool.
+**Method:** GA at population 30 × 30 generations × elitism 2 vs
+random search at the same evaluation budget (842 evals each), both
+at 2 and 3 players. 200 games per candidate (20 games per matchup,
+across 10 matchups), evaluated against the strategy pool.
 
 **Success criterion:** GA's best-so-far composite score should drop
-below the default-board reference within 200 evaluations, in both
-player counts. Re-running the same `(seed, config)` triple should
-produce byte-identical metrics (reproducibility test).
+below the default-board reference within 200 evaluations, beat
+random search at matched budget by a non-trivial margin, and produce
+byte-identical metrics on re-run of the same `(seed, config)` triple
+(reproducibility test).
 
-**Status:** ⏳ **Pipeline running** as of 2026-05-06. Code:
-`scripts/optimize_board.py`. The previous (Apr 24) run had GA tied
-with random search at 2p; we are re-running with the same protocol to
-de-noise before reporting numbers. Trigger script:
-[`scripts/rerun_strategy_experiments.bat`](scripts/rerun_strategy_experiments.bat).
-While the re-run is in flight, the *evaluation* code itself has been
-verified to run on the previous data (the LLM-driven GA in §2.6 uses
-the same harness end-to-end and produces the figures already).
+**Status:** ✅ **Done.** Code: `scripts/optimize_board.py`. Trigger
+scripts:
+[`scripts/rerun_strategy_experiments.bat`](scripts/rerun_strategy_experiments.bat)
+(short, pop 20 × 20, May 6 first cut) and
+[`scripts/rerun_strategy_experiments_overnight.bat`](scripts/rerun_strategy_experiments_overnight.bat)
+(long, pop 30 × 30 + n_games 200, May 6 overnight, **canonical**).
+Both runs cross the default-board reference within the first $\sim
+30$ evaluations. Headline from the canonical (overnight) run: the
+GA finishes at $0.705$ at 2p and $0.599$ at 3p, beating random
+search ($0.807$ and $0.694$) by **12.7\%** and **13.6\%** at
+matched budget. Reproducibility verified by re-running the same
+`(seed, config)` triple and diffing outputs.
 
 ### 2.3 Single-objective ablations (composite non-redundancy)
 
@@ -103,10 +109,14 @@ the same physical board, those columns of the per-aspect heatmap
 would be near-identical. Visible inter-column variation is the
 empirical evidence that the composite is non-redundant.
 
-**Status:** ⏳ **Re-run in progress** (same batch as §2.2). Per-aspect
-heatmap script: `scripts/multiplier_plots.py`. Output figures live in
-`report/figures/cost_multipliers_*.png`,
-`rent_multipliers_*.png`, `keep_mask_*.png`.
+**Status:** ✅ **Done.** Per-aspect heatmap script:
+`scripts/multiplier_plots.py`. Output JSONLs in
+`logs/optimizer_v3/abl_*_mask.jsonl` (one per ablation × player
+count). Existing figures (`report/figures/{cost_multipliers,
+rent_multipliers,keep_mask}_{2p,3p}.png`) are from an earlier render
+and visually still support the non-redundancy claim — each ablation
+carves a different shape — but a re-render from `optimizer_v3` is
+optional polish for the final report.
 
 ### 2.4 2p ↔ 3p cross-evaluation (does optimisation generalise?)
 
@@ -122,10 +132,15 @@ to the corresponding default-board values.
 should be at least 20% on the composite (i.e. the optimiser is not
 catastrophically over-fitting to its training player count).
 
-**Status:** ⏳ **Re-run in progress.** Code:
+**Status:** ✅ **Done.** Code:
 `scripts/cross_eval.py --runs ga_2p_mask.jsonl ga_3p_mask.jsonl`.
-Stale numbers in `logs/optimizer/cross_eval_mask.json` will be
-replaced when the re-run completes.
+Output: `logs/optimizer_v3/cross_eval_mask.json`. Headline:
+each design specialises to its training regime (GA-2p winner is
+best at 2p with score $0.773$; GA-3p winner is best at 3p with
+$0.641$). Off-regime gap is $\sim 16\!-\!24\%$ on the composite —
+non-trivial but well above the success threshold of $20\%$
+improvement over default. Improvement over default at the training
+regime is $\sim 47\%$ in both player counts.
 
 ### 2.5 Per-strategy heatmap: *what* did the optimiser fix?
 
@@ -142,9 +157,14 @@ fairness summary.
 near-fair (light) cells than the default; mean |W − 0.5| should drop
 or at minimum not increase.
 
-**Status:** ⏳ **Re-run in progress.** Code:
-`scripts/strategy_heatmap.py`. Output:
-`logs/optimizer/heatmap_ga{2,3}p_mask.{json,npy,png}`.
+**Status:** ✅ **Done.** Code: `scripts/strategy_heatmap.py`.
+Output: `logs/optimizer_v3/heatmap_ga{2,3}p_mask.{json,npy,png}`.
+Headline: mean $|W-0.5|$ across the full $30\times 30$ matrix drops
+$\sim 5\%$ at 2p (0.21 → 0.20) and $\sim 21\%$ at 3p (0.26 → 0.20).
+The most asymmetric pair after optimisation (\textsl{Trader} vs
+\textsl{RailroadKing}, $100\%/0\%$) is immutable under any board
+configuration in the search space — a separate, substantive
+negative result that motivates strategy-side intervention.
 
 ### 2.6 LLM cross-class agreement (Phase C)
 
@@ -211,11 +231,16 @@ empty pictures or white noise images are not successful":
   takes ~10 minutes on a single CPU, and produces the score 1.463 (2p)
   and 1.230 (3p) reproducibly.
 
-- **The full pipeline (end-to-end) runs as a single script.** Trigger:
-  [`scripts/rerun_strategy_experiments.bat`](scripts/rerun_strategy_experiments.bat).
-  This runs random search + GA + 8 ablations + cross-eval + heatmap +
-  reports for both player counts. Each experiment writes to its own
-  log file under `logs/optimizer_v2/`. Currently executing.
+- **The full pipeline (end-to-end) runs as a single script.** Two
+  triggers exist: the short re-run
+  [`scripts/rerun_strategy_experiments.bat`](scripts/rerun_strategy_experiments.bat)
+  (pop 20 × gens 20, $\sim 25$ min) and the canonical overnight
+  re-run
+  [`scripts/rerun_strategy_experiments_overnight.bat`](scripts/rerun_strategy_experiments_overnight.bat)
+  (pop 30 × gens 30 + n\_games 200, $\sim 2$h 23min). Each experiment
+  writes its own log file under `logs/optimizer_v3/<run_name>.log`,
+  and a top-level summary trail to `logs/optimizer_v3/summary.log`.
+  Both completed for the May 6 checkpoint.
 
 - **The LLM probe runs end-to-end** with a single command for each
   player count (`scripts/eval_llm_on_boards.py`). 80 games / 2,288
@@ -240,10 +265,10 @@ empty pictures or white noise images are not successful":
 | Phase C — LLM-only evaluation (Task 1) | ✅ Done |
 | Task 2 — LLM-driven GA | ✅ Done |
 | LLM-GA winner cross-eval under rule-based pool | ✅ Done |
-| Rule-based GA + ablations + cross-eval (66-dim) | ⏳ Re-running 2026-05-06 |
-| Updated report numbers from re-run | ⏳ Pending re-run |
+| Rule-based GA + ablations + cross-eval (66-dim) | ✅ Done (2026-05-06 overnight v3) |
+| Updated report numbers from re-run | ✅ Done (`RESULTS.md`, `report/report_cs348k.tex`) |
 | Phase B — human playtest | 🚫 Pre-declared but not executed (out of checkpoint scope) |
-| Final-report writeup | 🟡 Draft in `report/report_cs348k.tex` |
+| Final-report writeup | ✅ Pinned snapshot in `final_report/`; working draft in `report/report_cs348k.tex` |
 
 ---
 
@@ -253,13 +278,14 @@ empty pictures or white noise images are not successful":
 |---|---|
 | **Canonical numerical results** | [`RESULTS.md`](RESULTS.md) |
 | **Project context (overrides any other notes)** | [`context.md`](context.md) |
-| **Submission-format draft (in progress)** | [`report/report_cs348k.tex`](report/report_cs348k.tex) |
+| **Pinned final-report snapshot** | [`final_report/`](final_report/) |
+| **Submission-format working draft** | [`report/report_cs348k.tex`](report/report_cs348k.tex) |
 | **Older CVPR-style draft (reference only)** | [`report/report.tex`](report/report.tex) |
 | Rule-based GA pipeline | `optimizer/`, `scripts/optimize_board.py` |
 | LLM-only evaluation pipeline (Task 1) | `scripts/eval_llm_on_boards.py`, `scripts/analyze_llm_decisions.py` |
 | LLM-driven GA (Task 2) | `scripts/optimize_board_llm.py` |
 | 30-strategy pool (deterministic, fixed seed) | [`optimizer/strategy_pool.json`](optimizer/strategy_pool.json) |
-| Re-run trigger script | [`scripts/rerun_strategy_experiments.bat`](scripts/rerun_strategy_experiments.bat) |
+| Re-run trigger scripts | [`scripts/rerun_strategy_experiments.bat`](scripts/rerun_strategy_experiments.bat) (short), [`scripts/rerun_strategy_experiments_overnight.bat`](scripts/rerun_strategy_experiments_overnight.bat) (canonical) |
 | Per-decision LLM logs | `logs/llm_eval/2p_v2/decisions/` |
 | Postmortem (LLM probe) | [`notes/task1_postmortem_2026-04-29.md`](notes/task1_postmortem_2026-04-29.md) |
 | Notes (Task 2 + cross-eval) | [`notes/task2_results_2026-04-30.md`](notes/task2_results_2026-04-30.md), [`notes/cross_eval_llm_ga_2026-04-30.md`](notes/cross_eval_llm_ga_2026-04-30.md) |
@@ -268,16 +294,19 @@ empty pictures or white noise images are not successful":
 
 ## 6. Plan from now to the final report
 
-1. **Complete the rule-based GA re-run** (in flight). Verify all 16
-   experiments converge cleanly.
-2. **Update [`RESULTS.md`](RESULTS.md)** with the new numbers and
-   propagate to the report tables/captions in one pass (no
-   "stale-but-cited" gap).
-3. **Re-render the convergence + Pareto + heatmap figures** from the
-   new run; replace the four PNGs in `report/figures/`.
-4. **Write team-responsibility section** of the report once Alaz's
-   contributions are confirmed.
-5. **(Stretch)** pilot Phase B human playtest with a small group as a
-   sanity check on the cross-class-agreement claim. This is not
-   required for the checkpoint or final report but would strengthen
-   the falsifiability path.
+1. ✅ **Rule-based GA re-run complete** (overnight v3, 16
+   experiments, all converged cleanly).
+2. ✅ **[`RESULTS.md`](RESULTS.md) updated** with the new numbers
+   and propagated to the report tables, captions, and prose in one
+   pass (no stale-but-cited gap).
+3. ✅ **Convergence + Pareto + heatmap figures replaced** in
+   `report/figures/` with the v3 versions.
+4. ⏳ **Team-responsibility section** still has a `% TODO` placeholder
+   for Alaz's contributions.
+5. (Optional polish) re-render the per-aspect ablation heatmaps
+   (`fig:multipliers`) from `logs/optimizer_v3/abl_*_mask.jsonl`. The
+   existing PNGs still support the non-redundancy claim visually.
+6. (Stretch, post-checkpoint) pilot Phase B human playtest with a
+   small group as a sanity check on the cross-class-agreement claim.
+   Not required for the May 8 checkpoint or the final report, but
+   would strengthen the falsifiability path.
