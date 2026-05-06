@@ -508,20 +508,25 @@ rather than being seed noise.
   \includegraphics[width=\linewidth]{ga_3p_pareto.png}
   \caption{3p}
 \end{subfigure}
-\caption{\textbf{The trade-off surface is real, and its shape depends
-on player count.} Each marker is one of $5{,}052$ candidates
+\caption{\textbf{The (fairness, rounds) trade-off surface and its
+Pareto frontier.} Each marker is one of $5{,}052$ candidates
 evaluated across all six search runs (random + GA + four
-single-objective ablations) on the $66$-dim keep-mask design space.
-The x-axis is mean pair-fairness $|\Delta\,\text{win rate}|$ (lower
-is fairer); the y-axis is mean rounds per game; the colour encodes
-draw rate; the red star marks the combined-objective GA optimum.
-The lower-left region is the simultaneously fair, fast, and
-decisive corner; the GA optimum sits at its knee. The 2p sweep
-reaches mean rounds as low as $\sim 30$ (the keep-mask shrinks the
-lap), while the 3p sweep bottoms out closer to $\sim 50$ rounds.
-The two clouds have visibly different shapes, which is what makes
-the cross-evaluation finding (Table~\ref{tab:cross}) a property of
-the design space rather than seed noise.}
+single-objective ablations) on the $66$-dim keep-mask design space;
+colour encodes draw rate. The crimson line traces the actual 2D
+Pareto frontier of (fairness, rounds), both minimised: $14$ points
+at 2p, $16$ at 3p, with a clean knee around fairness $0.22$ and
+rounds $30\!-\!40$ at 2p (a slightly higher knee at 3p). The gold
+star is the combined-objective GA optimum; it sits \emph{inside}
+the cloud rather than on the 2D frontier because the composite
+weights five terms (fairness, max-fairness, length, draw, transfer),
+not just two — the GA's optimum is on the 5D Pareto surface, of
+which the (fairness, rounds) projection is a shadow. The 2p sweep
+reaches mean rounds as low as $\sim 22$ (the keep-mask shrinks the
+lap aggressively), while the 3p frontier bottoms out closer to
+$\sim 35$ rounds; the two clouds have visibly different shapes,
+which is what makes the cross-evaluation finding
+(Table~\ref{tab:cross}) a property of the design space rather than
+seed noise.}
 \label{fig:pareto}
 \end{figure}
 
