@@ -90,7 +90,8 @@ def render_pair(base_cfg, run_path, out_path, title_suffix,
 
 
 def render_grid(base_cfg, runs, out_path, super_title,
-                removal_direction='cheapest', render_style='shrunk'):
+                removal_direction='cheapest', render_style='shrunk',
+                log_dir=Path('logs/optimizer')):
     """One grid: default (top-left) + one winning board per ablation.
 
     2 columns × ceil((len(runs)+1)/2) rows; each cell is one board.
@@ -107,7 +108,7 @@ def render_grid(base_cfg, runs, out_path, super_title,
     draw_board(axes[0], default_cfg, default_cfg=None,
                title='Default board', annotate_changes=False)
     for i, (stem, label) in enumerate(runs, start=1):
-        run_path = Path('logs/optimizer') / f'{stem}.jsonl'
+        run_path = log_dir / f'{stem}.jsonl'
         if not run_path.exists():
             axes[i].set_visible(False)
             continue
@@ -133,6 +134,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--config', default='default_config.yaml')
     ap.add_argument('--out-dir', default='../report/figures/boards')
+    ap.add_argument('--log-dir', default='logs/optimizer',
+                    help='Directory containing the GA/ablation jsonls. '
+                         'Use logs/optimizer_v3 for the canonical re-run.')
     ap.add_argument('--removal-direction', choices=('cheapest', 'expensive', 'middle'),
                     default='cheapest',
                     help='Must match the optimiser setting that produced the run logs.')
@@ -153,10 +157,11 @@ def main():
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     sfx = args.suffix
+    log_dir = Path(args.log_dir)
 
     # Individual pairs (default vs winner) for every run
     for stem, label in DEFAULT_RUNS_2P + DEFAULT_RUNS_3P:
-        run_path = Path('logs/optimizer') / f'{stem}{sfx}.jsonl'
+        run_path = log_dir / f'{stem}{sfx}.jsonl'
         if not run_path.exists():
             print(f'  skip (missing): {run_path}')
             continue
@@ -172,14 +177,16 @@ def main():
                 out_dir / f'boards_grid_2p{sfx}.png',
                 super_title='2-player winning boards - default + ablations',
                 removal_direction=args.removal_direction,
-                render_style=args.render_style)
+                render_style=args.render_style,
+                log_dir=log_dir)
     print(f'  wrote {out_dir / f"boards_grid_2p{sfx}.png"}')
     render_grid(base_cfg,
                 [(s + sfx, l) for s, l in DEFAULT_RUNS_3P],
                 out_dir / f'boards_grid_3p{sfx}.png',
                 super_title='3-player winning boards - default + ablations',
                 removal_direction=args.removal_direction,
-                render_style=args.render_style)
+                render_style=args.render_style,
+                log_dir=log_dir)
     print(f'  wrote {out_dir / f"boards_grid_3p{sfx}.png"}')
 
 

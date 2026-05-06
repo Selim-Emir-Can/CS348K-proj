@@ -450,18 +450,19 @@ rather than being seed noise.
   \caption{3p}
 \end{subfigure}
 \caption{\textbf{The trade-off surface is real, and its shape depends
-on player count.} Each marker is a candidate evaluated by the GA
-combined-objective run on the $66$-dim keep-mask design space. The
-x-axis is mean pair-fairness $|\Delta\,\text{win rate}|$ (lower is
-fairer); the y-axis is mean rounds per game; the colour encodes
-draw rate. The lower-left region is the simultaneously fair, fast,
-and decisive corner of the design space; the combined-objective
-optimum lies near its knee. The 2p sweep reaches mean rounds as low
-as $\sim 30$ (the keep-mask shrinks the lap), while the 3p sweep
-bottoms out closer to $\sim 50$ rounds. The two clouds have visibly
-different shapes, which is what makes the cross-evaluation finding
-(Table~\ref{tab:cross}) a property of the design space rather than
-seed noise.}
+on player count.} Each marker is one of $5{,}052$ candidates
+evaluated across all six search runs (random + GA + four
+single-objective ablations) on the $66$-dim keep-mask design space.
+The x-axis is mean pair-fairness $|\Delta\,\text{win rate}|$ (lower
+is fairer); the y-axis is mean rounds per game; the colour encodes
+draw rate; the red star marks the combined-objective GA optimum.
+The lower-left region is the simultaneously fair, fast, and
+decisive corner; the GA optimum sits at its knee. The 2p sweep
+reaches mean rounds as low as $\sim 30$ (the keep-mask shrinks the
+lap), while the 3p sweep bottoms out closer to $\sim 50$ rounds.
+The two clouds have visibly different shapes, which is what makes
+the cross-evaluation finding (Table~\ref{tab:cross}) a property of
+the design space rather than seed noise.}
 \label{fig:pareto}
 \end{figure}
 
