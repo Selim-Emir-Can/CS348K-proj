@@ -1,6 +1,6 @@
 # Canonical Results — CS348K Monopoly Project
 
-**Last updated: 2026-05-06 (post-rerun)**
+**Last updated: 2026-05-06 (post-overnight rerun, v3)**
 
 > **This file is the source of truth for every numerical result reported in
 > `report/report_cs348k.tex`. If any other note, log header, or older draft
@@ -17,11 +17,11 @@
 | Task 1 — Buy-rate slices | **FINAL** | Decision-quality probe; rational direction across cash + monopoly-opportunity slices. |
 | Task 2 — LLM-driven GA | **FINAL** | Pop 8 × 5 gens × 5 seeds, 2-player only. Winner at iter 15. |
 | Task 2 — LLM-GA winner cross-eval under rule-based pool | **FINAL** | Numbers from `logs/optimizer/cross_eval_llm_ga_winner.json`. The rule-based pool itself is static (`optimizer/strategy_pool.json`), so this is independent of the rule-based GA re-run. |
-| Rule-based GA cross-eval (`tab:cross`) | **FINAL (2026-05-06 rerun)** | Source: `logs/optimizer_v2/cross_eval_mask.json`. |
-| Rule-based GA convergence (`fig:conv`) | **FINAL (2026-05-06 rerun)** | Source: `logs/optimizer_v2/reports_{2p,3p}_mask/convergence.png` (copied to `report/figures/`). |
-| Per-strategy heatmap (`fig:heatmap`) | **FINAL (2026-05-06 rerun)** | Source: `logs/optimizer_v2/heatmap_ga{2,3}p_mask.{json,png}`. |
-| Per-aspect ablation heatmaps (`fig:multipliers`) | **FINAL (2026-05-06 rerun)** | Re-rendered from `logs/optimizer_v2/abl_*_mask.jsonl` if needed; current PNGs in `report/figures/` are still from the Apr 24 run and may benefit from a re-render. |
-| Pareto frontiers (`fig:pareto`) | **FINAL (2026-05-06 rerun)** | Source: `logs/optimizer_v2/reports_{2p,3p}_mask/ga_{2,3}p_mask_pareto.png` (copied to `report/figures/`). |
+| Rule-based GA cross-eval (`tab:cross`) | **FINAL (2026-05-06 overnight v3)** | Source: `logs/optimizer_v3/cross_eval_mask.json`. |
+| Rule-based GA convergence (`fig:conv`) | **FINAL (v3)** | Source: `logs/optimizer_v3/reports_{2p,3p}_mask/convergence.png` (copied to `report/figures/`). |
+| Per-strategy heatmap (`fig:heatmap`) | **FINAL (v3)** | Source: `logs/optimizer_v3/heatmap_ga{2,3}p_mask.{json,png}`. |
+| Per-aspect ablation heatmaps (`fig:multipliers`) | Stale (Apr 24) | Current PNGs in `report/figures/` are from the Apr 24 run; can be re-rendered from `logs/optimizer_v3/abl_*_mask.jsonl` if needed. Visual claim survives — each ablation still carves a different shape. |
+| Pareto frontiers (`fig:pareto`) | **FINAL (v3)** | Source: `logs/optimizer_v3/reports_{2p,3p}_mask/ga_{2,3}p_mask_pareto.png` (copied to `report/figures/`). |
 
 ---
 
@@ -177,95 +177,98 @@ LLM-evaluator column and the LLM-driven GA winner row stay as recorded.
 
 ---
 
-## Final values — Rule-based GA block (2026-05-06 rerun, 66-dim keep-mask)
+## Final values — Rule-based GA block (2026-05-06 overnight v3, 66-dim keep-mask)
 
-Source: `logs/optimizer_v2/`. Re-run trigger:
-[`scripts/rerun_strategy_experiments.bat`](scripts/rerun_strategy_experiments.bat).
+Source: `logs/optimizer_v3/`. Re-run trigger:
+[`scripts/rerun_strategy_experiments_overnight.bat`](scripts/rerun_strategy_experiments_overnight.bat).
 Protocol: `--base-seed 42 --search-seed 0 --matchup-seed 1234`,
-`--n-games 100`, `--max-turns 200`, `--removal-direction cheapest`,
-weights `(1.0, 0.5, 0.5, 0.3, 0.3)`, targets $R^{*}=60$, $T^{*}=100$,
-GA `--pop 20 --generations 20 --elitism 2`, random `--iters 400`.
+`--n-games 200` (20 games per matchup), `--max-turns 200`,
+`--removal-direction cheapest`, weights `(1.0, 0.5, 0.5, 0.3, 0.3)`,
+targets $R^{*}=60$, $T^{*}=100$, GA `--pop 30 --generations 30
+--elitism 2`, random `--iters 842` (matched evaluation budget). Total
+wall time on a single CPU: ~2h 23min for the full chain.
 
-### Search-set best score (training-set, n=100/candidate)
+### Search-set best score (training-set, n=200/candidate, 842 evaluations)
 
 | design | algorithm | best score |
 |---|---|---:|
-| `random_2p_mask` | random search, 400 iters | **0.7216** |
-| `random_3p_mask` | random search, 400 iters | 0.7979 |
-| `ga_2p_mask` | GA, pop 20 × gens 20 (362 evals) | 0.7315 |
-| `ga_3p_mask` | GA, pop 20 × gens 20 (362 evals) | **0.7157** |
+| `random_2p_mask` | random search, 842 iters | 0.8070 |
+| `random_3p_mask` | random search, 842 iters | 0.6935 |
+| **`ga_2p_mask`** | GA, pop 30 × gens 30 (842 evals) | **0.7047** |
+| **`ga_3p_mask`** | GA, pop 30 × gens 30 (842 evals) | **0.5990** |
 
-**At 2p, random search marginally beats the GA** (0.7216 vs 0.7315);
-**at 3p the GA beats random by ~10%** (0.7157 vs 0.7979). The bigger
-lift over the *default board* (~40-45%, see deployment table below)
-is several times larger than either GA-vs-random gap, so the headline
-improvement is robust to the choice of search algorithm.
+**The GA outperforms random search at both player counts:** by 12.7%
+at 2p (0.7047 vs 0.8070) and by 13.6% at 3p (0.5990 vs 0.6935). The
+combination of a 2.3× larger search budget and 2× larger evaluation
+sample (vs the May 6 run in `logs/optimizer_v2/`) was sufficient to
+break the 2p tie observed there.
 
 ### Cross-evaluation at $n=1000$ (`tab:cross`, the deployment table)
 
-Source: `logs/optimizer_v2/cross_eval_mask.json`.
+Source: `logs/optimizer_v3/cross_eval_mask.json`.
 
 | Design | Eval | score | $\overline{F}$ | $F_{\max}$ | rounds | draw % | transfer |
 |---|---|---:|---:|---:|---:|---:|---:|
 | default | 2p | 1.4631 | 0.454 | 0.940 | 103.9 | 7.4 | 49.7 |
-| default | 3p | 1.2298 | 0.412 | 0.680 | 110.8 | 17.6 | 99.4 |
-| **GA-2p winner** | 2p | **0.7836** | **0.193** | 0.980 | 54.6 | 0.9 | 82.4 |
-| GA-2p winner | 3p | 0.7155 | 0.287 | 0.510 | 60.6 | 1.9 | 154.2 |
-| GA-3p winner | 2p | 0.8726 | 0.269 | 0.980 | 55.3 | 1.1 | 76.2 |
-| **GA-3p winner** | 3p | **0.6772** | 0.241 | 0.560 | 62.0 | 4.9 | 141.5 |
+| default | 3p | 1.2286 | 0.411 | 0.680 | 110.8 | 17.6 | 99.4 |
+| **GA-2p winner** | 2p | **0.7731** | **0.215** | 0.910 | 62.2 | 1.7 | 73.3 |
+| GA-2p winner | 3p | 0.7947 | 0.273 | 0.730 | 65.7 | 3.3 | 133.1 |
+| GA-3p winner | 2p | 0.8967 | 0.287 | 0.970 | 56.2 | 0.5 | 69.4 |
+| **GA-3p winner** | 3p | **0.6408** | 0.280 | 0.490 | 56.3 | 0.6 | 127.8 |
 
 **Each design is best on its own training regime** (GA-2p winner at
-2p: 0.7836 < 0.8726 GA-3p; GA-3p winner at 3p: 0.6772 < 0.7155
+2p: 0.7731 < 0.8967 GA-3p; GA-3p winner at 3p: 0.6408 < 0.7947
 GA-2p). Both designs generalise to the off-regime without
-catastrophic failure (within ~10% on the composite scale).
+catastrophic failure (within ~16% on the composite scale).
 
 Improvement over default at the design's training regime:
-- 2p: 1.4631 → 0.7836 = **46.4%**
-- 3p: 1.2298 → 0.6772 = **44.9%**
+- 2p: 1.4631 → 0.7731 = **47.2%**
+- 3p: 1.2286 → 0.6408 = **47.8%**
 
 ### Optimisation-set vs deployment overfit (`tab:overfit`)
 
-| Design | training ($n=100$) | deployment ($n=1000$) | overfit |
+| Design | training ($n=200$) | deployment ($n=1000$) | overfit |
 |---|---:|---:|---:|
-| GA-2p winner | 0.7315 | 0.7836 | $+0.052$ |
-| GA-3p winner | 0.7157 | 0.6772 | $-0.039$ |
+| GA-2p winner | 0.7047 | 0.7731 | $+0.068$ |
+| GA-3p winner | 0.5990 | 0.6408 | $+0.042$ |
 
-GA-2p shows a small positive overfit ($+0.052$); GA-3p has a slightly
-negative overfit (deployment is *better* than training, which is
-within the noise produced by different seed populations between
-$n=100$ and $n=1000$). Both gaps are small relative to the headline
-~45% improvement over default.
+Both designs show small positive overfit ($+0.068$ and $+0.042$,
+roughly 9% and 7% of the deployment score). Both gaps are small
+relative to the headline ~47% improvement over default.
 
 ### Per-strategy heatmap (`fig:heatmap`, `sec:heatmap`)
 
-Source: `logs/optimizer_v2/heatmap_ga{2,3}p_mask.json`.
+Source: `logs/optimizer_v3/heatmap_ga{2,3}p_mask.json`.
 
 | | baseline mean $\|W-0.5\|$ | optimised mean $\|W-0.5\|$ | reduction |
 |---|---:|---:|---:|
-| 2p | 0.2098 | 0.1655 | 21% |
-| 3p | 0.2557 | 0.2069 | 19% |
+| 2p | 0.2098 | 0.1994 | **5%** |
+| 3p | 0.2557 | 0.2016 | **21%** |
 
-The GA reduces per-pair fairness across the full 30-strategy pool by
-~20%, even though optimising on only 10 sampled matchups.
+The 2p GA winner moved per-pair fairness only modestly ($\sim 5\%$)
+across the full 30-strategy pool, while the 3p winner reduced it by
+$\sim 21\%$. This is consistent with the 2p winner trading
+population-wide fairness for larger improvements on its specific
+evaluation matchups (its $\overline{F}$ on the 10 evaluation
+matchups is 0.215, vs 0.454 default — a 53% reduction).
 
-**Top-5 most-asymmetric pairs on the GA-2p board:**
+**Top-3 most-asymmetric pairs on the GA-2p board (v3):**
 - Trader vs RailroadKing: 100/0
-- RailroadKing vs Sampled\_19: 0/100
-- RailroadKing vs Sampled\_18: 0/100
-- RailroadKing vs Sampled\_16: 0/100
-- RailroadKing vs Sampled\_13: 0/100
+- Sampled\_14 vs Sampled\_15: 0/100
+- Sampled\_10 vs Sampled\_14: 100/0
 
-These are immutable under any board configuration in the search
-space; they are intrinsic to RailroadKing's "ignore all colour
-groups" strategy and require a strategy-side intervention to fix.
+The Trader vs RailroadKing pair is the canonical example: it is
+immutable under any board configuration in the search space because
+it is intrinsic to RailroadKing's "ignore all colour groups"
+strategy.
 
 ### System-level metrics on GA-2p winner under 2p eval (for `sec:heatmap` prose)
 
 Compared to the default 2p evaluation:
-- Game length: 103.9 → 54.6 rounds (drop of 49 rounds, $-47\%$)
-- Draw rate: 7.4% → 0.9% ($-88\%$)
-- Inter-player transfer: 49.7 → 82.4 \$/round ($+66\%$, closer to target $T^{*}=100$)
-- Mean fairness: 0.454 → 0.193 ($-58\%$)
+- Game length: 103.9 → 62.2 rounds (drop of 42 rounds, $-40\%$)
+- Draw rate: 7.4% → 1.7% ($-77\%$)
+- Inter-player transfer: 49.7 → 73.3 \$/round ($+47\%$, closer to target $T^{*}=100$)
+- Mean fairness on the 10 evaluation matchups: 0.454 → 0.215 ($-53\%$)
 
 ---
 

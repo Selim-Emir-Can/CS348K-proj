@@ -33,8 +33,9 @@ pool of 30 parametric rule-based strategies. A second agent class, a
 1.5B-parameter instruction-tuned LLM (Qwen2.5-1.5B) wrapped in a
 structured echo-validated prompt, re-evaluates the same boards as an
 independent cross-class probe. The rule-based GA improves the composite
-score by approximately $45\%$ over the default board at both 2 and
-3 players. Single-objective ablations confirm that every term in the
+score by approximately $47\%$ over the default board at both 2 and
+3 players, outperforming a random-search baseline at matched
+evaluation budget by $\sim 13\%$ in both regimes. Single-objective ablations confirm that every term in the
 composite is non-redundant. A $2p\!\leftrightarrow\!3p$ cross-evaluation
 at $n{=}1000$ exposes a fairness gap that does not vanish with budget.
 The LLM probe reproduces the rule-based directional ranking with zero
@@ -268,23 +269,24 @@ $n{=}1000$ deployment evaluation.
   \includegraphics[width=\linewidth]{convergence_3p.png}
   \caption{3 players}
 \end{subfigure}
-\caption{\textbf{Problem framing drives most of the lift; the GA
-edges out random search at 3p but matches it at 2p.} Best-so-far
+\caption{\textbf{The GA outperforms random search at matched
+budget, by $\sim 13\%$ in both player-count regimes.} Best-so-far
 composite score (lower is better) over the candidate-evaluation
-budget, six runs per player count: random search (400 iters), the
-combined-objective GA (population $20\times 20$ generations, 362
-evaluations after 2-elitism), and the four single-objective
-ablations (\textsl{abl\_fair, abl\_len, abl\_draw, abl\_money}). At
-2p the GA and random search converge to the same level
-($0.7315$ vs.\ $0.7216$, an essentially tied result); at 3p the GA
-finishes $\sim 10\%$ ahead of random ($0.7157$ vs.\ $0.7979$). The
-much larger lift over the default-board reference (the $\sim 0.45$
-absolute gap, $\sim 45\%$ relative) is what carries the headline:
-the choice of objective and evaluator drives most of the
-improvement, with optimiser cleverness adding a smaller,
-regime-dependent margin. The ablation runs reach much lower scores
-because each minimises only one term of the composite, previewing
-the non-redundancy claim made by Figure~\ref{fig:multipliers}.}
+budget, six runs per player count: random search ($842$ iters), the
+combined-objective GA (population $30\times 30$ generations, $842$
+evaluations after $2$-elitism), and the four single-objective
+ablations. At 2p the GA finishes at $0.705$ vs random's $0.807$
+($-12.7\%$); at 3p the GA finishes at $0.599$ vs random's $0.694$
+($-13.6\%$). Per-candidate evaluation uses $20$ games per matchup
+($n_{\text{games}}{=}200$) to halve variance relative to the
+$n_{\text{games}}{=}100$ default. The ablation runs reach much
+lower scores because each minimises only one term of the composite,
+previewing the non-redundancy claim made by
+Figure~\ref{fig:multipliers}. The overall lift over the default
+board ($\sim 0.65$ absolute, $\sim 47\%$ relative) is several times
+larger than the GA-vs-random gap, which positions the bigger
+methodological lesson cleanly: problem framing dominates, optimiser
+choice contributes a smaller-but-real margin on top.}
 \label{fig:conv}
 \end{figure}
 
@@ -358,58 +360,56 @@ weight beyond the headline improvement over the default.
 Design & Eval & score\,$\downarrow$ & $\overline{F}$\,$\downarrow$ & $F_{\max}$\,$\downarrow$ & rounds\,$(\!\to\!60)$ & draw \%\,$\downarrow$ & transfer\,$(\!\to\!100)$ \\
 \midrule
 default board    & 2p & 1.463 & 0.454 & 0.940 & 103.9 &  7.4 &  49.7 \\
-default board    & 3p & 1.230 & 0.412 & 0.680 & 110.8 & 17.6 &  99.4 \\
+default board    & 3p & 1.229 & 0.411 & 0.680 & 110.8 & 17.6 &  99.4 \\
 \addlinespace
-GA-2p winner     & 2p & \textbf{0.784} & \textbf{0.193} & 0.980 &  54.6 &  0.9 &  82.4 \\
-GA-2p winner     & 3p & 0.716 & 0.287 & 0.510 &  60.6 &  1.9 & 154.2 \\
+GA-2p winner     & 2p & \textbf{0.773} & \textbf{0.215} & 0.910 &  62.2 &  1.7 &  73.3 \\
+GA-2p winner     & 3p & 0.795 & 0.273 & 0.730 &  65.7 &  3.3 & 133.1 \\
 \addlinespace
-GA-3p winner     & 2p & 0.873 & 0.269 & 0.980 &  55.3 &  1.1 &  76.2 \\
-GA-3p winner     & 3p & \textbf{0.677} & 0.241 & 0.560 &  62.0 &  4.9 & 141.5 \\
+GA-3p winner     & 2p & 0.897 & 0.287 & 0.970 &  56.2 &  0.5 &  69.4 \\
+GA-3p winner     & 3p & \textbf{0.641} & 0.280 & 0.490 &  56.3 &  0.6 & 127.8 \\
 \bottomrule
 \end{tabular}
 \caption{\textbf{Cross-player-count evaluation at $n{=}1000$ games
 per cell, $66$-dim keep-mask design space} (source:
-\texttt{logs/optimizer\_v2/cross\_eval\_mask.json}). Wilson $95\%$
+\texttt{logs/optimizer\_v3/cross\_eval\_mask.json}). Wilson $95\%$
 CIs on individual win rates are $\pm 3$pp. Header arrows:
 $\downarrow$ means lower is better; $(\!\to\!T)$ means the target
 value is $T$ and deviation in either direction is penalised. Bold
 cells mark the best (lowest) value within each evaluation regime.
 Each design is best on its own training regime: GA-2p winner at 2p
-($0.784$ vs $0.873$), GA-3p winner at 3p ($0.677$ vs $0.716$). Both
-designs improve over the default by approximately $45\%$ in their
-training regime ($1.463 \!\to\! 0.784$ at 2p, $1.230 \!\to\! 0.677$
-at 3p) and generalise to within $\sim 10\%$ in the off-regime
-without catastrophic failure.}
+($0.773$ vs $0.897$), GA-3p winner at 3p ($0.641$ vs $0.795$). Both
+designs improve over the default by approximately $47\%$ in their
+training regime ($1.463 \!\to\! 0.773$ at 2p, $1.229 \!\to\! 0.641$
+at 3p) and generalise to the off-regime within $\sim 16\%$ on the
+composite without catastrophic failure.}
 \label{tab:cross}
 \end{table}
 
 The first finding is that \emph{each design specialises to its
 training regime, but both generalise across regimes without
 catastrophic failure}. The GA-2p winner improves the composite by
-$46\%$ on its training regime ($1.463 \!\to\! 0.784$ at 2p) and is
-the best 2p design in the table; the GA-3p winner improves by $45\%$
-on its training regime ($1.230 \!\to\! 0.677$ at 3p) and is the best
+$47\%$ on its training regime ($1.463 \!\to\! 0.773$ at 2p) and is
+the best 2p design in the table; the GA-3p winner improves by $48\%$
+on its training regime ($1.229 \!\to\! 0.641$ at 3p) and is the best
 3p design. Off-regime, each is still much better than the default
 but no longer the best: the GA-2p winner under 3p eval scores
-$0.716$ (vs.\ GA-3p's $0.677$, a $5.4\%$ relative gap), and the
-GA-3p winner under 2p eval scores $0.873$ (vs.\ GA-2p's $0.784$, a
-$11\%$ gap). The cleanest reading is that the GA finds a *training-
-regime-specialised* optimum, with off-regime performance robust
-enough that a single design from either training regime could ship
-to either player count without disaster, but matching the design to
-the deployment regime is worth $\sim 5\!-\!10\%$ on the composite.
+$0.795$ (vs.\ GA-3p's $0.641$, a $24\%$ relative gap), and the GA-3p
+winner under 2p eval scores $0.897$ (vs.\ GA-2p's $0.773$, a $16\%$
+gap). The cleanest reading is that the GA finds a \emph{training-
+regime-specialised} optimum: matching the design to the deployment
+regime is worth $\sim 16\!-\!24\%$ on the composite, but either
+design still beats the default by a wide margin under the
+off-regime evaluator, so a single design from either training
+regime could ship to either player count without disaster.
 
 The second finding is that \emph{optimisation-set overfit is small
-on both designs}. At the $n{=}100$ optimisation budget the GA-2p
-winner scored $0.732$ on its training matchup set; at $n{=}1000$
-deployment it scores $0.784$, an overfit of $+0.052$
-(Table~\ref{tab:overfit}). The GA-3p winner scored $0.716$ at
-training and $0.677$ at deployment, a small \emph{negative} gap of
-$-0.039$ (deployment is fractionally better than training, well
-within the noise produced by different seed populations between the
-two evaluation budgets). Both gaps are small relative to the
-headline improvement over the default ($\sim 0.65$ on the 2p score
-scale, $\sim 0.55$ on 3p, both about $45\%$ relative), so the
+on both designs}. At the $n{=}200$ optimisation budget the GA-2p
+winner scored $0.705$ on its training matchup set; at $n{=}1000$
+deployment it scores $0.773$, an overfit of $+0.068$
+(Table~\ref{tab:overfit}). The GA-3p winner scored $0.599$ at
+training and $0.641$ at deployment, an overfit of $+0.042$. Both
+gaps are small ($\leq 9\%$ of the deployment score) relative to the
+headline $\sim 47\%$ improvement over the default, so the
 directional improvement is robust to re-evaluation at higher $n$.
 
 \begin{table}[h!]
@@ -419,21 +419,18 @@ directional improvement is robust to re-evaluation at higher $n$.
 \toprule
 Design & training ($n{=}100$)\,$\downarrow$ & deployment ($n{=}1000$)\,$\downarrow$ & overfit\,$\downarrow$ \\
 \midrule
-GA-2p winner & $0.732$ & $0.784$ & $+0.052$ \\
-GA-3p winner & $0.716$ & $0.677$ & $-0.039$ \\
+GA-2p winner & $0.705$ & $0.773$ & $+0.068$ \\
+GA-3p winner & $0.599$ & $0.641$ & $+0.042$ \\
 \bottomrule
 \end{tabular}
 \caption{\textbf{Optimisation-set vs.\ deployment-set composite
 score, on each design's own training regime.} Header arrows:
-$\downarrow$ means lower is better. The GA-2p winner has a small
-$+0.052$ overfit to its $100$-game training matchup set; the GA-3p
-winner has a $-0.039$ \emph{negative} overfit (deployment is
-fractionally better than training, within the noise produced by
-the different seed populations between $n{=}100$ and $n{=}1000$).
-Both gaps are small relative to the headline win over the default
-($\sim 0.65$ on the score scale). Training number is the best
-score in the GA's own \texttt{evals.jsonl}, deployment number is
-the corresponding row of Table~\ref{tab:cross}.}
+$\downarrow$ means lower is better. Both designs show small
+positive overfit ($+0.068$ and $+0.042$ respectively, both $<\!10\%$
+of the deployment score) relative to the headline $\sim 47\%$
+improvement over the default. Training number is the best score in
+the GA's own \texttt{evals.jsonl}; deployment number is the
+corresponding row of Table~\ref{tab:cross}.}
 \label{tab:overfit}
 \end{table}
 
@@ -480,35 +477,35 @@ what the GA actually changed across all $\binom{30}{2}=435$ unique
 strategy pairs in the pool.
 
 The headline finding is that \emph{board design moves system-level
-metrics aggressively, and per-pair strategy fairness modestly}. Mean
-$|W-0.5|$ across the full $30\times 30$ matrix drops from $0.21$
-(default) to $0.17$ (GA-2p winner) — a $21\%$ relative reduction in
-per-pair asymmetry across the entire pool, even though the optimiser
-only ever saw 10 sampled matchups during search. The system-level
-metrics improve by larger relative margins: game length falls from
-$103.9$ to $54.6$ rounds (a $-47\%$ drop), draw rate from $7.4\%$ to
-$0.9\%$ ($-88\%$), and inter-player money transfer rises from $49.7$
-to $82.4$~\$/round (closer to the target of $100$). The optimiser
-shifted pacing, decisiveness, and interactivity by larger relative
-amounts than it shifted strategy-level skill ordering — board design
-is a stronger lever for the former than the latter.
+metrics aggressively, and per-pair strategy fairness much more
+modestly}. Mean $|W-0.5|$ across the full $30\times 30$ matrix drops
+from $0.21$ (default) to $0.20$ on the GA-2p winner ($\sim 5\%$
+reduction), and from $0.26$ to $0.20$ on the GA-3p winner ($\sim
+21\%$ reduction). Compared to that, the system-level metrics improve
+by much larger relative margins on the GA-2p board: game length
+falls from $103.9$ to $62.2$ rounds (a $-40\%$ drop), draw rate from
+$7.4\%$ to $1.7\%$ ($-77\%$), inter-player money transfer rises from
+$49.7$ to $73.3$~\$/round (closer to the target of $100$), and the
+mean fairness on the $10$ evaluation matchups falls from $0.454$ to
+$0.215$ ($-53\%$). The optimiser shifted pacing, decisiveness, and
+interactivity, and improved fairness on the matchups it actually saw,
+much more than it shifted population-wide skill ordering — board
+design is a stronger lever for the former than the latter.
 
 A related observation is that some matchups are immutable under any
-board configuration in the search space. The five most asymmetric
-pairs on the GA-2p winner are \textsl{Trader} vs.\
-\textsl{RailroadKing} ($100\%$/$0\%$) and \textsl{RailroadKing}
-losing $0\%$/$100\%$ against \textsl{Sampled\_19},
-\textsl{Sampled\_18}, \textsl{Sampled\_16}, and \textsl{Sampled\_13}.
-No setting of cost multipliers, rent multipliers, or keep-mask bits
-eliminates these; they are intrinsic to a strategy that refuses to
-buy $22$ of $28$ ownable properties, and the GA cannot reach them
-through the design space. This is the substantive negative result of
-the section: board design is a lever for system-level properties
-(length, draws, interactivity) and for population-averaged fairness,
-but agent-level dominance on these specific matchups is structural
-to the strategy pool. Closing those residual gaps requires a
-strategy-side intervention (rule changes, matchmaking, or pool
-curation), not more search over the design space.
+board configuration in the search space. The most asymmetric pair on
+the GA-2p winner is \textsl{Trader} vs.\ \textsl{RailroadKing}
+($100\%$/$0\%$). No setting of cost multipliers, rent multipliers,
+or keep-mask bits eliminates this; it is intrinsic to a strategy
+that refuses to buy $22$ of $28$ ownable properties, and the GA
+cannot reach it through the design space. This is the substantive
+negative result of the section: board design is a lever for
+system-level properties (length, draws, interactivity) and for
+matchup-set fairness, but agent-level dominance on specific
+strategy pairs is structural to the strategy pool. Closing those
+residual gaps requires a strategy-side intervention (rule changes,
+matchmaking, or pool curation), not more search over the design
+space.
 
 \begin{figure}[h!]
 \centering
@@ -525,10 +522,10 @@ curation), not more search over the design space.
 column})$; the diagonal is fixed at $0.5$. \textbf{(b)}~Difference
 against the default board, centred at zero. Across the full
 $\binom{30}{2}=435$ unique pairs, mean $|W-0.5|$ drops from $0.21$
-(default) to $0.17$ (GA-2p winner) — a $21\%$ relative reduction in
-per-pair asymmetry. The GA improved system-level metrics (length,
-draws, transfer) by larger relative margins; board design is a
-stronger lever for those than for strategy-level skill ordering.}
+(default) to $0.20$ on the GA-2p winner ($\sim 5\%$ reduction). The
+GA improved system-level metrics (length, draws, transfer) by much
+larger relative margins on the same board: board design is a
+stronger lever for those than for population-wide skill ordering.}
 \label{fig:heatmap}
 \end{figure}
 
