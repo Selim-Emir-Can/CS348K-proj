@@ -3,11 +3,11 @@
 _Selim Emir Can (emirc) and Alaz Cig · CS348K project · 2026_
 
 > **CS348K Checkpoint 1** (due 2026-05-08): see
-> [`CHECKPOINT_1.md`](CHECKPOINT_1.md) for the project's questions,
-> evaluation plan, and current status, with explicit pointers to the
-> code and results for each experiment.
-> Canonical numbers are in [`RESULTS.md`](RESULTS.md);
-> project context is in [`context.md`](context.md).
+> [`monopoly/CHECKPOINT_1.md`](monopoly/CHECKPOINT_1.md) for the
+> project's questions, evaluation plan, and current status, with
+> explicit pointers to the code and results for each experiment.
+> Canonical numbers are in [`monopoly/RESULTS.md`](monopoly/RESULTS.md);
+> project context is in [`monopoly/context.md`](monopoly/context.md).
 
 This repository automates the beta-testing loop that game and system designers
 usually run by hand. We treat Monopoly as a parameterised multi-agent system
@@ -20,7 +20,9 @@ transferable principles for automating beta-testing of any multi-agent system.
 
 **The full write-up** (with convergence curves, ablation matrices,
 cross-evaluation at _n_=1000, per-strategy heatmaps, and qualitative board
-renders) is in [`../report/report.tex`](../report/report.tex).
+renders) is in [`monopoly/report/report_cs348k.tex`](monopoly/report/report_cs348k.tex)
+(submission draft); the older CVPR-style draft is at
+[`monopoly/report/report.tex`](monopoly/report/report.tex).
 
 ---
 
@@ -96,7 +98,8 @@ pettingzoo  gymnasium  numpy  matplotlib  pyyaml  tqdm
 RL-pipeline scripts additionally need `stable-baselines3`, `sb3-contrib`,
 `torch`, `wandb`; the optimisation pipeline does not.
 
-From inside `monopoly/`:
+All commands assume you are inside the `monopoly/` subdirectory
+(`cd monopoly` from the repo root):
 
 ```cmd
 :: 0. Build the diverse strategy pool (once)
@@ -155,8 +158,9 @@ At _n_=1000 games per cell (Wilson 95% CI of ±3pp on individual win rates):
 > agent loop. Whether these designs play the way the agents predict for
 > real human players is the subject of an ongoing validation effort
 > (simplified-board sanity check + human playtest + LLM-agent
-> cross-check). See `notes/kayvon_meeting_2026-04-24.md` for the
-> validation plan and `report/report.tex` §7 for the formal write-up.
+> cross-check). See `monopoly/notes/kayvon_meeting_2026-04-24.md` for
+> the validation plan and `monopoly/report/report_cs348k.tex` §7 for
+> the formal write-up.
 
 The composite score drops ~40% below the default in both regimes. Games
 end in ~62 rounds instead of ~104. Draw rate falls by 80%+. Per-strategy
@@ -223,17 +227,17 @@ dataclass in `player_settings.py` (17 configurable knobs) which powers the
 The current codebase covers the agent-internal optimisation loop. The
 project's central claim (agent feedback is _directionally_ predictive of
 real human play, even when not literally accurate) is being validated in
-three phases. See `notes/kayvon_meeting_2026-04-24.md` and §7 of the
-report for full detail.
+three phases. See `monopoly/notes/kayvon_meeting_2026-04-24.md` and §7
+of the report for full detail.
 
 - **Phase A: simplified-board sanity check.** A 4×4 (16-cell) variant
   of Monopoly with 8 colour-group properties across 4 groups lives at
-  `configs/mini/`; see `optimizer/simulate.py` for usage. Pre-declared
-  knobs to validate on this board: salary level, removing one colour
-  group, doubling rent on one expensive group.
+  `monopoly/configs/mini/`; see `monopoly/optimizer/simulate.py` for
+  usage. Pre-declared knobs to validate on this board: salary level,
+  removing one colour group, doubling rent on one expensive group.
 - **Phase B: human playtest.** 3-5 testers playing 5-10 games per
   board. Default vs. GA-optimised winner. Falsification criterion
-  pre-declared in `report/report.tex` §7.2.
+  pre-declared in `monopoly/report/report_cs348k.tex` §7.2.
 - **Phase C: LLM-agent cross-check.** `agents.LLMPlayer` calls a local
   Qwen2.5-0.5B-Instruct (or any OpenAI-compatible endpoint) for each
   buy decision. Used as a third independent signal alongside rule-based
