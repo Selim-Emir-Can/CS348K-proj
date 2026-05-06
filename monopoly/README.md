@@ -2,6 +2,13 @@
 
 _Selim Emir Can (emirc) and Alaz Cig · CS348K project · 2026_
 
+> **CS348K Checkpoint 1** (due 2026-05-08): see
+> [`CHECKPOINT_1.md`](CHECKPOINT_1.md) for the project's questions,
+> evaluation plan, and current status, with explicit pointers to the
+> code and results for each experiment.
+> Canonical numbers are in [`RESULTS.md`](RESULTS.md);
+> project context is in [`context.md`](context.md).
+
 This repository automates the beta-testing loop that game and system designers
 usually run by hand. We treat Monopoly as a parameterised multi-agent system
 and build a closed-loop optimiser: a diverse rule-based agent pool plays on

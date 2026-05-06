@@ -33,8 +33,8 @@ pool of 30 parametric rule-based strategies. A second agent class, a
 1.5B-parameter instruction-tuned LLM (Qwen2.5-1.5B) wrapped in a
 structured echo-validated prompt, re-evaluates the same boards as an
 independent cross-class probe. The rule-based GA improves the composite
-score by approximately 40\% over the default board for both 2 and 3
-players. Single-objective ablations confirm that every term in the
+score by approximately $40\%$ over the default board at both 2 and
+3 players. Single-objective ablations confirm that every term in the
 composite is non-redundant. A $2p\!\leftrightarrow\!3p$ cross-evaluation
 at $n{=}1000$ exposes a fairness gap that does not vanish with budget.
 The LLM probe reproduces the rule-based directional ranking with zero
@@ -266,15 +266,16 @@ with $95\%$ Wilson intervals computed over the 100-game evaluation.
   \includegraphics[width=\linewidth]{convergence_3p.png}
   \caption{3 players}
 \end{subfigure}
-\caption{\textbf{Optimisation works, but problem framing drives most
-of the lift.} Best-so-far composite score (lower is better) over the
-candidate-evaluation budget for the GA and random search, at 2 and 3
-players. The horizontal dashed line is the default board's score
-under the same evaluator. The GA finishes $\approx 16\%$ ahead of
-random search at both player counts, but the gap between either
-curve and the default line is several times larger: the headline
-improvement comes from the choice of objective and evaluator, not
-from the choice of search algorithm.}
+\caption{\textbf{Optimisation works, and each composite term is
+optimisable in isolation.} Best-so-far composite score (lower is
+better) over the candidate-evaluation budget, six runs per player
+count: random search, the combined-objective GA, and the four
+single-objective ablations (\textsl{abl\_fair, abl\_len, abl\_draw,
+abl\_money}). The combined-objective GA finishes $\approx 16\%$
+ahead of random search at both player counts; the ablation runs
+reach much lower scores because each minimises only one term of the
+composite, which previews the non-redundancy claim made by
+Figure~\ref{fig:multipliers}.}
 \label{fig:conv}
 \end{figure}
 
@@ -320,12 +321,16 @@ which they do not.
 \caption{\textbf{Each ablation carves a different shape in design
 space (2p).} Per-property cost multiplier (a), rent multiplier (b),
 and keep-mask bit (c) at the optimum of each GA run. Within each
-panel, rows are the 22 ownable properties in board order and columns
-are the five ablations (\textit{fairness-only, length-only,
-draw-only, money-only, combined}). If any two ablations drove the
-optimiser to the same board, those columns would be near-identical;
-the visible inter-column variation is the empirical evidence that
-the composite objective is non-redundant.}
+panel, \emph{rows} are the five ablations (\textit{combined,
+fair-only, length-only, draw-only, money-only}, top to bottom) and
+\emph{columns} are the 22 ownable properties in board order
+(Mediterranean Avenue at left through Boardwalk at right). Cell
+values are the multiplier at the optimum (cost/rent panels, $0.5$
+to $2.0$, with $1.0$ being the default identity) or the keep-bit
+(keep-mask panel: green = kept, black = dropped). If any two
+ablations drove the optimiser to the same board, those rows would
+be near-identical; the visible inter-row variation is the empirical
+evidence that the composite objective is non-redundant.}
 \label{fig:multipliers}
 \end{figure}
 
@@ -346,53 +351,56 @@ Design & Eval & score\,$\downarrow$ & $\overline{F}$\,$\downarrow$ & $F_{\max}$\
 default board    & 2p & 1.463 & 0.454 & 0.940 & 103.9 &  7.4 &  49.7 \\
 default board    & 3p & 1.230 & 0.412 & 0.680 & 110.8 & 17.6 &  99.4 \\
 \addlinespace
-GA-2p winner     & 2p & \textbf{0.998} & 0.323 & 0.960 &  69.4 &  2.3 &  63.4 \\
-GA-2p winner     & 3p & 0.690 & 0.248 & 0.610 &  71.2 &  3.0 & 111.7 \\
+GA-2p winner     & 2p & \textbf{0.817} & \textbf{0.237} & 0.960 &  62.5 &  1.3 &  74.7 \\
+GA-2p winner     & 3p & \textbf{0.724} & 0.251 & 0.570 &  66.8 &  1.2 & 142.4 \\
 \addlinespace
-GA-3p winner     & 2p & 0.954 & \textbf{0.251} & 0.960 &  71.0 &  2.7 &  58.8 \\
-GA-3p winner     & 3p & \textbf{0.670} & 0.255 & 0.550 &  72.4 &  4.3 & 107.7 \\
+GA-3p winner     & 2p & 0.924 & 0.294 & 0.990 &  63.8 &  0.4 &  66.0 \\
+GA-3p winner     & 3p & 0.787 & 0.361 & 0.610 &  64.4 &  1.1 & 127.0 \\
 \bottomrule
 \end{tabular}
 \caption{\textbf{Cross-player-count evaluation at $n{=}1000$ games
-per cell.} Wilson $95\%$ CIs on individual win rates are $\pm 3$pp.
-Header arrows: $\downarrow$ means lower is better; $(\!\to\!T)$ means
-the target value is $T$ and deviation in either direction is
-penalised. Bold cells mark the best (lowest) composite score within
-each evaluation regime. The GA-3p winner is the stronger universal
-design: its 2p score ($0.954$) is better than the GA-2p winner's
-score on its own training regime ($0.998$).}
+per cell, $66$-dim keep-mask design space} (source:
+\texttt{logs/optimizer/cross\_eval\_mask.json}). Wilson $95\%$ CIs
+on individual win rates are $\pm 3$pp. Header arrows: $\downarrow$
+means lower is better; $(\!\to\!T)$ means the target value is $T$
+and deviation in either direction is penalised. Bold cells mark
+the best (lowest) value within each evaluation regime. Both
+optimised designs improve over the default by roughly $40\%$ in
+either regime; the GA-2p winner has a small but consistent advantage
+over the GA-3p winner on both score and fairness in both regimes.}
 \label{tab:cross}
 \end{table}
 
-The first finding is that the \emph{3p-trained design is the stronger
-universal design}. The GA-3p winner under 2p evaluation scores
-$0.954$ on the composite, better than the GA-2p winner's score on
-its own training regime ($0.998$). The same flip holds on fairness
-in isolation ($0.251$ vs.\ $0.323$). This contradicts the intuition
-that a design tuned for 2p should be best at 2p, and it has a clean
-explanation: a 3p game contains more strategy-vs-strategy
-interactions per round, so 3p optimisation implicitly pressure-tests
-more matchup patterns. The general principle is that when two
-evaluation regimes differ in interaction density, the more demanding
-regime tends to produce the more robust design, and optimising under
-the harder regime should be the default whenever the cost ratio
-allows it.
+The first finding is that \emph{both designs generalise across
+player counts}. Neither catastrophically fails on the off-regime:
+the GA-2p winner improves the composite by $44\%$ on its training
+regime ($1.463 \!\to\! 0.817$ at 2p) and $41\%$ on the off-regime
+($1.230 \!\to\! 0.724$ at 3p); the GA-3p winner improves by $37\%$
+on the off-regime ($1.463 \!\to\! 0.924$ at 2p) and $36\%$ on its
+training regime ($1.230 \!\to\! 0.787$ at 3p). Within the run, the
+GA-2p winner has a small but consistent advantage over the GA-3p
+winner in both regimes (score $0.817$ vs.\ $0.924$ at 2p, $0.724$
+vs.\ $0.787$ at 3p; fairness $0.237$ vs.\ $0.294$ at 2p, $0.251$
+vs.\ $0.361$ at 3p). With a single GA seed per regime we cannot
+claim that 2p training \emph{systematically} produces stronger
+universal designs; what the data does support is the weaker, more
+useful claim for a designer: a board optimised under one player
+count is not specialised to the point of failure under the other.
 
-The second finding is that the \emph{optimisation-set overfit is
-small at 2p and effectively zero at 3p}. At the $n{=}100$
-optimisation budget the GA-2p winner scored $0.83$ on its training
-matchup set; at $n{=}1000$ deployment it scores $0.998$, an overfit
-of $\sim 0.17$ (Table~\ref{tab:overfit}). The GA-3p winner shows no
-such gap: its training score ($0.67$) and its deployment score
-($0.670$) are essentially identical. The contrast traces back to the
-same root cause as the first finding: a 3p game contains more
-strategy-vs-strategy interactions per round, so each game carries
-more signal about a board's design quality, and the same $100$-game
-budget is effectively denoised. The headline win over the default
-($\sim 0.47$ on the score scale) is several times larger than even
-the 2p overfit, so the directional improvement survives re-evaluation
-either way; we report both training and deployment numbers rather
-than picking the more flattering one.
+The second finding is that \emph{optimisation-set overfit is small
+on both designs, and roughly twice as large at 2p as at 3p}. At the
+$n{=}100$ optimisation budget the GA-2p winner scored $0.728$ on
+its training matchup set; at $n{=}1000$ deployment it scores
+$0.817$, an overfit of $0.089$ (Table~\ref{tab:overfit}). The
+GA-3p winner scored $0.753$ at training and $0.787$ at deployment,
+an overfit of $0.034$. Both gaps are small ($\leq 12\%$ of the
+deployment score), and the headline improvement over the default
+($\sim 0.65$ on the score scale, or $\sim 40\%$ relative) is several
+times larger than either overfit, so the directional improvement
+survives re-evaluation. The factor-of-two contrast between the two
+designs is consistent with 3p evaluations carrying more
+strategy-vs-strategy interactions per game and therefore being
+intrinsically less noisy at the same budget.
 
 \begin{table}[h!]
 \centering
@@ -401,16 +409,17 @@ than picking the more flattering one.
 \toprule
 Design & training ($n{=}100$)\,$\downarrow$ & deployment ($n{=}1000$)\,$\downarrow$ & overfit\,$\downarrow$ \\
 \midrule
-GA-2p winner & $0.83$ & $0.998$ & $+0.17$ \\
-GA-3p winner & $0.67$ & $0.670$ & $\approx 0$ \\
+GA-2p winner & $0.728$ & $0.817$ & $+0.089$ \\
+GA-3p winner & $0.753$ & $0.787$ & $+0.034$ \\
 \bottomrule
 \end{tabular}
 \caption{\textbf{Optimisation-set vs.\ deployment-set composite
-score, on the design's own training regime.} Header arrows:
-$\downarrow$ means lower is better. The GA-2p winner has a
-$\sim 0.17$ overfit to its $100$-game training matchup set; the
-GA-3p winner has none. The training number is read from the GA's
-own \texttt{evals.jsonl}, the deployment number from the
+score, on each design's own training regime.} Header arrows:
+$\downarrow$ means lower is better. The GA-2p winner has a $0.089$
+overfit to its $100$-game training matchup set; the GA-3p winner
+has $0.034$. Both gaps are small relative to the headline win over
+the default ($\sim 0.65$). The training number is the best score in
+the GA's own \texttt{evals.jsonl}, the deployment number is the
 corresponding row of Table~\ref{tab:cross}.}
 \label{tab:overfit}
 \end{table}
@@ -431,14 +440,17 @@ rather than being seed noise.
   \caption{3p}
 \end{subfigure}
 \caption{\textbf{The trade-off surface is real, and its shape depends
-on player count.} Each marker is one of the $\sim 200$ candidate
-boards evaluated by the GA. The x-axis is mean rounds (target
-$R^{*}=60$); the y-axis is mean pair-fairness $\overline{F}$ (lower
-is fairer). The combined-objective optimum is the marker on the
-lower-left knee of the frontier. The 2p and 3p frontiers have
-visibly distinct slopes and knees: a board on one frontier does not
-in general lie on the other, which is what makes the
-cross-evaluation result (Table~\ref{tab:cross}) a property of the
+on player count.} Each marker is one of the candidates evaluated by
+the GA (combined-objective and the four ablations, pooled). The
+x-axis is mean pair-fairness $|\Delta\,\text{win rate}|$ (lower is
+fairer); the y-axis is mean rounds per game; the colour encodes
+draw rate. The lower-left corner is the simultaneously fair, fast,
+decisive corner of the design space; the combined-objective
+optimum lies on the knee of that corner. The 2p sweep ranges over
+fairness up to $0.7$ and the 3p sweep only up to $0.6$, and the
+shape of the cloud differs between the two: a board on one frontier
+does not in general lie on the other, which is what makes the
+cross-evaluation finding (Table~\ref{tab:cross}) a property of the
 design space rather than seed noise.}
 \label{fig:pareto}
 \end{figure}
@@ -517,35 +529,44 @@ baseline.
 \begin{figure}[h!]
 \centering
 \includegraphics[width=0.78\linewidth]{llm/fig_v1_vs_v2_hallucination.png}
-\caption{\textbf{Structured echo validation eliminates state
-hallucinations.} Per-call validation outcomes for the v1 free-form
-prompt and the v2 structured \texttt{STATE/ECHO/REASON/ANSWER}
-prompt with deterministic per-field equality checking on the echoed
-state. v1 produces a non-trivial fraction of calls in which the
-model's reasoning references state that does not appear in the
-prompt. v2 drives that bar to zero across all $2{,}288$ calls, at the
-cost of a small additional retry budget. This is the precondition
-for treating the LLM as a trustworthy independent agent class in
-everything that follows: a benchmark whose probe fabricates inputs
-is not measuring what it claims to measure.}
+\caption{\textbf{The validator-and-retry stack is part of the probe:
+a faulty validator does not just produce noise, it pulls the model
+toward fabrication.} Per-call validation outcomes for the v1 prompt
+(left, with a known validator bug) and the v2 prompt (right, bug
+fixed). Each bar is stacked into three categories: \emph{real
+first-pass} hallucinations (the model fabricated state on its first
+attempt), \emph{retry-induced fabrication} (the model's first-pass
+output was correct but the buggy validator flagged it, and the
+model produced fabricated state on retry to ``satisfy'' the flag),
+and \emph{spurious validator bug} (the validator falsely flagged
+correct outputs that the model did not change). On v1 across 2{,}304
+calls, real first-pass = $0$, retry-induced = $47$, spurious = $100$;
+the model itself never hallucinated. v2 drives all three categories
+to zero across all 2{,}288 calls. The reportable second-order
+finding: validating against a wrong ground truth is worse than not
+validating, because retries can teach the model to produce the
+``correct'' wrong answer.}
 \label{fig:hallucination}
 \end{figure}
 
 \begin{figure}[h!]
 \centering
 \includegraphics[width=0.78\linewidth]{llm/fig_cross_class_agreement.png}
-\caption{\textbf{The trustworthy LLM probe agrees with the rule-based
-pool on the directional ranking of boards.} Per metric (rounds,
-fairness, draws, transfer), bars compare the value on the default
-board against the GA-2p winning board, scored under the 30-strategy
-rule-based pool and under the all-LLM probe. On every metric with a
-clean ordering, both evaluators move in the same direction and by
-similar relative magnitudes: the optimisation effect identified by
-the rule-based pool reproduces under an independent agent class.
-Absolute composite scores are not directly comparable across
-evaluators because the LLM is a single personality and the rule-based
-pool is 30 distinct ones, which is the limitation we revisit in
-Section~\ref{sec:llm_ga}.}
+\caption{\textbf{LLM seats independently reproduce the rule-based
+GA's directional signal.} Mean rounds per game (left) and inter-player
+money transfer (right), measured under all-LLM seats on the default
+board and on the rule-based GA winner, at 2 and 3 players. The
+GA-winner board cuts rounds from $60.5$ to $46.8$ at 2p ($-23\%$)
+and from $76.0$ to $43.2$ at 3p ($-43\%$), and raises transfer from
+$50.1$ to $78.5$~\$/round at 2p ($+57\%$) and from $100.5$ to
+$127.4$~\$/round at 3p ($+27\%$). Both directional effects match
+what the rule-based 30-strategy pool found on the same boards
+(Section~\ref{sec:baseline}): two independent agent classes, run on
+the same designs, see the same change. Fairness is not included
+here because absolute fairness scores are not directly comparable
+across evaluators (a single-personality LLM evaluator has structural
+biases that the 30-strategy pool averages out, which is precisely
+what Section~\ref{sec:llm_ga} measures).}
 \label{fig:agreement}
 \end{figure}
 
@@ -610,54 +631,68 @@ more identical seats.
   \includegraphics[width=\linewidth]{llm/fig_llm_ga_score_distribution.png}
   \caption{Score distribution}
 \end{subfigure}
-\caption{\textbf{An LLM-only evaluator can drive the same GA loop to
-a non-trivial design.} \textbf{(a)}~Best-so-far composite score over
-LLM-GA evaluation count (population~$8 \times 5$ generations $\times
-5$ seeds, 2-player only). \textbf{(b)}~Score distribution across all
-evaluations, with the default-board reference and the LLM-GA winner
-marked. The loop converges within budget and produces a board that
-beats the default under all-LLM evaluation; the narrowing
-generation-$3$-to-$5$ gap signals the search approaching a local
-plateau. Total wall time $4$h~$58$min on a single $12$~GB GPU.
-Whether the converged board is a real design optimum or only an
-LLM-evaluator optimum is the question Figure~\ref{fig:gap}
-resolves.}
+\caption{\textbf{An LLM-only evaluator can drive the same GA loop.}
+\textbf{(a)}~Per-evaluation composite score (grey) and best-so-far
+(blue) over the GA's $32$ evaluations (population $8$, $5$
+generations, $n_{\text{seeds}}{=}5$, with elitism keeping the unique
+evaluation count at $32$). The dashed reference is the rule-based
+GA-2p winner's score under the same all-LLM evaluator ($0.728$): the
+LLM-driven loop finds a board (red star, iter $15$, score $0.465$)
+that beats even the rule-based winner when scored by an LLM.
+\textbf{(b)}~Per-generation distribution of candidate scores; the
+median visibly drops from generation~$0$ to generation~$2$ (selection
+pressure), and the spread within each generation reflects the
+$n_{\text{seeds}}{=}5$ evaluation noise. Total wall time
+$4$h~$58$min on a single $12$~GB GPU. The LLM-driven loop converges;
+whether the converged board is a real design optimum or only an
+LLM-evaluator optimum is what Figure~\ref{fig:gap} resolves.}
 \label{fig:llm_ga_conv}
 \end{figure}
 
 \begin{figure}[h!]
 \centering
 \includegraphics[width=0.92\linewidth]{llm/fig_cross_evaluator_gap.png}
-\caption{\textbf{Headline diagnostic: a single-personality evaluator
-misses the worst-case fairness term that a strategy pool catches.}
-A $2{\times}2$ grid scores three boards (default, rule-based GA
-winner, LLM-GA winner) on two metrics (rounds, fairness) under both
-evaluators (the 30-strategy rule-based pool, and an all-LLM
-evaluator), at 2 and 3 players. The LLM-GA winner improves on the
-default under either evaluator on both metrics, so the LLM-driven
-optimiser is not broken; but it loses to the rule-based GA winner on
-fairness under the diverse pool, with a gap of $0.20$ vs.\ $0.379$
-at 2p and $0.05$ vs.\ $0.404$ at 3p. The gap \emph{widens} with
-player count: more identical seats produce more correlated mistakes
-for a single-personality evaluator, and the strategy pool's
-diversity is what protects against them. This is the central
-empirical claim of the paper: evaluator diversity is not optional
-for fairness-sensitive design.}
+\caption{\textbf{Rounds-effect transfers across evaluators;
+fairness-effect does not.} A $2{\times}2$ grid scores three boards
+(default, rule-based GA winner, LLM-driven GA-2p winner) on two
+metrics (mean rounds, top row; fairness $|WR_{\max}-WR_{\min}|$,
+bottom row) under two evaluators (LLM seats, blue; 30-strategy
+rule-based pool, grey), at 2 and 3 players. The rounds-effect
+agrees in direction across evaluators on every board: a board that
+shortens games under one evaluator shortens them under the other.
+The fairness-effect, however, diverges sharply on the LLM-driven
+GA-2p winner: under the LLM evaluator it scores $0.20$ at 2p and
+$0.05$ at 3p (looks like the fairest board); under the rule-based
+pool it scores $0.38$ at 2p and $0.40$ at 3p (barely better than
+the default's $0.41$ on the 3p panel, while the rule-based GA
+winner achieves $0.36$). The fairness gap \emph{widens} with player count:
+more identical seats produce more correlated mistakes for a
+single-personality evaluator, and the strategy pool's diversity is
+what surfaces them. This is the central empirical claim of the
+paper: evaluator diversity is not optional for fairness-sensitive
+design.}
 \label{fig:gap}
 \end{figure}
 
 \begin{figure}[h!]
 \centering
 \includegraphics[width=0.78\linewidth]{llm/fig_fairness_asymmetry.png}
-\caption{\textbf{The seat-level mechanism behind the cross-evaluator
-gap.} Per-seat win rates on the LLM-GA winning board under all-LLM
-evaluation (P0, P1 at 2p; P0, P1, P2 at 3p). With identical agents
-in every seat, win rates should be uniform; instead a single seat
-consistently wins more than the others. The 30-strategy rule-based
-pool averages this kind of single-agent bias out across diverse
-playstyles, but a single LLM evaluator cannot, which is exactly the
-mechanism that produces the cross-evaluator fairness gap in
-Figure~\ref{fig:gap}.}
+\caption{\textbf{The LLM-driven GA winner has the largest evaluator
+disagreement, and the sign of the gap flips.} Fairness
+($|WR_{\max}-WR_{\min}|$, 2-player) on three boards (default,
+rule-based GA-2p winner, LLM-driven GA-2p winner) under two
+evaluators: the LLM with two identical seats (blue) and the
+30-strategy rule-based pool (red). On the default and the
+rule-based GA winner, the LLM evaluator returns a \emph{higher}
+fairness score than the rule-based pool ($0.500$ vs.\ $0.454$ and
+$0.400$ vs.\ $0.237$): two identical LLM seats over-count
+asymmetry. On the LLM-driven GA-2p winner the sign \emph{flips}:
+the LLM scores $0.200$ but the rule-based pool scores $0.379$, a
+gap of $\sim 0.18$ in the opposite direction. The board looks fair
+to identical agents while diverse strategies surface exploitable
+asymmetries the LLM evaluator cannot see. This is the same effect
+as the bottom-left panel of Figure~\ref{fig:gap}, isolated and
+annotated.}
 \label{fig:asymmetry}
 \end{figure}
 
