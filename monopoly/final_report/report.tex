@@ -422,7 +422,7 @@ default board    & 2p & 1.463 & 0.454 & 0.940 & 103.9 &  7.4 &  49.7 \\
 default board    & 3p & 1.229 & 0.411 & 0.680 & 110.8 & 17.6 &  99.4 \\
 \addlinespace
 GA-2p winner     & 2p & \textbf{0.773} & \textbf{0.215} & 0.910 &  62.2 &  1.7 &  73.3 \\
-GA-2p winner     & 3p & 0.795 & 0.273 & 0.730 &  65.7 &  3.3 & 133.1 \\
+GA-2p winner     & 3p & 0.795 & \textbf{0.273} & 0.730 &  65.7 &  3.3 & 133.1 \\
 \addlinespace
 GA-3p winner     & 2p & 0.897 & 0.287 & 0.970 &  56.2 &  0.5 &  69.4 \\
 GA-3p winner     & 3p & \textbf{0.641} & 0.280 & 0.490 &  56.3 &  0.6 & 127.8 \\
@@ -434,8 +434,9 @@ per cell, $66$-dim keep-mask design space} (source:
 CIs on individual win rates are $\pm 3$pp. Header arrows:
 $\downarrow$ means lower is better; $(\!\to\!T)$ means the target
 value is $T$ and deviation in either direction is penalised. Bold
-cells mark the best (lowest) value within each evaluation regime.
-Each design is best on its own training regime: GA-2p winner at 2p
+cells mark the best (lowest) score and best mean fairness
+$\overline{F}$ within each evaluation regime. Each design is best
+on its own training regime: GA-2p winner at 2p
 ($0.773$ vs $0.897$), GA-3p winner at 3p ($0.641$ vs $0.795$). Both
 designs improve over the default by approximately $47\%$ in their
 training regime ($1.463 \!\to\! 0.773$ at 2p, $1.229 \!\to\! 0.641$
@@ -476,7 +477,7 @@ directional improvement is robust to re-evaluation at higher $n$.
 \small
 \begin{tabular}{lccc}
 \toprule
-Design & training ($n{=}100$)\,$\downarrow$ & deployment ($n{=}1000$)\,$\downarrow$ & overfit\,$\downarrow$ \\
+Design & training ($n{=}200$)\,$\downarrow$ & deployment ($n{=}1000$)\,$\downarrow$ & overfit\,$\downarrow$ \\
 \midrule
 GA-2p winner & $0.705$ & $0.773$ & $+0.068$ \\
 GA-3p winner & $0.599$ & $0.641$ & $+0.042$ \\
