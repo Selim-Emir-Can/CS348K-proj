@@ -36,8 +36,11 @@ independent cross-class probe. The rule-based GA improves the composite
 score by approximately $47\%$ over the default board at both 2 and
 3 players, outperforming a random-search baseline at matched
 evaluation budget by $\sim 13\%$ in both regimes. Single-objective ablations confirm that every term in the
-composite is non-redundant. A $2p\!\leftrightarrow\!3p$ cross-evaluation
-at $n{=}1000$ exposes a fairness gap that does not vanish with budget.
+composite is non-redundant. A $2p\!\leftrightarrow\!3p$
+cross-evaluation at $n{=}1000$ shows that each design specialises
+to its training regime: the off-regime composite is $16\!-\!24\%$
+worse than the regime-matched optimum, though both designs still
+beat the default by a wide margin under either evaluator.
 The LLM probe reproduces the rule-based directional ranking with zero
 model-side hallucinations across 2{,}288 calls under structured
 validation. Re-running the GA with the LLM in the evaluator role yields
