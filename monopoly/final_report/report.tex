@@ -299,6 +299,38 @@ a strong baseline. This is consistent with a more general observation
 about system-design problems, where the bottleneck is usually problem
 formulation rather than search.
 
+\paragraph{What does the GA actually build?}
+Figure~\ref{fig:board_winner} renders the combined-objective GA
+winners alongside the default board for each player count. The 2p
+winner shrinks the lap from $40$ cells to $30$ (10 properties
+removed by the keep-mask), retains both railroads and utilities,
+and rebalances the remaining colour-group costs and rents. The 3p
+winner shrinks differently and keeps a different subset of
+properties, reflecting that a $3$-player game pressure-tests a
+different strategy distribution and converges to a different
+physical board.
+
+\begin{figure}[h!]
+\centering
+\begin{subfigure}[t]{\linewidth}\centering
+  \includegraphics[width=0.93\linewidth]{boards_mask/board_ga_2p_mask.png}
+  \caption{2-player combined-objective GA winner.}
+\end{subfigure}\par\smallskip
+\begin{subfigure}[t]{\linewidth}\centering
+  \includegraphics[width=0.93\linewidth]{boards_mask/board_ga_3p_mask.png}
+  \caption{3-player combined-objective GA winner.}
+\end{subfigure}
+\caption{\textbf{The boards the GA actually builds.} Each panel
+shows the default Monopoly board (left, $40$ cells) alongside the
+GA winner (right, shrunk by the keep-mask), with per-property
+cost/rent multipliers and keep/drop annotations on the optimised
+side. The $2$p and $3$p winners are visibly different physical
+boards, consistent with the cross-evaluation finding
+(Section~\ref{sec:cross}) that each design specialises to its
+training regime.}
+\label{fig:board_winner}
+\end{figure}
+
 \subsection{Single-objective ablations}\label{sec:ablation}
 
 We ran five ablations per player count, each setting one weight to
@@ -343,6 +375,33 @@ ablations drove the optimiser to the same board, those rows would
 be near-identical; the visible inter-row variation is the empirical
 evidence that the composite objective is non-redundant.}
 \label{fig:multipliers}
+\end{figure}
+
+The same finding is visible at the level of physical boards
+(Figure~\ref{fig:board_grid}): the five winners (combined +
+four ablations) are five visibly different shapes, with different
+properties kept or dropped and different costs/rents.
+
+\begin{figure}[h!]
+\centering
+\begin{subfigure}[t]{0.48\linewidth}\centering
+  \includegraphics[width=\linewidth]{boards_mask/boards_grid_2p_mask.png}
+  \caption{2 players}
+\end{subfigure}\hfill
+\begin{subfigure}[t]{0.48\linewidth}\centering
+  \includegraphics[width=\linewidth]{boards_mask/boards_grid_3p_mask.png}
+  \caption{3 players}
+\end{subfigure}
+\caption{\textbf{Each ablation produces a visibly different
+physical board.} Six panels per player count: the default board
+(top-left) and the winner of each of the five GA runs (combined,
+fair-only, length-only, draw-only, money-only). The combined
+winner balances all five composite terms; each ablation winner
+pushes its single term to its bound, often by aggressively pruning
+or duplicating colour-group properties. This is the same
+non-redundancy finding as Figure~\ref{fig:multipliers}, made
+spatial.}
+\label{fig:board_grid}
 \end{figure}
 
 \subsection{$2p\!\leftrightarrow\!3p$ cross-evaluation}\label{sec:cross}
@@ -450,18 +509,19 @@ rather than being seed noise.
   \caption{3p}
 \end{subfigure}
 \caption{\textbf{The trade-off surface is real, and its shape depends
-on player count.} Each marker is a candidate evaluated by the GA
-combined-objective run on the $66$-dim keep-mask design space. The
-x-axis is mean pair-fairness $|\Delta\,\text{win rate}|$ (lower is
-fairer); the y-axis is mean rounds per game; the colour encodes
-draw rate. The lower-left region is the simultaneously fair, fast,
-and decisive corner of the design space; the combined-objective
-optimum lies near its knee. The 2p sweep reaches mean rounds as low
-as $\sim 30$ (the keep-mask shrinks the lap), while the 3p sweep
-bottoms out closer to $\sim 50$ rounds. The two clouds have visibly
-different shapes, which is what makes the cross-evaluation finding
-(Table~\ref{tab:cross}) a property of the design space rather than
-seed noise.}
+on player count.} Each marker is one of $5{,}052$ candidates
+evaluated across all six search runs (random + GA + four
+single-objective ablations) on the $66$-dim keep-mask design space.
+The x-axis is mean pair-fairness $|\Delta\,\text{win rate}|$ (lower
+is fairer); the y-axis is mean rounds per game; the colour encodes
+draw rate; the red star marks the combined-objective GA optimum.
+The lower-left region is the simultaneously fair, fast, and
+decisive corner; the GA optimum sits at its knee. The 2p sweep
+reaches mean rounds as low as $\sim 30$ (the keep-mask shrinks the
+lap), while the 3p sweep bottoms out closer to $\sim 50$ rounds.
+The two clouds have visibly different shapes, which is what makes
+the cross-evaluation finding (Table~\ref{tab:cross}) a property of
+the design space rather than seed noise.}
 \label{fig:pareto}
 \end{figure}
 
