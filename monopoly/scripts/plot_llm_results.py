@@ -86,8 +86,8 @@ def _agg(rows, board_tag):
 
 
 def fig_cross_class_agreement():
-    rows_2p = _read_summary(_ROOT / 'logs/llm_eval/2p_v2/summary.csv')
-    rows_3p = _read_summary(_ROOT / 'logs/llm_eval/3p_v2/summary.csv')
+    rows_2p = _read_summary(_ROOT / 'logs/llm_eval/2p_v3/summary.csv')
+    rows_3p = _read_summary(_ROOT / 'logs/llm_eval/3p_v3/summary.csv')
     cells = {
         '2p default':        _agg(rows_2p, 'default'),
         '2p GA-winner':      _agg(rows_2p, 'ga_2p_winner'),
@@ -166,7 +166,7 @@ def fig_llm_ga_convergence():
                label=f'winner (iter={iters[winner_iter]}, score={scores[winner_iter]:.3f})')
     # Reference: rule-based GA-2p winner score (from ga_2p_mask.jsonl)
     rb_evals = [json.loads(l) for l in
-                open(_ROOT / 'logs/optimizer/ga_2p_mask.jsonl')]
+                open(_ROOT / 'logs/optimizer_v3/ga_2p_mask.jsonl')]
     rb_best = min(rb_evals, key=lambda e: e['score'])['score']
     ax.axhline(rb_best, color='#888888', linestyle='--', linewidth=1.0,
                label=f'rule-based GA-2p winner score ({rb_best:.3f})')
@@ -243,8 +243,8 @@ def _slice(records, key_fn):
 
 
 def fig_llm_buy_rate_slices():
-    default_2p = _read_decisions(_ROOT / 'logs/llm_eval/2p_v2/decisions/default')
-    ga_2p     = _read_decisions(_ROOT / 'logs/llm_eval/2p_v2/decisions/ga_2p_winner')
+    default_2p = _read_decisions(_ROOT / 'logs/llm_eval/2p_v3/decisions/default')
+    ga_2p     = _read_decisions(_ROOT / 'logs/llm_eval/2p_v3/decisions/ga_2p_winner')
 
     by_cash_d = _slice(default_2p, lambda r: _cash_bucket(r.get('cash', 0)))
     by_cash_g = _slice(ga_2p,     lambda r: _cash_bucket(r.get('cash', 0)))
@@ -299,16 +299,16 @@ def fig_cross_evaluator_gap():
     generalisation of the LLM-GA winner.
 
     Numbers come from:
-      - LLM eval: logs/llm_eval/2p_v2/{default, ga_2p_winner} summary +
+      - LLM eval: logs/llm_eval/2p_v3/{default, ga_2p_winner} summary +
                   logs/optimizer_llm/llm_ga_2p/best_design.json (LLM-GA winner
                   under LLM eval, n_seeds=5).
-      - Rule-based pool eval: logs/optimizer/cross_eval_mask.json
+      - Rule-based pool eval: logs/optimizer_v3/cross_eval_mask.json
         (default + rule-based GA winners) and
         logs/optimizer/cross_eval_llm_ga_winner.json (LLM-GA winner).
     """
     # Pool eval results (already cached on disk).
     pool = {r['design'] + '_' + str(r['n_players']) + 'p': r
-            for r in json.load(open(_ROOT / 'logs/optimizer/cross_eval_mask.json',
+            for r in json.load(open(_ROOT / 'logs/optimizer_v3/cross_eval_mask.json',
                                      encoding='utf-8'))['results']}
     pool_llm = {r['design'] + '_' + str(r['n_players']) + 'p': r
                 for r in json.load(open(_ROOT / 'logs/optimizer/cross_eval_llm_ga_winner.json',
@@ -326,10 +326,10 @@ def fig_cross_evaluator_gap():
     # composite from logs/optimizer_llm/llm_ga_2p/best_design.json for the
     # LLM-GA winner and a "from-scratch" composite for default + rule-based
     # GA winner under LLM seats — those would require an extra harness run,
-    # so we instead pull the per-game stats from logs/llm_eval/2p_v2 and
+    # so we instead pull the per-game stats from logs/llm_eval/2p_v3 and
     # plug them through evaluate() to match.). We approximate the LLM-eval
     # score for the rule-based GA winner using the per-game stats from
-    # logs/llm_eval/2p_v2/summary.csv (board_tag=ga_2p_winner) — this is
+    # logs/llm_eval/2p_v3/summary.csv (board_tag=ga_2p_winner) — this is
     # the same n=20-seed signal used in Task 1.
     sys.path.insert(0, str(_ROOT))
     from optimizer.objectives import Targets, Weights, evaluate
@@ -352,10 +352,10 @@ def fig_cross_evaluator_gap():
         out = evaluate([games])
         return out['score']
 
-    llm_default_2p = _llm_score('default',      2, '2p_v2')
-    llm_rb_winner_2p = _llm_score('ga_2p_winner', 2, '2p_v2')
-    llm_default_3p = _llm_score('default',      3, '3p_v2')
-    llm_rb_winner_3p = _llm_score('ga_3p_winner', 3, '3p_v2')
+    llm_default_2p = _llm_score('default',      2, '2p_v3')
+    llm_rb_winner_2p = _llm_score('ga_2p_winner', 2, '2p_v3')
+    llm_default_3p = _llm_score('default',      3, '3p_v3')
+    llm_rb_winner_3p = _llm_score('ga_3p_winner', 3, '3p_v3')
     # LLM-GA winner under LLM eval at 2p = the GA's own composite (n_seeds=5).
     llm_ga_winner_score = json.load(
         open(_ROOT / 'logs/optimizer_llm/llm_ga_2p/best_design.json',
@@ -400,12 +400,12 @@ def fig_cross_evaluator_gap():
             })
         return evaluate([games])['metrics']
 
-    llm_m_def_2p = _llm_metrics('default',          2, '2p_v2')
-    llm_m_rb_2p  = _llm_metrics('ga_2p_winner',     2, '2p_v2')
+    llm_m_def_2p = _llm_metrics('default',          2, '2p_v3')
+    llm_m_rb_2p  = _llm_metrics('ga_2p_winner',     2, '2p_v3')
     llm_ga_best  = json.load(open(_ROOT / 'logs/optimizer_llm/llm_ga_2p/best_design.json',
                                    encoding='utf-8'))['metrics']
-    llm_m_def_3p = _llm_metrics('default',          3, '3p_v2')
-    llm_m_rb_3p  = _llm_metrics('ga_3p_winner',     3, '3p_v2')
+    llm_m_def_3p = _llm_metrics('default',          3, '3p_v3')
+    llm_m_rb_3p  = _llm_metrics('ga_3p_winner',     3, '3p_v3')
     llm_m_lga_3p = _llm_metrics('llm_ga_2p_winner', 3, 'llm_ga_winner_3p')
 
     # Pull the data into per-panel arrays.
@@ -420,8 +420,8 @@ def fig_cross_evaluator_gap():
           llm_m_lga_3p['mean_rounds']],
          [pool_rounds_default_3p, pool_rounds_rb_3p, pool_rounds_llm_3p]),
         ('Fairness ($|$WR$_{\\max}-$WR$_{\\min}|$), 2p', 'fairness',
-         [_seat_fairness_2p('default', '2p_v2'),
-          _seat_fairness_2p('ga_2p_winner', '2p_v2'),
+         [_seat_fairness_2p('default', '2p_v3'),
+          _seat_fairness_2p('ga_2p_winner', '2p_v3'),
           llm_ga_best['mean_fairness']],
          [pool_fair_default_2p, pool_fair_rb_2p, pool_fair_llm_2p]),
         ('Fairness, 3p', 'fairness',
@@ -485,7 +485,7 @@ def fig_fairness_asymmetry():
     the diverse 30-strategy pool.
     """
     pool = {r['design'] + '_' + str(r['n_players']) + 'p': r
-            for r in json.load(open(_ROOT / 'logs/optimizer/cross_eval_mask.json',
+            for r in json.load(open(_ROOT / 'logs/optimizer_v3/cross_eval_mask.json',
                                      encoding='utf-8'))['results']}
     pool_llm = {r['design'] + '_' + str(r['n_players']) + 'p': r
                 for r in json.load(open(_ROOT / 'logs/optimizer/cross_eval_llm_ga_winner.json',
@@ -506,8 +506,8 @@ def fig_fairness_asymmetry():
         return max(wrs) - min(wrs)
 
     f_llm_eval = [
-        _seat_fairness('default',      '2p_v2'),
-        _seat_fairness('ga_2p_winner', '2p_v2'),
+        _seat_fairness('default',      '2p_v3'),
+        _seat_fairness('ga_2p_winner', '2p_v3'),
         # LLM-GA winner under LLM eval = mean_fairness from
         # best_design.json metrics (n_seeds=5 so binary at coarse resolution).
         json.load(open(_ROOT / 'logs/optimizer_llm/llm_ga_2p/best_design.json',
@@ -653,9 +653,9 @@ def fig_v1_vs_v2_hallucination():
     axR.set_xticklabels(boards, rotation=15)
     axR.set_ylim(0, 7)   # match left-panel y for visual parity
     axR.set_ylabel('% of LLM calls flagged')
-    axR.set_title('v2 (validator fixed): 0/2288 across the board')
+    axR.set_title('v2 (validator fixed): 0/2207 across the board')
     for i, _ in enumerate(boards):
-        axR.text(i, 0.2, '0/{}'.format(['584', '342', '917', '445'][i]),
+        axR.text(i, 0.2, '0/{}'.format(['584', '281', '917', '425'][i]),
                   ha='center', fontsize=9, color='#444444')
     fig.suptitle('Hallucination accounting: the validator-and-retry stack '
                  'is part of the probe', fontsize=11)

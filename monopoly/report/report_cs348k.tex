@@ -42,7 +42,7 @@ to its training regime: the off-regime composite is $16\!-\!24\%$
 worse than the regime-matched optimum, though both designs still
 beat the default by a wide margin under either evaluator.
 The LLM probe reproduces the rule-based directional ranking with zero
-model-side hallucinations across 2{,}288 calls under structured
+model-side hallucinations across 2{,}207 calls under structured
 validation. Re-running the GA with the LLM in the evaluator role yields
 a board that beats the default but loses to the rule-based winner under
 the diverse pool: the fairness gap is $0.20$ vs.\ $0.379$ at 2p and
@@ -604,7 +604,7 @@ The cross-class probe re-ran 80 games on the optimised boards under
 all-LLM seats (Qwen2.5-1.5B-Instruct, greedy decoding) using the
 structured \texttt{STATE/ECHO/REASON/ANSWER} prompt. Per-decision logs
 record prompt, raw response, parse path, and per-field echo
-mismatches. Across $2{,}288$ LLM calls, the v2 prompt produced zero
+mismatches. Across $2{,}207$ LLM calls, the v2 prompt produced zero
 model-side state hallucinations (Figure~\ref{fig:hallucination}), at
 the cost of a small additional retry budget over the free-form v1
 baseline.
@@ -625,7 +625,7 @@ and \emph{spurious validator bug} (the validator falsely flagged
 correct outputs that the model did not change). On v1 across 2{,}304
 calls, real first-pass = $0$, retry-induced = $47$, spurious = $100$;
 the model itself never hallucinated. v2 drives all three categories
-to zero across all 2{,}288 calls. The reportable second-order
+to zero across all 2{,}207 calls. The reportable second-order
 finding: validating against a wrong ground truth is worse than not
 validating, because retries can teach the model to produce the
 ``correct'' wrong answer.}
@@ -639,10 +639,10 @@ validating, because retries can teach the model to produce the
 GA's directional signal.} Mean rounds per game (left) and inter-player
 money transfer (right), measured under all-LLM seats on the default
 board and on the rule-based GA winner, at 2 and 3 players. The
-GA-winner board cuts rounds from $60.5$ to $46.8$ at 2p ($-23\%$)
-and from $76.0$ to $43.2$ at 3p ($-43\%$), and raises transfer from
-$50.1$ to $78.5$~\$/round at 2p ($+57\%$) and from $100.5$ to
-$127.4$~\$/round at 3p ($+27\%$). Both directional effects match
+GA-winner board cuts rounds from $60.5$ to $30.5$ at 2p ($-50\%$)
+and from $76.0$ to $39.3$ at 3p ($-48\%$), and raises transfer from
+$50.1$ to $81.1$~\$/round at 2p ($+62\%$) and from $100.5$ to
+$135.0$~\$/round at 3p ($+34\%$). Both directional effects match
 what the rule-based 30-strategy pool found on the same boards
 (Section~\ref{sec:baseline}): two independent agent classes, run on
 the same designs, see the same change. Fairness is not included
@@ -673,7 +673,7 @@ with cash, the rational ordering for any non-degenerate strategy;
 the empty $<200$ bucket reflects the affordability pre-filter that
 short-circuits the LLM call when the player cannot buy anyway. On
 the GA-winner board the LLM commits its cash hoard more aggressively
-in the $\geq 1500$ bucket ($\sim 0.87$ vs.\ $\sim 0.70$ on the
+in the $\geq 1500$ bucket ($\sim 0.93$ vs.\ $\sim 0.70$ on the
 default), so the optimised board successfully pulls behaviour out of
 the cash-hoarding regime. \textbf{(b)~By monopoly-completion
 situation.} \textsl{fresh}: no player owns any property in the
@@ -684,7 +684,7 @@ in the group and the opponent does not dominate it.
 and at least as many properties as the LLM, so buying mostly funds
 their next rent payment. Buy rates respond rationally across all
 three: $\sim 1.00$ on \textsl{partial\_self} (saturated buy),
-$\sim 0.94$ on \textsl{fresh}, and $\sim 0.10$ on
+$\sim 0.94$ on \textsl{fresh}, and $\sim 0.13$ on
 \textsl{opp\_dominates} (strict PASS). The probe is not behaving as
 a uniform random oracle, and the directional responses are
 essentially identical on both boards.}
@@ -748,7 +748,7 @@ GA-2p winner: under the LLM evaluator it scores $0.20$ at 2p and
 $0.05$ at 3p (looks like the fairest board); under the rule-based
 pool it scores $0.38$ at 2p and $0.40$ at 3p (barely better than
 the default's $0.41$ on the 3p panel, while the rule-based GA
-winner achieves $0.36$). The fairness gap \emph{widens} with player count:
+winner achieves $0.28$). The fairness gap \emph{widens} with player count:
 more identical seats produce more correlated mistakes for a
 single-personality evaluator, and the strategy pool's diversity is
 what surfaces them. This is the central empirical claim of the
@@ -768,7 +768,7 @@ evaluators: the LLM with two identical seats (blue) and the
 30-strategy rule-based pool (red). On the default and the
 rule-based GA winner, the LLM evaluator returns a \emph{higher}
 fairness score than the rule-based pool ($0.500$ vs.\ $0.454$ and
-$0.400$ vs.\ $0.237$): two identical LLM seats over-count
+$0.300$ vs.\ $0.215$): two identical LLM seats over-count
 asymmetry. On the LLM-driven GA-2p winner the sign \emph{flips}:
 the LLM scores $0.200$ but the rule-based pool scores $0.379$, a
 gap of $\sim 0.18$ in the opposite direction. The board looks fair

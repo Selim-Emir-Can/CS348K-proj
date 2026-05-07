@@ -36,26 +36,27 @@ default board and the rule-based GA winner board (the Apr 24 winner from
 | Player count, board | mean rounds | mean transfer ($/round) |
 |---|---:|---:|
 | 2p, default | **60.5** | **50.1** |
-| 2p, rule-based GA winner | **46.8** | **78.5** |
+| 2p, rule-based GA winner (v3) | **30.5** | **81.1** |
 | 3p, default | **76.0** | **100.5** |
-| 3p, rule-based GA winner | **43.2** | **127.4** |
+| 3p, rule-based GA winner (v3) | **39.3** | **135.0** |
 
 **Source files:**
-- `logs/llm_eval/2p_v2/summary.csv` (40 games: 20 default + 20 GA-winner)
-- `logs/llm_eval/3p_v2/summary.csv` (40 games: 20 default + 20 GA-winner)
-- `logs/llm_eval/2p_v2/analysis_*.md` (per-board aggregates)
+- `logs/llm_eval/2p_v3/summary.csv` (40 games: 20 default + 20 v3 GA-winner)
+- `logs/llm_eval/3p_v3/summary.csv` (40 games: 20 default + 20 v3 GA-winner)
+- `logs/llm_eval/{2p,3p}_v3/analysis_*.md` (per-board aggregates)
+- Apr 29 v2 paths preserved at `logs/llm_eval/{2p,3p}_v2/`
 
 **Figure:** `report/figures/llm/fig_cross_class_agreement.png`.
 
 ### Task 1: hallucination accounting
 
 Across **2,304 LLM buy decisions** under v1 (free-form prompt with a buggy
-validator) and **2,288** under v2 (structured `STATE/ECHO/REASON/ANSWER`
+validator) and **2,207** under v2 (structured `STATE/ECHO/REASON/ANSWER`
 prompt with deterministic per-field validator).
 
 | | v1 | v2 |
 |---|---:|---:|
-| LLM calls (total) | 2,304 | 2,288 |
+| LLM calls (total) | 2,304 | 2,207 |
 | Calls flagged by validator | 100 (4.3%) | **0 (0.0%)** |
 | Real first-pass hallucinations | **0** | **0** |
 | Retry-induced fabrications (subset of flagged) | 47 | 0 |
