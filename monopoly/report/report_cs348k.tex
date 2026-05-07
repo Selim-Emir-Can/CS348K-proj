@@ -141,6 +141,63 @@ deterministic per-field state validation and a bounded retry budget,
 reported with its failure modes (Section~\ref{sec:llm}).
 
 % =====================================================================
+\section{Related work}\label{sec:related}
+% =====================================================================
+
+\paragraph{Search-based game design and automated playtesting.}
+Procedural and search-based game-content generation has a long
+literature; Shaker et al.~\cite{togelius_pcg} survey the field, and
+prior tools such as Sentient Sketchbook~\cite{liapis_sentient} use
+search agents to surface design issues during authoring. Closer to
+this work, automated playtesting with rule-based or learned agents
+is a recurring approach for detecting balance pathologies. Our
+contribution is not the use of agents per se but a protocol that
+uses \emph{multiple agent classes} as cross-checks, with
+disagreement-as-diagnostic and human playtesting reserved for the
+boundary cases.
+
+\paragraph{LLM-based agents.} Small instruction-tuned LLMs such as
+Qwen2.5~\cite{qwen25} have been used as decision-making agents in
+board games, simulations, and tool-use evaluations; the line of
+work on generative agents~\cite{park_generative_agents} treats LLMs
+as a population of social actors. Our setup is narrower: a single
+1.5B-parameter LLM with greedy decoding, a structured
+\texttt{STATE/ECHO/REASON/ANSWER} prompt, and a deterministic
+per-field validator with a bounded retry budget. The
+validator-and-retry stack is closer in spirit to constrained
+decoding than to standard chain-of-thought prompting; we report
+failure modes specific to that protocol (Section~\ref{sec:llm}).
+
+\paragraph{Tree search and competitive evaluation in games.}
+Browne et al.~\cite{browne_mcts} survey Monte Carlo tree search;
+population-based competitive evaluation has been used at scale for
+StarCraft~II via leagues of agent variants~\cite{alphastar}. We use
+the same ``population as evaluator'' intuition in inverted form:
+the population is fixed and diverse and the environment is what we
+search over.
+
+\paragraph{Evolutionary algorithms over environment design.}
+GAs are routine for environment-design problems;
+Goldberg~\cite{ga-goldberg} lays out the standard mechanisms
+(tournament selection, uniform crossover, Gaussian and bit-flip
+mutation, elitism) we use unchanged. The contribution lies in the
+\emph{evaluator} (a 30-strategy parametric pool, with an LLM
+evaluator as a cross-class control), not in the search algorithm.
+
+\paragraph{Robust evaluation.} Variance reduction via shared random
+numbers is standard in stochastic simulation~\cite{crn}; Wilson
+confidence intervals~\cite{wilson} are the standard way to quote
+per-cell uncertainty on win rates; per-objective single-knob
+ablations are standard in optimisation. We adopt all three because
+they are cheap, reproducible, and orthogonal. The novelty in this
+work is connecting them to the agent-as-design-probe framing.
+
+\paragraph{Pipeline framework.} The simulator harness builds on the
+PettingZoo multi-agent gym API~\cite{pettingzoo}; our optimisation
+loop is a thin wrapper around the upstream Monopoly core game loop,
+instrumented to return per-game stats instead of only logging.
+
+% =====================================================================
 \section{Approach}\label{sec:approach}
 % =====================================================================
 
@@ -867,37 +924,211 @@ parallel work I did not have visibility into; please replace this
 placeholder with the canonical breakdown before submission.]
 
 % =====================================================================
-% \section*{References}
+\appendix
 % =====================================================================
-% Lightweight \thebibliography rather than BibTeX so the file
-% compiles standalone. Replace or extend as the final list firms up.
-\begin{thebibliography}{9}
 
-\bibitem{qwen25}
-Qwen Team.
-\textit{Qwen2.5 Technical Report}.
-2024.
+% =====================================================================
+\section{Implementation details}\label{app:impl}
+% =====================================================================
 
-\bibitem{pettingzoo}
-J.~K. Terry et al.
-\textit{PettingZoo: A Standard API for Multi-Agent Reinforcement
-Learning}. NeurIPS, 2021.
+This appendix collects implementation details that are useful for
+reproducibility but would clutter the main text. All source paths
+are relative to \texttt{monopoly/} on the project repository.
 
-\bibitem{ga-goldberg}
-D.~E. Goldberg.
-\textit{Genetic Algorithms in Search, Optimization, and Machine
-Learning}. Addison-Wesley, 1989.
+\subsection{LLMPlayer prompt and validator}\label{app:llm}
 
-\bibitem{crn}
-A.~M. Law and W.~D. Kelton.
-\textit{Simulation Modeling and Analysis}, chapter on Common Random
-Numbers. McGraw-Hill, 5th ed., 2014.
+\paragraph{Model and decoding.} Qwen2.5-1.5B-Instruct~\cite{qwen25}
+loaded with the \texttt{transformers} library, run with greedy
+decoding (\texttt{do\_sample=False}), \texttt{max\_new\_tokens=160},
+and additional EOS tokens \texttt{<|im\_end|>} and
+\texttt{<|endoftext|>}. The same model and decoding settings are
+used for all four runs (Phase~C and the LLM-driven GA, both at 2p
+and 3p).
 
-\bibitem{wilson}
-E.~B. Wilson.
-\textit{Probable Inference, the Law of Succession, and Statistical
-Inference}. JASA, 1927.
+\paragraph{Conversation structure.} Each LLM buy decision is a
+six-message conversation: 1 system message, 4 few-shot
+user/assistant exchanges (2 \emph{BUY} and 2 \emph{PASS}
+demonstrations), and 1 runtime user message describing the actual
+decision. The full transcript with all four few-shot examples is
+checked into the repository at
+\texttt{prompts/llm\_player\_prompts.txt}.
 
-\end{thebibliography}
+\paragraph{System prompt (v2, verbatim).}
+\begin{quote}\small\itshape\sloppy
+You are a strategic Monopoly player who decides whether to buy
+properties. Your goal is to win by bankrupting opponents through
+rent. You must NOT mindlessly buy every property: passing is correct
+when (a) cash is dangerously low, (b) the property is in a group an
+opponent already dominates and you have no path to monopoly, or (c)
+the rent return is poor relative to the cost. Equally, buying is
+correct when the property advances a group you already own most of,
+or when it denies the group to an opponent who would otherwise
+complete it.
+
+\medskip You receive a STATE block with 10 fields. Before reasoning,
+you MUST emit an ECHO block that copies all 10 STATE fields verbatim
+(numeric values must equal STATE; string values must equal STATE).
+The ECHO block is checked deterministically -- if it differs from
+STATE in any field you will be asked to redo the answer. Only after
+the ECHO block do you write REASON and ANSWER. Do not invent any
+number or name not present in STATE. A purchase ONLY ``completes a
+monopoly'' when \texttt{you\_own\_in\_group + 1 == group\_size}; do
+not claim completion otherwise.
+
+\medskip Reply in EXACTLY this format and order: \texttt{ECHO:}
+followed by the 10 STATE fields ($\mathtt{cash}$, \texttt{property},
+\texttt{group}, \texttt{cost}, \texttt{base\_rent},
+\texttt{you\_own\_total}, \texttt{you\_own\_in\_group},
+\texttt{group\_size}, \texttt{opp\_own\_in\_group},
+\texttt{opp\_own\_total}); then \texttt{REASON: <one short sentence
+citing only STATE numbers>}; then \texttt{ANSWER: BUY} or
+\texttt{ANSWER: PASS}. Do not output anything else.
+\end{quote}
+
+\paragraph{v1 vs.\ v2 prompts.} The v1 prompt was free-form: it
+asked for ``BUY'' or ``PASS'' with a one-sentence reason but did
+not require the ECHO copy of STATE. The v1 validator parsed the
+free-form response with a regex and was prone to a now-fixed
+integer/float type mismatch on cash (Section~\ref{sec:llm}). v2
+added (i) the verbatim ECHO requirement, (ii) deterministic
+per-field equality checking on the echoed values, and (iii) a
+corrective retry loop that replays prior assistant turns plus a
+follow-up user message naming the mismatched fields. Both versions
+share the same four few-shot examples and the same STATE format.
+
+\paragraph{Echo validator.} \texttt{LLMPlayer.\_check\_echo} parses
+the ECHO block with a multiline regex and equality-checks each of
+the 10 fields against ground-truth state, with a \$0.50 tolerance
+on cash to absorb float drift from rent multipliers (the original
+fixed-int validator caused $100$ spurious flags in v1).
+
+\paragraph{Retry mechanism.} On any echo mismatch, the player
+retries up to \texttt{MAX\_RETRIES = 4} times. Each retry replays
+prior assistant turns plus a corrective user message that names
+the mismatched fields. The final attempt's parsed answer is the
+decision used by the simulator, even if it still has echo issues;
+the per-decision JSONL log records every attempt for post-hoc
+analysis.
+
+\paragraph{Pre-filter.} Affordability and cash-floor checks
+short-circuit the LLM call when the decision is forced
+($\mathrm{cash} < \mathrm{cost}$ forces PASS, etc.). This
+eliminates 60--80\% of would-be calls and keeps the LLM evaluation
+pipeline within practical wall-clock budgets.
+
+\subsection{GA, ablations, and reproducibility}\label{app:ga}
+
+\paragraph{Search hyperparameters (canonical v3 protocol,
+\texttt{logs/optimizer\_v3/}).}
+\begin{itemize}[leftmargin=1.2em,itemsep=1pt]
+\item GA: \texttt{--pop 30 --generations 30 --elitism 2}, tournament
+selection $k{=}3$, uniform crossover, Gaussian mutation
+$\sigma{=}0.1$ on continuous dims, 1-bit-flip mutation on the
+keep-mask. Total evaluations: $30 + 29 \times 28 = 842$.
+\item Random search: \texttt{--iters 842} for matched evaluation
+budget.
+\item Per-candidate evaluation: \texttt{--n-games 200}, distributed
+as 10 fixed matchups $\times$ 20 games per matchup, with seeds
+shared across all candidates.
+\item Composite weights $w = (1, 0.5, 0.5, 0.3, 0.3)$ for
+$(\overline{F}, F_{\max}, |\overline{R}-R^{*}|/R^{*},
+\overline{D}, |\overline{T}-T^{*}|/T^{*})$ with targets
+$R^{*} = 60$ rounds, $T^{*} = 100$~\$/round.
+\item Single-objective ablations set the chosen weight to $1$ and
+the others to $0$; same search hyperparameters otherwise.
+\item Cross-evaluation at $n{=}1000$ games per cell (deployment
+table) uses the same matchup seeds.
+\end{itemize}
+
+\paragraph{Reproducibility.}
+\begin{itemize}[leftmargin=1.2em,itemsep=1pt]
+\item All seeds (\texttt{--base-seed=42}, \texttt{--search-seed=0},
+\texttt{--matchup-seed=1234}) are recorded in each run's
+\texttt{<run\_name>.meta.json}.
+\item Re-running any \texttt{(design vector, matchups, seeds)}
+triple yields byte-identical metrics. We verified this by diffing
+two re-runs of the same config.
+\item Trigger scripts:
+\texttt{scripts/rerun\_strategy\_experiments\_overnight.bat}
+(rule-based, $\sim$2.5h CPU) and
+\texttt{scripts/rerun\_llm\_phase\_c\_v3.bat} (LLM Phase~C,
+$\sim$6h on a 12 GB GPU).
+\end{itemize}
+
+% =====================================================================
+\section{Mapping to the CS348K grading questions}\label{app:grading}
+% =====================================================================
+
+The CS348K final-report guidelines ask two specific questions. We
+state both verbatim and answer each in one paragraph; the body of
+the report is structured around exactly these two questions, so
+this appendix is a quick reader guide.
+
+\paragraph{(1) ``What are the questions or goals your project aims
+to answer?''}
+We ask whether agent simulations can substitute for human
+playtesting in game design under two qualifications: (a) the agents
+are imperfect and acknowledged as such, and (b) the unit of
+evidence is \emph{cross-class agreement} -- two independent agent
+classes (a 30-strategy parametric rule-based pool and a
+single-personality LLM with structured state validation) ranking
+the same candidate boards in the same direction. The falsifiable
+hypothesis is that the directional ranking under one class matches
+the other on the optimised boards, with the LLM's per-decision
+hallucination rate below $1\%$. We pre-declared a stronger
+validation path (human playtest in Phase B) that is out of scope
+for this checkpoint. The full statement is in
+Section~\ref{sec:bg}.
+
+\paragraph{(2) ``What experiments should be done to answer that
+question, and how will you know from the outcome of the experiment
+that you have succeeded?''}
+Seven experiments, each with an explicit success criterion (full
+detail in \texttt{monopoly/CHECKPOINT\_1.md}):
+\begin{enumerate}[leftmargin=1.4em,itemsep=1pt]
+\item Default-board baseline at $n{=}1000$
+(Section~\ref{sec:baseline}). \emph{Success:} deterministic scores
+with $95\%$ Wilson intervals on every metric.
+\item GA vs.\ random search at matched $\sim$842-evaluation budget
+(Section~\ref{sec:baseline}). \emph{Success:} GA crosses the
+default reference within budget, beats random by a non-trivial
+margin, and is bit-reproducible. \emph{Outcome:} GA wins by $13\%$
+in both player counts.
+\item Single-objective ablations (Section~\ref{sec:ablation}).
+\emph{Success:} visibly different per-aspect optima, confirming the
+composite is non-redundant. \emph{Outcome:} confirmed; see
+Figures~\ref{fig:multipliers} and \ref{fig:board_grid}.
+\item $2p\!\leftrightarrow\!3p$ cross-evaluation at $n{=}1000$
+(Section~\ref{sec:cross}). \emph{Success:} improvement over default
+$\geq 20\%$ in the off-regime; quantify the specialisation gap.
+\emph{Outcome:} both designs improve over default by $\sim 47\%$ in
+the training regime; off-regime gap is $16\!-\!24\%$ on the
+composite.
+\item Per-strategy heatmap (Section~\ref{sec:heatmap}).
+\emph{Success:} reduction in the $30\times 30$ mean $|W-0.5|$, with
+the systematic pattern of which matchups are immutable surfaced
+honestly. \emph{Outcome:} $5\%$ reduction at 2p, $21\%$ at 3p; the
+\textsl{Trader vs.\ RailroadKing} 100/0 pair is genuinely
+immutable under any board configuration.
+\item LLM cross-class probe (Section~\ref{sec:llm}). \emph{Success:}
+rounds and transfer move in the same direction the rule-based pool
+predicted on the same boards; per-decision hallucination rate below
+$1\%$. \emph{Outcome:} $0/2{,}207$ first-pass hallucinations under
+v2 ECHO validation; rounds and transfer effects strengthen on the
+v3 board ($-50\%$ rounds at 2p).
+\item LLM-driven GA + cross-evaluator gap
+(Section~\ref{sec:llm_ga}). \emph{Success:} the LLM-driven loop
+converges to a non-trivial design; cross-evaluating it under the
+rule-based pool exposes (or fails to expose) the
+single-personality blind spot. \emph{Outcome:} the cross-evaluator
+fairness gap is $+0.18$ at 2p and $+0.35$ at 3p, widening with
+player count. This is the central diagnostic claim of the paper.
+\end{enumerate}
+
+% =====================================================================
+% References
+% =====================================================================
+\bibliographystyle{plain}
+\bibliography{refs}
 
 \end{document}
