@@ -654,7 +654,7 @@ stronger lever for those than for population-wide skill ordering.}
 \label{fig:heatmap}
 \end{figure}
 
-\subsection{LLM cross-class agreement (Phase~C)}\label{sec:llm}
+\subsection{LLM cross-class agreement}\label{sec:llm}
 
 The cross-class probe re-ran 80 games on the optimised boards under
 all-LLM seats (Qwen2.5-1.5B-Instruct, greedy decoding) using the
@@ -860,10 +860,13 @@ broad but not exhaustive, and human players behave outside it. The 20
 sampled strategies broaden the pool beyond the 10 archetypes and the
 sampling procedure is documented and reproducible, but a real
 deployment would want to learn the strategy distribution from logs.
-\item \textbf{Phase B not run.} Human playtesting is pre-declared but
-not executed in this report. The falsifiability claim is accordingly
-limited: two agent classes agree directionally; whether either class
-predicts human play remains untested.
+\item \textbf{No human playtest.} All metrics are internal to the
+agent loop. Whether either agent class's ranking actually predicts
+human play is untested, and confirming it would require a human
+playtest with multiple boards and many testers; we treat that as
+out of scope for this work. The falsifiability claim of the
+project is correspondingly weaker: we have shown that two agent
+classes agree directionally, not that either predicts human play.
 \item \textbf{LLM scale.} Qwen2.5-1.5B is the only LLM in the study.
 Larger models or different prompt styles may change the agreement
 profile. Greedy decoding does, however, make the probe deterministic.
@@ -912,7 +915,7 @@ Closed-loop optimisation pipeline (\texttt{ParametricPlayer}, strategy
 pool, design space, simulator wrapper, objectives, GA); LLM probe
 layer (\texttt{LLMPlayer}, structured \texttt{STATE/ECHO/REASON/
 ANSWER} prompt, deterministic per-field validator, retry loop,
-per-decision logging); Task~1 (LLM-only Phase~C eval) and Task~2
+per-decision logging); Task~1 (LLM-only evaluation) and Task~2
 (LLM-driven GA); cross-evaluation harness; figure generation; report
 writing.
 
@@ -941,7 +944,7 @@ loaded with the \texttt{transformers} library, run with greedy
 decoding (\texttt{do\_sample=False}), \texttt{max\_new\_tokens=160},
 and additional EOS tokens \texttt{<|im\_end|>} and
 \texttt{<|endoftext|>}. The same model and decoding settings are
-used for all four runs (Phase~C and the LLM-driven GA, both at 2p
+used for all four runs (LLM-only evaluation and the LLM-driven GA, at 2p
 and 3p).
 
 \paragraph{Conversation structure.} Each LLM buy decision is a
@@ -1050,7 +1053,7 @@ two re-runs of the same config.
 \item Trigger scripts:
 \texttt{scripts/rerun\_strategy\_experiments\_overnight.bat}
 (rule-based, $\sim$2.5h CPU) and
-\texttt{scripts/rerun\_llm\_phase\_c\_v3.bat} (LLM Phase~C,
+\texttt{scripts/rerun\_llm\_phase\_c\_v3.bat} (LLM-only evaluation re-run,
 $\sim$6h on a 12 GB GPU).
 \end{itemize}
 
@@ -1074,9 +1077,10 @@ single-personality LLM with structured state validation) ranking
 the same candidate boards in the same direction. The falsifiable
 hypothesis is that the directional ranking under one class matches
 the other on the optimised boards, with the LLM's per-decision
-hallucination rate below $1\%$. We pre-declared a stronger
-validation path (human playtest in Phase B) that is out of scope
-for this checkpoint. The full statement is in
+hallucination rate below $1\%$. A stronger validation path (human
+playtest with multiple boards and many testers) is out of scope
+for this work, treated as a known limitation
+(Section~\ref{sec:lim}). The full statement is in
 Section~\ref{sec:bg}.
 
 \paragraph{(2) ``What experiments should be done to answer that
