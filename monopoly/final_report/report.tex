@@ -481,11 +481,11 @@ Design & Eval & score\,$\downarrow$ & $\overline{F}$\,$\downarrow$ & $F_{\max}$\
 default board    & 2p & 1.463 & 0.454 & 0.940 & 103.9 &  7.4 &  49.7 \\
 default board    & 3p & 1.229 & 0.411 & 0.680 & 110.8 & 17.6 &  99.4 \\
 \addlinespace
-GA-2p winner     & 2p & \textbf{0.773} & \textbf{0.215} & 0.910 &  62.2 &  1.7 &  73.3 \\
+GA-2p winner     & 2p & \textbf{0.773} & \textbf{0.215} & \textbf{0.910} &  62.2 &  1.7 &  73.3 \\
 GA-2p winner     & 3p & 0.795 & \textbf{0.273} & 0.730 &  65.7 &  3.3 & 133.1 \\
 \addlinespace
-GA-3p winner     & 2p & 0.897 & 0.287 & 0.970 &  56.2 &  0.5 &  69.4 \\
-GA-3p winner     & 3p & \textbf{0.641} & 0.280 & 0.490 &  56.3 &  0.6 & 127.8 \\
+GA-3p winner     & 2p & 0.897 & 0.287 & 0.970 &  56.2 &  \textbf{0.5} &  69.4 \\
+GA-3p winner     & 3p & \textbf{0.641} & 0.280 & \textbf{0.490} &  56.3 &  \textbf{0.6} & 127.8 \\
 \bottomrule
 \end{tabular}
 \caption{\textbf{Cross-player-count evaluation at $n{=}1000$ games
@@ -613,8 +613,7 @@ falls from $103.9$ to $62.2$ rounds (a $-40\%$ drop), draw rate from
 $7.4\%$ to $1.7\%$ ($-77\%$), inter-player money transfer rises from
 $49.7$ to $73.3$~\$/round (closer to the target of $100$), and the
 mean fairness on the $10$ evaluation matchups falls from $0.454$ to
-$0.215$ ($-53\%$). Board design is a strong lever for pacing,
-decisiveness, and matchup-set fairness; it is a weak lever for
+$0.215$ ($-53\%$). Board design is a strong lever for pacing, decisiveness, and matchup-set fairness; it is a weak lever for
 population-wide skill ordering, which is structural to the strategy
 pool.
 
@@ -1018,7 +1017,7 @@ pipeline within practical wall-clock budgets.
 
 \subsection{GA, ablations, and reproducibility}\label{app:ga}
 
-\paragraph{Search hyperparameters (canonical v3 protocol,
+\paragraph{Search hyperparameters (canonical protocol, logs in
 \texttt{logs/optimizer\_v3/}).}
 \begin{itemize}[leftmargin=1.2em,itemsep=1pt]
 \item GA: \texttt{--pop 30 --generations 30 --elitism 2}, tournament
@@ -1069,7 +1068,7 @@ to answer?''}
 We ask whether agent simulations can substitute for human
 playtesting in game design under two qualifications: (a) the agents
 are imperfect and acknowledged as such, and (b) the unit of
-evidence is \emph{cross-class agreement} -- two independent agent
+evidence is \emph{cross-class agreement}: two independent agent
 classes (a 30-strategy parametric rule-based pool and a
 single-personality LLM with structured state validation) ranking
 the same candidate boards in the same direction. The falsifiable
@@ -1083,8 +1082,7 @@ Section~\ref{sec:bg}.
 \paragraph{(2) ``What experiments should be done to answer that
 question, and how will you know from the outcome of the experiment
 that you have succeeded?''}
-Seven experiments, each with an explicit success criterion (full
-detail in \texttt{monopoly/CHECKPOINT\_1.md}):
+Seven experiments, each with an explicit success criterion:
 \begin{enumerate}[leftmargin=1.4em,itemsep=1pt]
 \item Default-board baseline at $n{=}1000$
 (Section~\ref{sec:baseline}). \emph{Success:} deterministic scores
@@ -1115,7 +1113,7 @@ rounds and transfer move in the same direction the rule-based pool
 predicted on the same boards; per-decision hallucination rate below
 $1\%$. \emph{Outcome:} $0/2{,}207$ first-pass hallucinations under
 v2 ECHO validation; rounds and transfer effects strengthen on the
-v3 board ($-50\%$ rounds at 2p).
+GA-winner board ($-50\%$ rounds at 2p).
 \item LLM-driven GA + cross-evaluator gap
 (Section~\ref{sec:llm_ga}). \emph{Success:} the LLM-driven loop
 converges to a non-trivial design; cross-evaluating it under the
