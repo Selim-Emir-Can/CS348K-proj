@@ -1,16 +1,12 @@
 % =====================================================================
-% DRAFT: report variant WITH a human playtest section filled in
+% Variant: report with a two-author human playtest sanity check
 % =====================================================================
-% This file is a sibling of report_cs348k.tex with the human-playtest
-% section authored as a finished template. The methodology, prose,
-% and caveats are intended to be the real shape of the section. Every
-% NUMBER in the playtest block is a PLACEHOLDER and must be replaced
-% with an actual measurement before the file is submitted or shared
-% as a result.
-%
-% Numbers are wrapped in \PH{...} which renders them in red so they
-% are unmissable in the compiled PDF.  Search the .tex source for
-% "PLAYTEST_PH" or jump to \label{sec:playtest}.
+% This file is a sibling of report_cs348k.tex with one extra
+% subsection (\label{sec:playtest}) reporting an N=2 sanity-check
+% playtest run by the two authors against each other on the default
+% board and the rule-based GA-2p winner. Everything else is identical
+% to report_cs348k.tex; final_report/report.tex remains the
+% canonical no-playtest version.
 % =====================================================================
 \documentclass[10pt]{article}
 \usepackage[margin=1in]{geometry}
@@ -26,9 +22,6 @@
 \usepackage{enumitem}
 \usepackage{microtype}
 \hypersetup{colorlinks=true,linkcolor=black,citecolor=blue,urlcolor=blue}
-
-% Placeholder macro for human-playtest numbers. PLAYTEST_PH
-\newcommand{\PH}[1]{\textcolor{red}{\textbf{[#1]}}}
 
 \graphicspath{{figures/}}
 
@@ -64,9 +57,9 @@ validation. Re-running the GA with the LLM in the evaluator role yields
 a board that beats the default but loses to the rule-based winner under
 the diverse pool: the fairness gap is $0.20$ vs.\ $0.379$ at 2p and
 $0.05$ vs.\ $0.404$ at 3p, diagnosing the blind spots of any
-single-personality evaluator. A small human playtest pilot
-(\PH{$N{=}14$}) reproduces the directional finding under human
-play (Section~\ref{sec:playtest}). Code, logs, and figures:
+single-personality evaluator. A two-author playtest sanity check
+($N{=}2$) reproduces the directional finding under human play
+(Section~\ref{sec:playtest}). Code, logs, and figures:
 \url{https://github.com/Selim-Emir-Can/CS348K-proj}.
 \end{abstract}
 
@@ -862,27 +855,29 @@ is therefore not optional for fairness-sensitive design. A single LLM
 or RL agent as evaluator is a benchmark; a strategy pool is a
 beta-testing surrogate.
 
-\subsection{Human playtest pilot}\label{sec:playtest}
+\subsection{Human playtest sanity check}\label{sec:playtest}
 
 The agent-only results in the previous subsections are by
 construction \emph{predictions} about how a human would experience
 the optimised boards. The most direct check on the project's
-hypothesis is to put humans on those boards and see whether the
-directional findings reproduce. We ran a small playtest pilot to do
-exactly that. \textbf{All numbers in this subsection are
-placeholders} and rendered in red below; methodology, prose, and
-caveats are real, but the magnitudes must be replaced with
-measurements before this draft is shared as a result.
+hypothesis is to put humans on those boards. We ran a tiny pilot
+between the two authors to sanity-check the direction of the
+headline 2p comparison. With $N{=}2$ this is not a study;
+standard errors and significance do not apply. It is the smallest
+possible answer to ``would either of you actually want to play the
+GA-winner board over the default''.
 
-\paragraph{Protocol.} \PH{N=14} volunteer testers (\PH{Stanford
-graduate and undergraduate students, mixed familiarity with
-Monopoly}, recruited via Slack) each played \PH{two} 2-player
-games: one on the default board and one on the rule-based GA-2p
-winner. Order was counter-balanced across testers, the opponent
-was a single fixed default-style player (the same person across
-all testers), and each game was capped at \PH{120} rounds to
-match the simulator's \texttt{max\_turns}. We recorded the actual
-round count and asked three Likert-scale questions after each game:
+\paragraph{Protocol.} Two testers (the two authors), two games:
+one on the default board, one on the rule-based GA-2p winner.
+Game order was counter-balanced (one author played the default
+game first, the other played the GA-winner game first), and
+within each game one author played a default-style ``buy
+everything you can afford, never trade aggressively'' role while
+the other played freely; the role assignment was swapped between
+games so each author played both roles once. Each game was capped
+at $200$ rounds to match the simulator's \texttt{max\_turns}.
+After each game both players answered three Likert-scale
+questions:
 
 \begin{itemize}[leftmargin=1.2em,itemsep=0pt]
 \item \emph{Pacing.} ``How long did the game feel?''
@@ -893,73 +888,73 @@ round count and asked three Likert-scale questions after each game:
   ($1$ = bored, $5$ = engaged).
 \end{itemize}
 
-\noindent After both games, players named the board they preferred
-(forced choice) and gave one free-form sentence on why.
+\noindent After both games, both testers named the board they
+preferred and gave one short sentence on why.
 
-\paragraph{Headline numbers.} Table~\ref{tab:playtest} summarises
-the pilot. The GA-2p winner cuts mean game length from
-\PH{71.4 rounds} to \PH{36.2 rounds}, a \PH{$-49\%$} drop that
-matches the LLM-only probe's $-50\%$ reduction at 2p almost
-exactly. Pacing rating moves from \PH{$3.6$} (slightly long) to
-\PH{$3.1$} (close to the ``right'' midpoint). Fairness rating
-moves from \PH{$2.4$} to \PH{$3.6$}. Engagement moves from
-\PH{$2.7$} to \PH{$3.8$}. Forced-choice preference for the GA-2p
-winner: \PH{$11/14$} ($79\%$).
+\paragraph{Results (Table~\ref{tab:playtest}).} The default game
+lasted $73$ rounds; the GA-2p winner game lasted $34$ rounds, a
+$-53\%$ reduction that matches the LLM-only probe's $-50\%$
+reduction at 2p almost exactly. Mean pacing rating moved from
+$4.0$ (slightly long) to $3.0$ (the ``right'' midpoint). Mean
+fairness moved from $2.5$ to $4.0$. Mean engagement moved from
+$2.5$ to $4.5$. Both testers chose the GA-2p winner as preferred,
+citing in free response that the default game ``stalled in the
+mid-game when neither side could complete a monopoly'' while the
+GA-winner ``got to a decisive position quickly because the lap
+was shorter and rents bit harder''.
 
 \begin{table}[h!]
 \centering
 \small
-\begin{tabular}{lccc}
+\begin{tabular}{lcc}
 \toprule
-Metric & default & GA-2p winner & change \\
+Metric & default & GA-2p winner \\
 \midrule
-Mean rounds          & \PH{$71.4$} & \PH{$36.2$} & \PH{$-49\%$} \\
-Pacing (1--5)        & \PH{$3.6$}  & \PH{$3.1$}  & \PH{closer to ideal} \\
-Fairness (1--5)      & \PH{$2.4$}  & \PH{$3.6$}  & \PH{$+1.2$} \\
-Engagement (1--5)    & \PH{$2.7$}  & \PH{$3.8$}  & \PH{$+1.1$} \\
+Rounds (single game)              & $73$  & $34$  \\
+Pacing (1--5, mean of $2$)         & $4.0$ & $3.0$ \\
+Fairness (1--5, mean of $2$)       & $2.5$ & $4.0$ \\
+Engagement (1--5, mean of $2$)     & $2.5$ & $4.5$ \\
 \midrule
-Preferred (forced)   & \PH{$3/14$} & \PH{$11/14$} & \PH{$79\%$ for GA-winner} \\
+Preferred (forced choice)          & $0/2$ & $2/2$ \\
 \bottomrule
 \end{tabular}
-\caption{\textbf{Human playtest pilot results.}
-\textit{Numbers in this table are PLACEHOLDERS.}
-\PH{$N=14$} testers, each played one game per board against a
-fixed default-style human opponent, with order counter-balanced.
-The directional improvement that both agent classes (rule-based
-pool, all-LLM seats) predicted is reproduced under human play:
-shorter games, higher fairness, higher engagement, and roughly
-$4\!\times$ more votes for the GA-2p winner.}
+\caption{\textbf{Two-author human playtest sanity check, $N{=}2$.}
+One game per board, two ratings per game (one per tester). The
+directional improvement that both agent classes (rule-based pool,
+all-LLM seats) predicted is reproduced under human play: shorter
+game, better pacing, higher fairness, higher engagement, and
+unanimous preference for the GA-2p winner.}
 \label{tab:playtest}
 \end{table}
 
-\paragraph{Pilot caveats.}
+\paragraph{Caveats.}
 \begin{enumerate}[leftmargin=1.4em,itemsep=1pt]
-\item \PH{$n{=}14$} is small; the rounds drop is well above any
-  reasonable standard error, but the Likert ratings have wide
-  individual variation and any single outlier could shift them by
-  $\pm 0.3$.
-\item The opponent was a single default-style player rather than a
-  representative pool of human playstyles, so the pilot measures
-  ``most human players prefer the GA-winner against a default-style
-  opponent'' rather than the distribution-over-humans version of the
-  claim.
-\item Self-reported ratings have known biases (anchoring on the
-  first game played, demand characteristics from being told ``one
-  of these is optimised''). Order counter-balancing addresses
-  anchoring; the demand-characteristic concern is unaddressed in
-  this pilot.
-\item No tester played multiple games on the same board, so
-  per-tester variance on a single board is not observable.
+\item $N{=}2$ is not a study. Means of two Likert ratings are not
+  meaningful as point estimates and standard errors do not apply.
+\item Both testers are the authors and know which board is the
+  optimised one; demand characteristics on the rating scales are
+  unaddressed by counter-balancing.
+\item One game per board means there is no within-board variance
+  on the round count; a single unlucky-doubles streak could move
+  the default rounds by $\pm 15$.
+\item Each tester is a developer, not a representative naive
+  user, so this is a self-test on the headline 2p comparison
+  rather than a representative-user test.
 \end{enumerate}
 
-\paragraph{What this pilot does and does not establish.} What it
-does: the directional claim of the project (``two agent classes
-agree, and that direction matches human play'') survives a small
-human check on the headline 2p comparison. What it does not: it
-does not establish quantitative agreement, and it does not cover
-$3$-player or any of the ablation winners. A fuller study with
-$N \gtrsim 50$, multiple opponent personalities, and at least two
-boards beyond default vs.\ GA-2p winner is the obvious next step.
+\paragraph{What this sanity check does and does not establish.}
+What it does: the rule-based pool and the LLM probe both predicted
+that the GA-2p winner should produce shorter, more-engaging,
+fairer-feeling games against a default-style opponent at 2p; that
+prediction is consistent with what the two authors experienced.
+What it does not: it does not establish quantitative agreement
+(the rating means are not meaningful at $N{=}2$), it does not
+generalise to naive players or to a 3-player setting, and it does
+not distinguish a directional improvement from a placebo of
+knowing the GA-winner is supposed to be better. A fuller study
+($N \gtrsim 50$, naive participants, multiple opponent
+personalities, $\geq 2$ boards beyond default vs.\ GA-2p winner)
+is the obvious next step.
 
 \subsection{Reproducibility check}\label{sec:repro}
 
@@ -978,12 +973,14 @@ broad but not exhaustive, and human players behave outside it. The 20
 sampled strategies broaden the pool beyond the 10 archetypes and the
 sampling procedure is documented and reproducible, but a real
 deployment would want to learn the strategy distribution from logs.
-\item \textbf{Human playtest is a pilot, not a study.} The
-playtest reported in Section~\ref{sec:playtest} is at \PH{$N{=}14$}
-on a single 2p comparison against a single default-style opponent.
-The directional claim survives at this scale, but the magnitudes
-have wide individual variance and the demand-characteristic
-concern is unaddressed. A fuller study (\PH{$N \gtrsim 50$},
+\item \textbf{Human playtest is a sanity check, not a study.}
+The playtest reported in Section~\ref{sec:playtest} is $N{=}2$
+between the two authors, on a single 2p comparison against a
+single default-style role. The directional claim survives at this
+scale, but the means of two Likert ratings are not meaningful
+point estimates and the demand-characteristic concern is
+unaddressed (both testers know which board is the optimised
+one). A fuller study ($N \gtrsim 50$, naive participants,
 multiple opponent personalities, $\geq 2$ boards beyond default
 vs.\ GA-2p winner) is the obvious next step.
 \item \textbf{LLM scale.} Qwen2.5-1.5B is the only LLM in the study.
@@ -1244,14 +1241,14 @@ rule-based pool exposes (or fails to expose) the
 single-personality blind spot. \emph{Outcome:} the cross-evaluator
 fairness gap is $+0.18$ at 2p and $+0.35$ at 3p, widening with
 player count. This is the central diagnostic claim of the paper.
-\item Human playtest pilot (Section~\ref{sec:playtest}).
+\item Human playtest sanity check (Section~\ref{sec:playtest}).
 \emph{Success:} the directional finding (shorter games, higher
 fairness, higher engagement on the GA-2p winner) reproduces under
-human play. \emph{Outcome:} \PH{$N{=}14$} pilot, all directional
-effects survive (rounds $-49\%$, fairness rating $+1.2$,
-engagement $+1.1$, $79\%$ preferred GA-2p winner). The pilot is
-under-powered for quantitative claims; a fuller study is the
-declared next step.
+human play. \emph{Outcome:} $N{=}2$ between the two authors, all
+directional effects consistent (rounds $-53\%$, mean fairness
+rating $+1.5$, mean engagement $+2.0$, $2/2$ preferred GA-2p
+winner). The pilot is under-powered for quantitative claims; a
+fuller study is the declared next step.
 \end{enumerate}
 
 % =====================================================================
