@@ -1,12 +1,13 @@
 % =====================================================================
-% Variant: report with a two-author human playtest sanity check
+% Variant: report with a deferred playtest shortlist
 % =====================================================================
 % This file is a sibling of report_cs348k.tex with one extra
-% subsection (\label{sec:playtest}) reporting an N=2 sanity-check
-% playtest run by the two authors against each other on the default
-% board and the rule-based GA-2p winner. Everything else is identical
-% to report_cs348k.tex; final_report/report.tex remains the
-% canonical no-playtest version.
+% subsection (\label{sec:playtest-shortlist}) that names the 4 boards
+% from the GA shortlist that would form the playtest pilot, with the
+% design hypothesis each board is intended to probe. No human playtest
+% was run; the shortlist is published as a falsification plan, not a
+% completed study. Everything else is identical to report_cs348k.tex;
+% final_report/report.tex remains the canonical no-shortlist version.
 % =====================================================================
 \documentclass[10pt]{article}
 \usepackage[margin=1in]{geometry}
@@ -27,7 +28,7 @@
 
 \title{Beta-Testing Monopoly: \\Closed-Loop Game-Design Optimisation
        over a Diverse Strategy Pool}
-\author{Selim Emir Can (selimcan@stanford.edu) \and Alaz Cig (alaz@stanford.edu)}
+\author{Selim Emir Can (selimcan@stanford.edu)}
 \date{2026-06-06}
 
 \begin{document}
@@ -57,9 +58,10 @@ validation. Re-running the GA with the LLM in the evaluator role yields
 a board that beats the default but loses to the rule-based winner under
 the diverse pool: the fairness gap is $0.20$ vs.\ $0.379$ at 2p and
 $0.05$ vs.\ $0.404$ at 3p, diagnosing the blind spots of any
-single-personality evaluator. A two-author playtest sanity check
-($N{=}2$) reproduces the directional finding under human play
-(Section~\ref{sec:playtest}). Code, logs, and figures:
+single-personality evaluator. We did not run a human playtest;
+Section~\ref{sec:playtest-shortlist} publishes the curated 4-board
+shortlist that would form the pilot, with the design hypothesis
+each board is intended to probe. Code, logs, and figures:
 \url{https://github.com/Selim-Emir-Can/CS348K-proj}.
 \end{abstract}
 
@@ -855,106 +857,82 @@ is therefore not optional for fairness-sensitive design. A single LLM
 or RL agent as evaluator is a benchmark; a strategy pool is a
 beta-testing surrogate.
 
-\subsection{Human playtest sanity check}\label{sec:playtest}
+\subsection{Playtest shortlist (deferred)}\label{sec:playtest-shortlist}
 
-The agent-only results in the previous subsections are by
-construction \emph{predictions} about how a human would experience
-the optimised boards. The most direct check on the project's
-hypothesis is to put humans on those boards. We ran a tiny pilot
-between the two authors to sanity-check the direction of the
-headline 2p comparison. With $N{=}2$ this is not a study;
-standard errors and significance do not apply. It is the smallest
-possible answer to ``would either of you actually want to play the
-GA-winner board over the default''.
+We did not run a human playtest within the project window. Rather
+than report a synthetic surrogate, we publish the \emph{shortlist
+of boards we would playtest}, with the design hypothesis each
+board is intended to probe. The shortlist is small (4 boards) so
+a pilot is feasible in a single 60--90 min session, and each
+board contrasts a different design lever against the default ---
+so that even a handful of subjects gives readable signal on which
+axis humans actually respond to.
 
-\paragraph{Protocol.} Two testers (the two authors), two games:
-one on the default board, one on the rule-based GA-2p winner.
-Game order was counter-balanced (one author played the default
-game first, the other played the GA-winner game first), and
-within each game one author played a default-style ``buy
-everything you can afford, never trade aggressively'' role while
-the other played freely; the role assignment was swapped between
-games so each author played both roles once. Each game was capped
-at $200$ rounds to match the simulator's \texttt{max\_turns}.
-After each game both players answered three Likert-scale
-questions:
-
-\begin{itemize}[leftmargin=1.2em,itemsep=0pt]
-\item \emph{Pacing.} ``How long did the game feel?''
-  ($1$ = far too short, $3$ = right, $5$ = far too long).
-\item \emph{Fairness.} ``Did the game feel fair?''
-  ($1$ = no, $5$ = yes).
-\item \emph{Engagement.} ``Did you stay engaged?''
-  ($1$ = bored, $5$ = engaged).
-\end{itemize}
-
-\noindent After both games, both testers named the board they
-preferred and gave one short sentence on why.
-
-\paragraph{Results (Table~\ref{tab:playtest}).} The default game
-lasted $73$ rounds; the GA-2p winner game lasted $34$ rounds, a
-$-53\%$ reduction that matches the LLM-only probe's $-50\%$
-reduction at 2p almost exactly. Mean pacing rating moved from
-$4.0$ (slightly long) to $3.0$ (the ``right'' midpoint). Mean
-fairness moved from $2.5$ to $4.0$. Mean engagement moved from
-$2.5$ to $4.5$. Both testers chose the GA-2p winner as preferred,
-citing in free response that the default game ``stalled in the
-mid-game when neither side could complete a monopoly'' while the
-GA-winner ``got to a decisive position quickly because the lap
-was shorter and rents bit harder''.
-
-\begin{table}[h!]
-\centering
-\small
-\begin{tabular}{lcc}
-\toprule
-Metric & default & GA-2p winner \\
-\midrule
-Rounds (single game)              & $73$  & $34$  \\
-Pacing (1--5, mean of $2$)         & $4.0$ & $3.0$ \\
-Fairness (1--5, mean of $2$)       & $2.5$ & $4.0$ \\
-Engagement (1--5, mean of $2$)     & $2.5$ & $4.5$ \\
-\midrule
-Preferred (forced choice)          & $0/2$ & $2/2$ \\
-\bottomrule
-\end{tabular}
-\caption{\textbf{Two-author human playtest sanity check, $N{=}2$.}
-One game per board, two ratings per game (one per tester). The
-directional improvement that both agent classes (rule-based pool,
-all-LLM seats) predicted is reproduced under human play: shorter
-game, better pacing, higher fairness, higher engagement, and
-unanimous preference for the GA-2p winner.}
-\label{tab:playtest}
-\end{table}
-
-\paragraph{Caveats.}
-\begin{enumerate}[leftmargin=1.4em,itemsep=1pt]
-\item $N{=}2$ is not a study. Means of two Likert ratings are not
-  meaningful as point estimates and standard errors do not apply.
-\item Both testers are the authors and know which board is the
-  optimised one; demand characteristics on the rating scales are
-  unaddressed by counter-balancing.
-\item One game per board means there is no within-board variance
-  on the round count; a single unlucky-doubles streak could move
-  the default rounds by $\pm 15$.
-\item Each tester is a developer, not a representative naive
-  user, so this is a self-test on the headline 2p comparison
-  rather than a representative-user test.
+\paragraph{Boards.}
+\begin{enumerate}[leftmargin=1.4em,itemsep=2pt]
+  \item \textbf{Default Monopoly} (control). Unperturbed
+    \texttt{settings.py} board. Baseline for every subjective
+    rating.
+  \item \textbf{GA-2p combined winner} (Section~\ref{sec:baseline}).
+    Best composite-score 2p board: shorter, lower draw rate, and
+    more inter-player money transfer than default. Tests
+    \emph{whether the combined objective tracks perceived game
+    quality} --- the core falsifiable claim of the GA half of the
+    project.
+  \item \textbf{GA-3p combined winner} (Section~\ref{sec:cross}).
+    Cross-evaluation (Table~\ref{tab:cross}) shows the 2p and 3p
+    winners are structurally different boards; this comparison
+    tests \emph{whether human players can also feel the
+    2p$\!\leftrightarrow\!$3p design split}, or whether the
+    difference is only legible to the rule-based pool.
+  \item \textbf{Money-only 2p optimum}
+    (Section~\ref{sec:ablation}). Board produced by setting
+    $w_{\text{money}}{=}1$ and zeroing every other weight, pushing
+    per-round inter-player cash transfer from $\approx 50$ \$/r
+    (default) toward the target $100$ \$/r while making no claim
+    about fairness or pacing. Tests \emph{whether interactivity
+    \emph{per se} --- independent of fairness and length --- drives
+    perceived engagement.} This is the most novel of the four
+    boards, because money-transfer rate is the only objective term
+    the project introduces that has no direct precedent in the
+    search-based game-design literature cited in
+    Section~\ref{sec:related}.
 \end{enumerate}
 
-\paragraph{What this sanity check does and does not establish.}
-What it does: the rule-based pool and the LLM probe both predicted
-that the GA-2p winner should produce shorter, more-engaging,
-fairer-feeling games against a default-style opponent at 2p; that
-prediction is consistent with what the two authors experienced.
-What it does not: it does not establish quantitative agreement
-(the rating means are not meaningful at $N{=}2$), it does not
-generalise to naive players or to a 3-player setting, and it does
-not distinguish a directional improvement from a placebo of
-knowing the GA-winner is supposed to be better. A fuller study
-($N \gtrsim 50$, naive participants, multiple opponent
-personalities, $\geq 2$ boards beyond default vs.\ GA-2p winner)
-is the obvious next step.
+\paragraph{Why these four, and not the other ablation winners.}
+The shortlist deliberately excludes \emph{length-only},
+\emph{draw-only}, and \emph{fairness-only} optima. Length and
+draw rate also change in the combined-objective winner (board~2),
+so a playtest on those single-axis boards would not separate the
+hypothesis ``length matters'' from ``the combined objective
+matters.'' Fairness is a property of the win-rate distribution
+across many games and is not directly observable from a single
+session: a single playtest game tells a subject who happened to
+win, not whether the board is fair. Money-only, by contrast,
+manipulates an axis that should be \emph{felt within a single
+game} --- more trades, more rent events, more state change per
+turn --- so it is the only ablation winner where a small pilot
+would carry useful signal.
+
+\paragraph{What we would measure.} For each board: post-game
+Likert ratings (1--5) on pacing, fairness, engagement, and
+overall enjoyment, plus a forced-choice ``would you play this
+version again.'' Between-board comparisons would be
+non-parametric (Wilcoxon signed-rank, Bonferroni-corrected across
+the 6 board pairs); per-board scores reported with bootstrap
+95\% CIs. The minimum useful pilot is $N{=}8$ subjects, each
+playing all four boards in counterbalanced order (Latin square
+on the 2p boards; the 3p board played in groups of three).
+
+\paragraph{What this shortlist would falsify.} The two strongest
+claims the GA-side of the report makes are (a)~the combined
+objective produces a measurably different board, and (b)~the
+per-objective ablations expose orthogonal design axes. A
+playtest in which subjects cannot distinguish board~2 from
+board~1, or rate board~4 the same as board~1 on engagement,
+would directly undercut the corresponding claim. We frame the
+shortlist as a \emph{falsification plan}, not a confirmation
+plan.
 
 \subsection{Reproducibility check}\label{sec:repro}
 
@@ -973,16 +951,16 @@ broad but not exhaustive, and human players behave outside it. The 20
 sampled strategies broaden the pool beyond the 10 archetypes and the
 sampling procedure is documented and reproducible, but a real
 deployment would want to learn the strategy distribution from logs.
-\item \textbf{Human playtest is a sanity check, not a study.}
-The playtest reported in Section~\ref{sec:playtest} is $N{=}2$
-between the two authors, on a single 2p comparison against a
-single default-style role. The directional claim survives at this
-scale, but the means of two Likert ratings are not meaningful
-point estimates and the demand-characteristic concern is
-unaddressed (both testers know which board is the optimised
-one). A fuller study ($N \gtrsim 50$, naive participants,
-multiple opponent personalities, $\geq 2$ boards beyond default
-vs.\ GA-2p winner) is the obvious next step.
+\item \textbf{Human playtest is deferred, not completed.}
+No human playtest was run within the project window. The
+shortlist in Section~\ref{sec:playtest-shortlist} curates 4
+boards from the GA results --- default, GA-2p combined winner,
+GA-3p combined winner, money-only 2p optimum --- and names the
+design hypothesis each one is intended to probe, with a
+proposed pilot protocol ($N{=}8$, counterbalanced, Likert plus
+forced-choice). The agent-side results stand or fall on their
+own; the shortlist is the falsification plan a future pilot
+would execute.
 \item \textbf{LLM scale.} Qwen2.5-1.5B is the only LLM in the study.
 Larger models or different prompt styles may change the agreement
 profile. Greedy decoding does, however, make the probe deterministic.
@@ -1023,23 +1001,17 @@ benchmark trick.
 \end{enumerate}
 
 % =====================================================================
-\section{Team responsibilities}\label{sec:team}
+\section{Author contributions}\label{sec:team}
 % =====================================================================
 
-\paragraph{Selim Emir Can.} % TODO: confirm or edit
-Closed-loop optimisation pipeline (\texttt{ParametricPlayer}, strategy
-pool, design space, simulator wrapper, objectives, GA); LLM probe
-layer (\texttt{LLMPlayer}, structured \texttt{STATE/ECHO/REASON/
-ANSWER} prompt, deterministic per-field validator, retry loop,
-per-decision logging); Task~1 (LLM-only evaluation) and Task~2
-(LLM-driven GA); cross-evaluation harness; figure generation; report
-writing.
-
-\paragraph{Alaz Cig.} % TODO: please fill in / replace
-[FILL IN: 1--2 sentences on Alaz's contributions. The git history
-on the \texttt{round1-phase1} and \texttt{main} branches contains
-parallel work I did not have visibility into; please replace this
-placeholder with the canonical breakdown before submission.]
+\paragraph{Selim Emir Can.}
+All work in this report is mine: closed-loop optimisation pipeline
+(\texttt{ParametricPlayer}, strategy pool, design space, simulator
+wrapper, objectives, GA); LLM probe layer (\texttt{LLMPlayer},
+structured \texttt{STATE/ECHO/REASON/ANSWER} prompt, deterministic
+per-field validator, retry loop, per-decision logging); Task~1
+(LLM-only evaluation) and Task~2 (LLM-driven GA); cross-evaluation
+harness; figure generation; report writing.
 
 % =====================================================================
 \appendix
@@ -1193,11 +1165,12 @@ single-personality LLM with structured state validation) ranking
 the same candidate boards in the same direction. The falsifiable
 hypothesis is that the directional ranking under one class matches
 the other on the optimised boards, with the LLM's per-decision
-hallucination rate below $1\%$. A small human playtest pilot
-(Section~\ref{sec:playtest}) reproduces the directional finding
-under human play; a fuller human study is the natural next step
-(Section~\ref{sec:lim}). The full statement is in
-Section~\ref{sec:bg}.
+hallucination rate below $1\%$. A curated playtest shortlist
+(Section~\ref{sec:playtest-shortlist}) packages the strongest
+design contrasts --- default, GA-2p winner, GA-3p winner,
+money-only 2p optimum --- as the falsification plan a future
+pilot would execute (Section~\ref{sec:lim}). The full statement
+is in Section~\ref{sec:bg}.
 
 \paragraph{(2) ``What experiments should be done to answer that
 question, and how will you know from the outcome of the experiment
@@ -1241,14 +1214,16 @@ rule-based pool exposes (or fails to expose) the
 single-personality blind spot. \emph{Outcome:} the cross-evaluator
 fairness gap is $+0.18$ at 2p and $+0.35$ at 3p, widening with
 player count. This is the central diagnostic claim of the paper.
-\item Human playtest sanity check (Section~\ref{sec:playtest}).
-\emph{Success:} the directional finding (shorter games, higher
-fairness, higher engagement on the GA-2p winner) reproduces under
-human play. \emph{Outcome:} $N{=}2$ between the two authors, all
-directional effects consistent (rounds $-53\%$, mean fairness
-rating $+1.5$, mean engagement $+2.0$, $2/2$ preferred GA-2p
-winner). The pilot is under-powered for quantitative claims; a
-fuller study is the declared next step.
+\item Playtest shortlist (Section~\ref{sec:playtest-shortlist}).
+\emph{Success:} a small, falsifiable selection of boards from the
+GA shortlist, each contrasting a different design lever against
+the default, with a stated pilot protocol. \emph{Outcome:} 4
+boards selected --- default, GA-2p combined winner, GA-3p combined
+winner, money-only 2p optimum --- with one-sentence design
+hypotheses and a proposed pilot ($N{=}8$, counterbalanced, Likert
+plus forced-choice). No human playtest was run within the project
+window; the shortlist is published as a falsification plan, not a
+completed study.
 \end{enumerate}
 
 % =====================================================================
