@@ -154,7 +154,7 @@ def _truncate(s: str, max_chars: int) -> str:
 
 
 def _draw_cell(ax, cfg_cell, default_cell, index, corners, n_cells,
-               label_overrides=None, annotate_changes=False):
+               label_overrides=None, annotate_changes=False, font_scale=1.0):
     x, y, w, h, side, is_corner = _cell_rect(index, corners, n_cells)
     base_color = 'white'
     name = cfg_cell.name
@@ -188,7 +188,7 @@ def _draw_cell(ax, cfg_cell, default_cell, index, corners, n_cells,
     else:            rot = 270
 
     # Name + cost/rent label
-    fontsize = 7 if not is_corner else 9
+    fontsize = (7 if not is_corner else 9) * font_scale
     lines = []
     short_name = _truncate(name.split(' ', 1)[-1] if ' ' in name else name, 14)
     lines.append(short_name)
@@ -246,8 +246,12 @@ def _find_corners(cells):
 
 
 def draw_board(ax, cfg, default_cfg=None, title: str = '',
-               annotate_changes: bool = False):
-    """Draw a full board (any cell count) on the given axes."""
+               annotate_changes: bool = False, font_scale: float = 1.0):
+    """Draw a full board (any cell count) on the given axes.
+
+    ``font_scale`` multiplies every cell's text size (default 1.0 preserves the
+    original report-figure appearance; pass >1 for a more legible board, e.g.
+    for the interactive play UI)."""
     n = len(cfg.cells)
     corners = _find_corners(cfg.cells)
 
@@ -261,7 +265,8 @@ def draw_board(ax, cfg, default_cfg=None, title: str = '',
     for i in range(n):
         c = cfg.cells[i]
         d = default_by_name.get(c.name)
-        _draw_cell(ax, c, d, i, corners, n, annotate_changes=annotate_changes)
+        _draw_cell(ax, c, d, i, corners, n, annotate_changes=annotate_changes,
+                   font_scale=font_scale)
 
     # Axis limits derived from the same geometry used by _cell_rect.
     bot_n   = (corners[1] - corners[0] - 1) % n

@@ -58,10 +58,11 @@ validation. Re-running the GA with the LLM in the evaluator role yields
 a board that beats the default but loses to the rule-based winner under
 the diverse pool: the fairness gap is $0.20$ vs.\ $0.379$ at 2p and
 $0.05$ vs.\ $0.404$ at 3p, diagnosing the blind spots of any
-single-personality evaluator. We did not run a human playtest;
-Section~\ref{sec:playtest-shortlist} publishes the curated 4-board
-shortlist that would form the pilot, with the design hypothesis
-each board is intended to probe. Code, logs, and figures:
+single-personality evaluator. A small $N{=}2$ self-play pilot
+(Section~\ref{sec:playtest-pilot}) confirms the predicted pacing and
+money-circulation effects under human control; the fuller
+multi-subject playtest (Section~\ref{sec:playtest-shortlist}) that
+would test the subjective and fairness claims remains deferred. Code, logs, and figures:
 \url{https://github.com/Selim-Emir-Can/CS348K-proj}.
 \end{abstract}
 
@@ -162,13 +163,21 @@ reported with its failure modes (Section~\ref{sec:llm}).
 Procedural and search-based game-content generation has a long
 literature; Shaker et al.~\cite{togelius_pcg} survey the field, and
 prior tools such as Sentient Sketchbook~\cite{liapis_sentient} use
-search agents to surface design issues during authoring. Closer to
-this work, automated playtesting with rule-based or learned agents
-is a recurring approach for detecting balance pathologies. Our
-contribution is not the use of agents per se but a protocol that
-uses \emph{multiple agent classes} as cross-checks, with
-disagreement-as-diagnostic and human playtesting reserved for the
-boundary cases.
+search agents to surface design issues during authoring. Closest to
+our strategy pool is the line of work on \emph{procedural
+personas}~\cite{holmgard_personas}, which represents distinct player
+types as agents evolved or trained to maximise hand-designed utility
+functions, and uses them both to playtest and to drive content
+generation; evaluating or optimising a design against such an agent
+population is established prior art, not a contribution of this work.
+Our pool differs only in mechanism: fixed, hand-specified and sampled
+rule-based parameters rather than trained policies, since
+per-candidate model-free RL is impractical for a high-variance
+stochastic game evaluated over thousands of designs. The contribution
+is instead a protocol that uses \emph{multiple agent classes} as
+cross-checks (a parametric rule-based pool and an independent LLM
+probe), with disagreement-as-diagnostic and human playtesting
+reserved for the boundary cases.
 
 \paragraph{LLM-based agents.} Small instruction-tuned LLMs such as
 Qwen2.5~\cite{qwen25} have been used as decision-making agents in
@@ -857,14 +866,64 @@ is therefore not optional for fairness-sensitive design. A single LLM
 or RL agent as evaluator is a benchmark; a strategy pool is a
 beta-testing surrogate.
 
-\subsection{Playtest shortlist (deferred)}\label{sec:playtest-shortlist}
+\subsection{Human playtest pilot ($N{=}2$, self-play)}\label{sec:playtest-pilot}
 
-We did not run a human playtest within the project window. Rather
+As a reality check on whether the agent-optimized boards behave as
+predicted under human play, one author played both seats of four
+two-player boards: the default, the GA-2p combined winner
+(Section~\ref{sec:baseline}), and the length-only and money-only
+ablation optima (Section~\ref{sec:ablation}). Each board was played
+twice under matched RNG seeds ($0$ and $42$), a common-random-numbers
+pairing across boards so that a difference reflects the board rather
+than luck. The two per-game observables the search optimizes that are
+legible from a single transcript, game length and inter-player money
+transfer, were recovered from the game logs with
+\texttt{scripts/human\_game\_stats.py}.
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=\linewidth]{fig_human_playtest.png}
+\caption{\textbf{The agent-optimized boards play faster and circulate
+more money under human control.} Per-board mean over two self-play
+games at matched seeds ($0$ and $42$); dots are the individual games.
+Left: the three optimized boards finish in $31$--$36$ rounds on
+average against $139$ for the default, which in one of its two games
+hit the $200$-turn cap with no winner (red cross). Right: inter-player
+money transfer per round is higher on the optimized boards
+($60$--$73$ \$/r) than on the default ($48$ \$/r), moving toward the
+$100$ \$/r target. $N{=}2$ per board, a single subject controlling
+both seats.}
+\label{fig:playtest}
+\end{figure}
+
+Figure~\ref{fig:playtest} summarizes the eight games. The three
+optimized boards finish in $31$--$36$ rounds on average against $139$
+for the default, and in one of its two games the default failed to
+resolve at all, hitting the $200$-turn cap with no winner. All six
+optimized games ended decisively by bankruptcy; the default resolved
+only one of two. Inter-player money transfer per round was higher on
+the optimized boards on average ($60$--$73$ \$/r) than on the default
+($48$ \$/r).
+
+We read this pilot as directional support, not measurement. With
+$N{=}2$ games per board played by a single subject controlling both
+seats, it cannot speak to fairness (a win-rate property across many
+games and players) or to draw rate, and the ordering \emph{among} the
+optimized boards is within single-game noise. What it does show, under
+two matched seeds, is that the pacing and money-circulation effects
+the GA was trained to produce survive contact with a human at the
+controls. The fuller multi-subject playtest that would test the
+subjective and fairness claims remains deferred; we specify it next.
+
+\subsection{Full playtest (deferred)}\label{sec:playtest-shortlist}
+
+Beyond the pilot above, we did not run the full multi-subject
+playtest within the project window. Rather
 than report a synthetic surrogate, we publish the \emph{shortlist
 of boards we would playtest}, with the design hypothesis each
 board is intended to probe. The shortlist is small (4 boards) so
 a pilot is feasible in a single 60--90 min session, and each
-board contrasts a different design lever against the default ---
+board contrasts a different design lever against the default,
 so that even a handful of subjects gives readable signal on which
 axis humans actually respond to.
 
@@ -877,7 +936,7 @@ axis humans actually respond to.
     Best composite-score 2p board: shorter, lower draw rate, and
     more inter-player money transfer than default. Tests
     \emph{whether the combined objective tracks perceived game
-    quality} --- the core falsifiable claim of the GA half of the
+    quality}, the core falsifiable claim of the GA half of the
     project.
   \item \textbf{GA-3p combined winner} (Section~\ref{sec:cross}).
     Cross-evaluation (Table~\ref{tab:cross}) shows the 2p and 3p
@@ -891,7 +950,7 @@ axis humans actually respond to.
     per-round inter-player cash transfer from $\approx 50$ \$/r
     (default) toward the target $100$ \$/r while making no claim
     about fairness or pacing. Tests \emph{whether interactivity
-    \emph{per se} --- independent of fairness and length --- drives
+    \emph{per se}, independent of fairness and length, drives
     perceived engagement.} This is the most novel of the four
     boards, because money-transfer rate is the only objective term
     the project introduces that has no direct precedent in the
@@ -910,8 +969,8 @@ across many games and is not directly observable from a single
 session: a single playtest game tells a subject who happened to
 win, not whether the board is fair. Money-only, by contrast,
 manipulates an axis that should be \emph{felt within a single
-game} --- more trades, more rent events, more state change per
-turn --- so it is the only ablation winner where a small pilot
+game} (more trades, more rent events, more state change per
+turn), so it is the only ablation winner where a small pilot
 would carry useful signal.
 
 \paragraph{What we would measure.} For each board: post-game
@@ -928,9 +987,9 @@ on the 2p boards; the 3p board played in groups of three).
 claims the GA-side of the report makes are (a)~the combined
 objective produces a measurably different board, and (b)~the
 per-objective ablations expose orthogonal design axes. A
-playtest in which subjects cannot distinguish board~2 from
-board~1, or rate board~4 the same as board~1 on engagement,
-would directly undercut the corresponding claim. We frame the
+playtest where board~2 feels the same as board~1, or board~4
+scores the same as board~1 on engagement, would mean the
+matching claim above is wrong. We frame the
 shortlist as a \emph{falsification plan}, not a confirmation
 plan.
 
@@ -951,16 +1010,20 @@ broad but not exhaustive, and human players behave outside it. The 20
 sampled strategies broaden the pool beyond the 10 archetypes and the
 sampling procedure is documented and reproducible, but a real
 deployment would want to learn the strategy distribution from logs.
-\item \textbf{Human playtest is deferred, not completed.}
-No human playtest was run within the project window. The
-shortlist in Section~\ref{sec:playtest-shortlist} curates 4
-boards from the GA results --- default, GA-2p combined winner,
-GA-3p combined winner, money-only 2p optimum --- and names the
-design hypothesis each one is intended to probe, with a
-proposed pilot protocol ($N{=}8$, counterbalanced, Likert plus
-forced-choice). The agent-side results stand or fall on their
-own; the shortlist is the falsification plan a future pilot
-would execute.
+\item \textbf{Human playtest is a small pilot, not a full study.}
+Only a small $N{=}2$ self-play pilot was run
+(Section~\ref{sec:playtest-pilot}): one subject played both
+seats of four 2p boards under two matched seeds, which
+directionally confirms the pacing and money-circulation effects
+but cannot measure fairness or draw rate. The full multi-subject
+playtest remains deferred. The shortlist in
+Section~\ref{sec:playtest-shortlist} curates 4 boards from the GA
+results (default, GA-2p combined winner, GA-3p combined winner,
+money-only 2p optimum) and names the design hypothesis each one
+is intended to probe, with a proposed pilot protocol ($N{=}8$,
+counterbalanced, Likert plus forced-choice). The agent-side
+results stand or fall on their own; the shortlist is the
+falsification plan a future pilot would execute.
 \item \textbf{LLM scale.} Qwen2.5-1.5B is the only LLM in the study.
 Larger models or different prompt styles may change the agreement
 profile. Greedy decoding does, however, make the probe deterministic.
@@ -1167,8 +1230,8 @@ hypothesis is that the directional ranking under one class matches
 the other on the optimised boards, with the LLM's per-decision
 hallucination rate below $1\%$. A curated playtest shortlist
 (Section~\ref{sec:playtest-shortlist}) packages the strongest
-design contrasts --- default, GA-2p winner, GA-3p winner,
-money-only 2p optimum --- as the falsification plan a future
+design contrasts (default, GA-2p winner, GA-3p winner,
+money-only 2p optimum) as the falsification plan a future
 pilot would execute (Section~\ref{sec:lim}). The full statement
 is in Section~\ref{sec:bg}.
 
@@ -1218,12 +1281,13 @@ player count. This is the central diagnostic claim of the paper.
 \emph{Success:} a small, falsifiable selection of boards from the
 GA shortlist, each contrasting a different design lever against
 the default, with a stated pilot protocol. \emph{Outcome:} 4
-boards selected --- default, GA-2p combined winner, GA-3p combined
-winner, money-only 2p optimum --- with one-sentence design
+boards selected (default, GA-2p combined winner, GA-3p combined
+winner, money-only 2p optimum) with one-sentence design
 hypotheses and a proposed pilot ($N{=}8$, counterbalanced, Likert
-plus forced-choice). No human playtest was run within the project
-window; the shortlist is published as a falsification plan, not a
-completed study.
+plus forced-choice). A small $N{=}2$ self-play pilot
+(Section~\ref{sec:playtest-pilot}) directionally confirms the pacing
+and money-circulation effects; the fuller multi-subject playtest is
+published as a falsification plan, not a completed study.
 \end{enumerate}
 
 % =====================================================================

@@ -148,13 +148,21 @@ reported with its failure modes (Section~\ref{sec:llm}).
 Procedural and search-based game-content generation has a long
 literature; Shaker et al.~\cite{togelius_pcg} survey the field, and
 prior tools such as Sentient Sketchbook~\cite{liapis_sentient} use
-search agents to surface design issues during authoring. Closer to
-this work, automated playtesting with rule-based or learned agents
-is a recurring approach for detecting balance pathologies. Our
-contribution is not the use of agents per se but a protocol that
-uses \emph{multiple agent classes} as cross-checks, with
-disagreement-as-diagnostic and human playtesting reserved for the
-boundary cases.
+search agents to surface design issues during authoring. Closest to
+our strategy pool is the line of work on \emph{procedural
+personas}~\cite{holmgard_personas}, which represents distinct player
+types as agents evolved or trained to maximise hand-designed utility
+functions, and uses them both to playtest and to drive content
+generation; evaluating or optimising a design against such an agent
+population is established prior art, not a contribution of this work.
+Our pool differs only in mechanism: fixed, hand-specified and sampled
+rule-based parameters rather than trained policies, since
+per-candidate model-free RL is impractical for a high-variance
+stochastic game evaluated over thousands of designs. The contribution
+is instead a protocol that uses \emph{multiple agent classes} as
+cross-checks (a parametric rule-based pool and an independent LLM
+probe), with disagreement-as-diagnostic and human playtesting
+reserved for the boundary cases.
 
 \paragraph{LLM-based agents.} Small instruction-tuned LLMs such as
 Qwen2.5~\cite{qwen25} have been used as decision-making agents in

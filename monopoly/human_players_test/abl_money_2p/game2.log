@@ -1,0 +1,522 @@
+= HUMAN GAME on abl_money_2p_mask (2 players) [seed=42] =
+=== Player 1 ($1500, at GO) goes: ===
+roll: 6, ([3, 3],double)
+Player 1 goes to: CH1 Chance
+Player 1 drew Chance card: 'Bank pays you dividend of $50'
+Player 1 gets $50
+Player 1 rolled a double (1 in a row) so they go again.
+=== Player 1 ($1550, at CH1 Chance) goes: ===
+roll: 4, ([2, 2],double)
+Player 1 goes to: U1 Electric Company
+[decision] Player 1: BUY U1 Electric Company ($150)
+Player 1 bought U1 Electric Company for $150
+Player 1 rolled a double (2 in a row) so they go again.
+=== Player 1 ($1400, at U1 Electric Company) goes: ===
+roll: 4, ([3, 1])
+Player 1 goes to: COM2 Community Chest
+Player 1 drew Community Chest card: 'Go to Jail. Go directly to jail, do not pass Go, do not collect $200'
+=== Player 2 ($1500, at GO) goes: ===
+roll: 5, ([1, 4])
+Player 2 goes to: B1 Oriental Avenue
+[decision] Player 2: BUY B1 Oriental Avenue ($79)
+Player 2 bought B1 Oriental Avenue for $79
+=== Player 1 ($1400, at COM2 Community Chest) goes: ===
+roll: 4, ([1, 3])
+Player 1 goes to: R3 B&O Railroad
+[decision] Player 1: BUY R3 B&O Railroad ($200)
+Player 1 bought R3 B&O Railroad for $200
+=== Player 2 ($1421, at B1 Oriental Avenue) goes: ===
+roll: 8, ([3, 5])
+Player 2 goes to: D1 St. James Place
+[decision] Player 2: BUY D1 St. James Place ($114)
+Player 2 bought D1 St. James Place for $114
+=== Player 1 ($1200, at R3 B&O Railroad) goes: ===
+roll: 4, ([3, 1])
+Player 1 goes to: COM3 Community Chest
+Player 1 drew Community Chest card: 'Bank error in your favor. Collect $200'
+Player 1 gets $200
+=== Player 2 ($1307, at D1 St. James Place) goes: ===
+Player 2 built 1st house on D1 St. James Place for $63
+Player 2 built 2nd house on D1 St. James Place for $63
+roll: 10, ([6, 4])
+Player 2 goes to: G3 Pennsylvania Avenue
+[decision] Player 2: BUY G3 Pennsylvania Avenue ($303)
+Player 2 bought G3 Pennsylvania Avenue for $303
+=== Player 1 ($1400, at COM3 Community Chest) goes: ===
+roll: 6, ([5, 1])
+Player 1 goes to: H2 Boardwalk
+[decision] Player 1: BUY H2 Boardwalk ($419)
+Player 1 bought H2 Boardwalk for $419
+=== Player 2 ($878, at G3 Pennsylvania Avenue) goes: ===
+Player 2 built 1st house on G3 Pennsylvania Avenue for $190
+Player 2 built 3rd house on D1 St. James Place for $63
+roll: 5, ([4, 1])
+Player 2 goes to: H2 Boardwalk
+Player 2 landed on a property, owned by Player 1
+Player 2 pays Player 1 rent $55
+=== Player 1 ($1036, at H2 Boardwalk) goes: ===
+roll: 8, ([5, 3])
+ Player 1 receives salary $200
+Player 1 goes to: B2 Vermont Avenue
+[decision] Player 1: BUY B2 Vermont Avenue ($160)
+Player 1 bought B2 Vermont Avenue for $160
+=== Player 2 ($570, at H2 Boardwalk) goes: ===
+Player 2 built 4th house on D1 St. James Place for $63
+Player 2 built 2nd house on G3 Pennsylvania Avenue for $190
+roll: 11, ([6, 5])
+ Player 2 receives salary $200
+Player 2 goes to: U1 Electric Company
+Player 2 landed on a property, owned by Player 1
+roll: 8, ([3, 5])
+Player 2 pays Player 1 rent $32
+=== Player 1 ($1108, at B2 Vermont Avenue) goes: ===
+roll: 8, ([2, 6])
+Player 1 goes to: FP Free Parking
+=== Player 2 ($485, at U1 Electric Company) goes: ===
+Player 2 built a hotel on D1 St. James Place for $63
+roll: 2, ([1, 1],double)
+Player 2 goes to: R2 Pennsylvania Railroad
+[decision] Player 2: BUY R2 Pennsylvania Railroad ($200)
+Player 2 bought R2 Pennsylvania Railroad for $200
+Player 2 rolled a double (1 in a row) so they go again.
+=== Player 2 ($222, at R2 Pennsylvania Railroad) goes: ===
+roll: 8, ([6, 2])
+Player 2 goes to: F3 Marvin Gardens
+[decision] Player 2: cannot afford F3 Marvin Gardens ($239 > $222); auto-pass
+Player 2 landed on a F3 Marvin Gardens, he refuses to buy it
+=== Player 1 ($1108, at FP Free Parking) goes: ===
+roll: 4, ([3, 1])
+Player 1 goes to: U2 Waterworks
+[decision] Player 1: BUY U2 Waterworks ($150)
+Player 1 bought U2 Waterworks for $150
+=== Player 2 ($222, at F3 Marvin Gardens) goes: ===
+roll: 3, ([2, 1])
+Player 2 goes to: G3 Pennsylvania Avenue
+Own property, no rent
+=== Player 1 ($958, at U2 Waterworks) goes: ===
+roll: 7, ([4, 3])
+Player 1 goes to: H1 Park Place
+[decision] Player 1: BUY H1 Park Place ($672)
+Player 1 bought H1 Park Place for $672
+=== Player 2 ($222, at G3 Pennsylvania Avenue) goes: ===
+roll: 10, ([4, 6])
+ Player 2 receives salary $200
+Player 2 goes to: R1 Reading Railroad
+[decision] Player 2: BUY R1 Reading Railroad ($200)
+Player 2 bought R1 Reading Railroad for $200
+=== Player 1 ($286, at H1 Park Place) goes: ===
+Player 1 built 1st house on H2 Boardwalk for $209
+roll: 5, ([3, 2])
+ Player 1 receives salary $200
+Player 1 goes to: COM1 Community Chest
+Player 1 drew Community Chest card: 'You are assessed for street repair. $40 per house. $115 per hotel'
+Repair cost: $40
+=== Player 2 ($222, at R1 Reading Railroad) goes: ===
+roll: 6, ([3, 3],double)
+Player 2 goes to: U1 Electric Company
+Player 2 landed on a property, owned by Player 1
+roll: 8, ([2, 6])
+Player 2 pays Player 1 rent $80
+Player 2 rolled a double (1 in a row) so they go again.
+=== Player 2 ($142, at U1 Electric Company) goes: ===
+roll: 9, ([3, 6])
+Player 2 goes to: U2 Waterworks
+Player 2 landed on a property, owned by Player 1
+roll: 12, ([6, 6],double)
+Player 2 pays Player 1 rent $120
+=== Player 1 ($437, at COM1 Community Chest) goes: ===
+Player 1 built 1st house on H1 Park Place for $384
+roll: 6, ([1, 5])
+Player 1 goes to: B3 Connecticut Avenue
+[decision] Player 1: cannot afford B3 Connecticut Avenue ($167 > $53); auto-pass
+Player 1 landed on a B3 Connecticut Avenue, he refuses to buy it
+=== Player 2 ($22, at U2 Waterworks) goes: ===
+roll: 8, ([6, 2])
+Player 2 goes to: LT Luxury Tax
+Player 2 has $22, he can pay $100, but needs to mortgage/sell some things for that
+Player 2 sells 2nd house on G3 Pennsylvania Avenue, raising $95
+Player 2 pays Luxury Tax $100
+=== Player 1 ($53, at B3 Connecticut Avenue) goes: ===
+roll: 11, ([5, 6])
+Player 1 goes to: U2 Waterworks
+Own property, no rent
+=== Player 2 ($17, at LT Luxury Tax) goes: ===
+roll: 4, ([2, 2],double)
+ Player 2 receives salary $200
+Player 2 goes to: COM1 Community Chest
+Player 2 drew Community Chest card: 'Receive $25 consultancy fee'
+Player 2 gets $25
+Player 2 rolled a double (1 in a row) so they go again.
+=== Player 2 ($242, at COM1 Community Chest) goes: ===
+Player 2 built 2nd house on G3 Pennsylvania Avenue for $190
+roll: 8, ([4, 4],double)
+Player 2 goes to: U1 Electric Company
+Player 2 landed on a property, owned by Player 1
+roll: 9, ([3, 6])
+Player 2 has $52, he can pay $90, but needs to mortgage/sell some things for that
+Player 2 sells 2nd house on G3 Pennsylvania Avenue, raising $95
+Player 2 pays Player 1 rent $90
+Player 2 rolled a double (2 in a row) so they go again.
+=== Player 2 ($57, at U1 Electric Company) goes: ===
+roll: 11, ([6, 5])
+Player 2 goes to: GTJ Go To Jail
+Player 2 landed on Go To Jail, and goes to Jail.
+=== Player 1 ($143, at U2 Waterworks) goes: ===
+roll: 8, ([2, 6])
+Player 1 goes to: LT Luxury Tax
+Player 1 pays Luxury Tax $100
+=== Player 2 ($57, at JL Jail) goes: ===
+roll: 4, ([3, 1])
+[decision] Player 2: staying in jail
+Player 2 stays in jail
+=== Player 1 ($43, at LT Luxury Tax) goes: ===
+roll: 3, ([2, 1])
+ Player 1 receives salary $200
+Player 1 goes to: A1 Mediterranean Avenue
+[decision] Player 1: BUY A1 Mediterranean Avenue ($104)
+Player 1 bought A1 Mediterranean Avenue for $104
+=== Player 2 ($57, at JL Jail) goes: ===
+roll: 7, ([3, 4])
+[decision] Player 2: staying in jail
+Player 2 stays in jail
+=== Player 1 ($139, at A1 Mediterranean Avenue) goes: ===
+Player 1 built 1st house on A1 Mediterranean Avenue for $87
+roll: 4, ([3, 1])
+Player 1 goes to: B1 Oriental Avenue
+Player 1 landed on a property, owned by Player 2
+Player 1 pays Player 2 rent $9
+=== Player 2 ($66, at JL Jail) goes: ===
+roll: 7, ([2, 5])
+Player 2 did not rolled a double for the third time, pays 50 and leaves jail
+Player 2 goes to: CH2 Chance
+Player 2 drew Chance card: 'Go Back 3 Spaces'
+Player 2 goes to D1 St. James Place
+Own property, no rent
+=== Player 1 ($43, at B1 Oriental Avenue) goes: ===
+roll: 9, ([6, 3])
+Player 1 goes to: COM2 Community Chest
+Player 1 drew Community Chest card: 'Doctor's fee. Pay $50'
+Player 1 has $43, he can pay $50, but needs to mortgage/sell some things for that
+Player 1 sells 1st house on A1 Mediterranean Avenue, raising $43
+=== Player 2 ($16, at D1 St. James Place) goes: ===
+roll: 8, ([2, 6])
+Player 2 goes to: GTJ Go To Jail
+Player 2 landed on Go To Jail, and goes to Jail.
+=== Player 1 ($36, at COM2 Community Chest) goes: ===
+roll: 8, ([4, 4],double)
+Player 1 goes to: COM3 Community Chest
+Player 1 drew Community Chest card: 'Get Out of Jail Free'
+Player 1 now has a 'Get Out of Jail Free' card
+Player 1 rolled a double (1 in a row) so they go again.
+=== Player 1 ($36, at COM3 Community Chest) goes: ===
+roll: 10, ([6, 4])
+ Player 1 receives salary $200
+Player 1 goes to: IT Income Tax
+Player 1 pays fixed Income tax 200
+=== Player 2 ($16, at JL Jail) goes: ===
+roll: 5, ([2, 3])
+Player 2 stays in jail
+=== Player 1 ($36, at IT Income Tax) goes: ===
+roll: 4, ([2, 2],double)
+Player 1 goes to: B2 Vermont Avenue
+Own property, no rent
+Player 1 rolled a double (1 in a row) so they go again.
+=== Player 1 ($36, at B2 Vermont Avenue) goes: ===
+roll: 11, ([6, 5])
+Player 1 goes to: R3 B&O Railroad
+Own property, no rent
+=== Player 2 ($16, at JL Jail) goes: ===
+roll: 8, ([5, 3])
+Player 2 stays in jail
+=== Player 1 ($36, at R3 B&O Railroad) goes: ===
+roll: 11, ([6, 5])
+ Player 1 receives salary $200
+Player 1 goes to: GO
+=== Player 2 ($16, at JL Jail) goes: ===
+roll: 9, ([4, 5])
+Player 2 did not rolled a double for the third time, pays 50 and leaves jail
+Player 2 has $16, he can pay $50, but needs to mortgage/sell some things for that
+Player 2 sells 1st house on G3 Pennsylvania Avenue, raising $95
+Player 2 goes to: R3 B&O Railroad
+Player 2 landed on a property, owned by Player 1
+Player 2 pays Player 1 rent $25
+=== Player 1 ($261, at GO) goes: ===
+roll: 7, ([4, 3])
+Player 1 goes to: B2 Vermont Avenue
+Own property, no rent
+=== Player 2 ($36, at R3 B&O Railroad) goes: ===
+roll: 4, ([2, 2],double)
+Player 2 goes to: COM3 Community Chest
+Player 2 drew Community Chest card: 'Pay hospital fees of $100'
+Player 2 has $36, he can pay $100, but needs to mortgage/sell some things for that
+Player 2 sells a hotel on D1 St. James Place, raising $31
+Player 2 sells 4th house on D1 St. James Place, raising $31
+Player 2 sells 3rd house on D1 St. James Place, raising $31
+Player 2 rolled a double (1 in a row) so they go again.
+=== Player 2 ($29, at COM3 Community Chest) goes: ===
+roll: 9, ([5, 4])
+ Player 2 receives salary $200
+Player 2 goes to: COM1 Community Chest
+Player 2 drew Community Chest card: 'Holiday fund matures. Receive $100'
+Player 2 gets $100
+=== Player 1 ($261, at B2 Vermont Avenue) goes: ===
+Player 1 built 1st house on A1 Mediterranean Avenue for $87
+roll: 2, ([1, 1],double)
+Player 1 goes to: JL Jail
+Player 1 rolled a double (1 in a row) so they go again.
+=== Player 1 ($174, at JL Jail) goes: ===
+roll: 3, ([1, 2])
+Player 1 goes to: R2 Pennsylvania Railroad
+Player 1 landed on a property, owned by Player 2
+Player 1 pays Player 2 rent $50
+=== Player 2 ($379, at COM1 Community Chest) goes: ===
+Player 2 built 1st house on G3 Pennsylvania Avenue for $190
+roll: 8, ([6, 2])
+Player 2 goes to: U1 Electric Company
+Player 2 landed on a property, owned by Player 1
+roll: 10, ([6, 4])
+Player 2 pays Player 1 rent $100
+=== Player 1 ($224, at R2 Pennsylvania Railroad) goes: ===
+Player 1 built 2nd house on A1 Mediterranean Avenue for $87
+roll: 6, ([5, 1])
+Player 1 goes to: R3 B&O Railroad
+Own property, no rent
+=== Player 2 ($89, at U1 Electric Company) goes: ===
+roll: 8, ([4, 4],double)
+Player 2 goes to: R3 B&O Railroad
+Player 2 landed on a property, owned by Player 1
+Player 2 pays Player 1 rent $25
+Player 2 rolled a double (1 in a row) so they go again.
+=== Player 2 ($64, at R3 B&O Railroad) goes: ===
+roll: 9, ([5, 4])
+Player 2 goes to: LT Luxury Tax
+Player 2 has $64, he can pay $100, but needs to mortgage/sell some things for that
+Player 2 sells 1st house on G3 Pennsylvania Avenue, raising $95
+Player 2 pays Luxury Tax $100
+=== Player 1 ($162, at R3 B&O Railroad) goes: ===
+roll: 8, ([5, 3])
+Player 1 goes to: H1 Park Place
+Own property, no rent
+=== Player 2 ($59, at LT Luxury Tax) goes: ===
+roll: 6, ([5, 1])
+ Player 2 receives salary $200
+Player 2 goes to: R1 Reading Railroad
+Own property, no rent
+=== Player 1 ($162, at H1 Park Place) goes: ===
+Player 1 built 3rd house on A1 Mediterranean Avenue for $87
+roll: 12, ([6, 6],double)
+ Player 1 receives salary $200
+Player 1 goes to: JL Jail
+Player 1 rolled a double (1 in a row) so they go again.
+=== Player 1 ($275, at JL Jail) goes: ===
+Player 1 built 2nd house on H2 Boardwalk for $209
+roll: 7, ([1, 6])
+Player 1 goes to: CH2 Chance
+Player 1 drew Chance card: 'Advance to the nearest Railroad. If owned, pay owner twice the rental to which they are otherwise entitled'
+Player 1 goes to R3 B&O Railroad
+Own property, no rent
+=== Player 2 ($259, at R1 Reading Railroad) goes: ===
+Player 2 built 3rd house on D1 St. James Place for $63
+roll: 8, ([5, 3])
+Player 2 goes to: R2 Pennsylvania Railroad
+Own property, no rent
+=== Player 1 ($66, at R3 B&O Railroad) goes: ===
+roll: 9, ([6, 3])
+Player 1 goes to: LT Luxury Tax
+Player 1 has $66, he can pay $100, but needs to mortgage/sell some things for that
+Player 1 sells 3rd house on A1 Mediterranean Avenue, raising $43
+Player 1 pays Luxury Tax $100
+=== Player 2 ($196, at R2 Pennsylvania Railroad) goes: ===
+Player 2 built 4th house on D1 St. James Place for $63
+roll: 4, ([1, 3])
+Player 2 goes to: CH2 Chance
+Player 2 drew Chance card: 'Advance token to nearest Utility. If owned, throw dice and pay owner a total ten times amount thrown.'
+Player 2 goes to U2 Waterworks
+Player 2 landed on a property, owned by Player 1
+roll: 6, ([4, 2])
+Per Chance card, rent is 10x dice throw ($60).
+Player 2 pays Player 1 rent $60
+=== Player 1 ($69, at LT Luxury Tax) goes: ===
+roll: 5, ([4, 1])
+ Player 1 receives salary $200
+Player 1 goes to: IT Income Tax
+Player 1 pays fixed Income tax 200
+=== Player 2 ($73, at U2 Waterworks) goes: ===
+roll: 12, ([6, 6],double)
+ Player 2 receives salary $200
+Player 2 goes to: COM1 Community Chest
+Player 2 drew Community Chest card: 'Pay school fees of $50'
+Player 2 rolled a double (1 in a row) so they go again.
+=== Player 2 ($223, at COM1 Community Chest) goes: ===
+Player 2 built a hotel on D1 St. James Place for $63
+roll: 8, ([3, 5])
+Player 2 goes to: U1 Electric Company
+Player 2 landed on a property, owned by Player 1
+roll: 7, ([2, 5])
+Player 2 pays Player 1 rent $70
+=== Player 1 ($139, at IT Income Tax) goes: ===
+Player 1 built 3rd house on A1 Mediterranean Avenue for $87
+roll: 7, ([1, 6])
+Player 1 goes to: U1 Electric Company
+Own property, no rent
+=== Player 2 ($90, at U1 Electric Company) goes: ===
+roll: 9, ([3, 6])
+Player 2 goes to: U2 Waterworks
+Player 2 landed on a property, owned by Player 1
+roll: 10, ([5, 5],double)
+Player 2 has $90, he can pay $100, but needs to mortgage/sell some things for that
+Player 2 sells a hotel on D1 St. James Place, raising $31
+Player 2 pays Player 1 rent $100
+=== Player 1 ($152, at U1 Electric Company) goes: ===
+roll: 4, ([2, 2],double)
+Player 1 goes to: COM2 Community Chest
+Player 1 drew Community Chest card: 'From sale of stock you get $50'
+Player 1 gets $50
+Player 1 rolled a double (1 in a row) so they go again.
+=== Player 1 ($202, at COM2 Community Chest) goes: ===
+roll: 5, ([3, 2])
+Player 1 goes to: U2 Waterworks
+Own property, no rent
+=== Player 2 ($21, at U2 Waterworks) goes: ===
+roll: 10, ([5, 5],double)
+ Player 2 receives salary $200
+Player 2 goes to: GO
+Player 2 rolled a double (1 in a row) so they go again.
+=== Player 2 ($221, at GO) goes: ===
+Player 2 built 1st house on G3 Pennsylvania Avenue for $190
+roll: 6, ([1, 5])
+Player 2 goes to: CH1 Chance
+Player 2 drew Chance card: 'You have been elected Chairman of the Board. Pay each player $50'
+Player 2 has $31, he can pay $50, but needs to mortgage/sell some things for that
+Player 2 sells 4th house on D1 St. James Place, raising $31
+Player 2 pays Player 1 $50
+=== Player 1 ($252, at U2 Waterworks) goes: ===
+roll: 7, ([3, 4])
+Player 1 goes to: H1 Park Place
+Own property, no rent
+=== Player 2 ($12, at CH1 Chance) goes: ===
+roll: 2, ([1, 1],double)
+Player 2 goes to: B3 Connecticut Avenue
+[decision] Player 2: cannot afford B3 Connecticut Avenue ($167 > $12); auto-pass
+Player 2 landed on a B3 Connecticut Avenue, he refuses to buy it
+Player 2 rolled a double (1 in a row) so they go again.
+=== Player 2 ($12, at B3 Connecticut Avenue) goes: ===
+roll: 6, ([3, 3],double)
+Player 2 goes to: COM2 Community Chest
+Player 2 drew Community Chest card: 'You have won second prize in a beauty contest. Collect $10'
+Player 2 gets $10
+Player 2 rolled a double (2 in a row) so they go again.
+=== Player 2 ($22, at COM2 Community Chest) goes: ===
+roll: 3, ([2, 1])
+Player 2 goes to: E3 Illinois Avenue
+[decision] Player 2: cannot afford E3 Illinois Avenue ($206 > $22); auto-pass
+Player 2 landed on a E3 Illinois Avenue, he refuses to buy it
+=== Player 1 ($252, at H1 Park Place) goes: ===
+roll: 7, ([2, 5])
+ Player 1 receives salary $200
+Player 1 goes to: R1 Reading Railroad
+Player 1 landed on a property, owned by Player 2
+Player 1 pays Player 2 rent $50
+=== Player 2 ($72, at E3 Illinois Avenue) goes: ===
+roll: 2, ([1, 1],double)
+Player 2 goes to: U2 Waterworks
+Player 2 landed on a property, owned by Player 1
+roll: 10, ([6, 4])
+Player 2 has $72, he can pay $100, but needs to mortgage/sell some things for that
+Player 2 sells 3rd house on D1 St. James Place, raising $31
+Player 2 pays Player 1 rent $100
+Player 2 rolled a double (1 in a row) so they go again.
+=== Player 2 ($3, at U2 Waterworks) goes: ===
+roll: 6, ([1, 5])
+Player 2 goes to: CH3 Chance
+Player 2 drew Chance card: 'Go to Jail. Go directly to Jail, do not pass Go, do not collect $200'
+Player 2 got GTJ Chance card, and goes to Jail.
+=== Player 1 ($502, at R1 Reading Railroad) goes: ===
+Player 1 built 2nd house on H1 Park Place for $384
+roll: 4, ([2, 2],double)
+Player 1 goes to: B3 Connecticut Avenue
+[decision] Player 1: cannot afford B3 Connecticut Avenue ($167 > $118); auto-pass
+Player 1 landed on a B3 Connecticut Avenue, he refuses to buy it
+Player 1 rolled a double (1 in a row) so they go again.
+=== Player 1 ($118, at B3 Connecticut Avenue) goes: ===
+roll: 10, ([6, 4])
+Player 1 goes to: R3 B&O Railroad
+Own property, no rent
+=== Player 2 ($3, at JL Jail) goes: ===
+roll: 7, ([5, 2])
+Player 2 stays in jail
+=== Player 1 ($118, at R3 B&O Railroad) goes: ===
+roll: 8, ([3, 5])
+Player 1 goes to: H1 Park Place
+Own property, no rent
+=== Player 2 ($3, at JL Jail) goes: ===
+roll: 9, ([5, 4])
+Player 2 stays in jail
+=== Player 1 ($118, at H1 Park Place) goes: ===
+Player 1 built 4th house on A1 Mediterranean Avenue for $87
+roll: 7, ([2, 5])
+ Player 1 receives salary $200
+Player 1 goes to: R1 Reading Railroad
+Player 1 landed on a property, owned by Player 2
+Player 1 pays Player 2 rent $50
+=== Player 2 ($53, at JL Jail) goes: ===
+roll: 12, ([6, 6],double)
+Player 2 rolled a double, a leaves jail for free
+Player 2 goes to: GTJ Go To Jail
+Player 2 landed on Go To Jail, and goes to Jail.
+=== Player 1 ($181, at R1 Reading Railroad) goes: ===
+Player 1 built a hotel on A1 Mediterranean Avenue for $87
+roll: 8, ([2, 6])
+Player 1 goes to: R2 Pennsylvania Railroad
+Player 1 landed on a property, owned by Player 2
+Player 1 pays Player 2 rent $50
+=== Player 2 ($103, at JL Jail) goes: ===
+roll: 7, ([3, 4])
+[decision] Player 2: paid jail fine, leaving
+Player 2 goes to: CH2 Chance
+Player 2 drew Chance card: 'Speeding fine $15'
+=== Player 1 ($44, at R2 Pennsylvania Railroad) goes: ===
+roll: 12, ([6, 6],double)
+Player 1 goes to: R4 Short Line
+[decision] Player 1: cannot afford R4 Short Line ($200 > $44); auto-pass
+Player 1 landed on a R4 Short Line, he refuses to buy it
+Player 1 rolled a double (1 in a row) so they go again.
+=== Player 1 ($44, at R4 Short Line) goes: ===
+roll: 7, ([3, 4])
+ Player 1 receives salary $200
+Player 1 goes to: COM1 Community Chest
+Player 1 drew Community Chest card: 'Advance to Go (Collect $200)'
+Player 1 goes to GO
+ Player 1 receives salary $200
+=== Player 2 ($38, at CH2 Chance) goes: ===
+roll: 9, ([5, 4])
+Player 2 goes to: CH3 Chance
+Player 2 drew Chance card: 'Get Out of Jail Free'
+Player 2 now has a 'Get Out of Jail Free' card
+=== Player 1 ($444, at GO) goes: ===
+Player 1 built 3rd house on H2 Boardwalk for $209
+roll: 3, ([1, 2])
+Player 1 goes to: IT Income Tax
+Player 1 pays fixed Income tax 200
+=== Player 2 ($38, at CH3 Chance) goes: ===
+roll: 3, ([2, 1])
+Player 2 goes to: H2 Boardwalk
+Player 2 landed on a property, owned by Player 1
+Player 2 has to pay $1534, max they can raise is $643
+Player 2 is bankrupt
+Player 2 sells 1st house on G3 Pennsylvania Avenue, raising $95
+Player 2 sells 2nd house on D1 St. James Place, raising $31
+Player 2 sells 1st house on D1 St. James Place, raising $31
+Player 2 mortgages B1 Oriental Avenue, raising $39
+Player 2 mortgages D1 St. James Place, raising $57
+Player 2 mortgages R1 Reading Railroad, raising $100
+Player 2 mortgages R2 Pennsylvania Railroad, raising $100
+Player 2 mortgages G3 Pennsylvania Avenue, raising $151
+Player 2 gave Player 1 all their remaining money ($642)
+Player 2 transfers R1 Reading Railroad to Player 1
+Player 2 transfers R2 Pennsylvania Railroad to Player 1
+Player 2 transfers G3 Pennsylvania Avenue to Player 1
+Player 2 transfers D1 St. James Place to Player 1
+Player 2 transfers B1 Oriental Avenue to Player 1
+Only 1 alive player remains, game over
+=== GAME OVER: Player 1 wins (last player standing). ===
