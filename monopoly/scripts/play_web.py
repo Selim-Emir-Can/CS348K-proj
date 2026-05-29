@@ -689,9 +689,12 @@ async function poll() {
     if (key !== lastPendingKey) {
       lastPendingKey = key;
       optsEl.innerHTML = '';
-      for (const o of s.pending.options) {
+      for (let i = 0; i < s.pending.options.length; i++) {
+        const o = s.pending.options[i];
         let b = document.createElement('button');
-        b.className = 'opt'; b.textContent = o.label;
+        b.className = 'opt';
+        let prefix = (i < 9) ? ('[' + (i + 1) + '] ') : '';
+        b.textContent = prefix + o.label;
         b.onclick = async () => {
           optsEl.innerHTML = '<i>…</i>';
           await fetch('/decide', {method:'POST', headers:{'Content-Type':'application/json'},
@@ -705,6 +708,18 @@ async function poll() {
     promptEl.textContent = 'Waiting…'; optsEl.innerHTML = ''; lastPendingKey = null;
   }
 }
+// Number-key hotkeys: '1'-'9' click the corresponding option button. Useful
+// for the build phase where there can be many properties to pick from.
+document.addEventListener('keydown', (e) => {
+  if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+  if (e.key < '1' || e.key > '9') return;
+  let idx = parseInt(e.key, 10) - 1;
+  let buttons = document.querySelectorAll('#options button.opt');
+  if (idx >= 0 && idx < buttons.length) {
+    e.preventDefault();
+    buttons[idx].click();
+  }
+});
 setInterval(poll, 800); poll();
 </script>
 </body></html>

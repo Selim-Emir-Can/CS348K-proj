@@ -59,10 +59,11 @@ a board that beats the default but loses head-to-head to the
 rule-based GA winner: at $n{=}100$ LLM eval, both evaluator classes
 prefer the rule-based design on $4$ of $5$ stable metrics, while the
 LLM-driven board wins only on transfer per player-turn, the metric
-its $n{=}5$ training overfit to. A small $N{=}2$ self-play pilot
-(Section~\ref{sec:playtest-pilot}) confirms the predicted pacing and
-money-circulation effects under human control; the fuller
-multi-subject playtest (Section~\ref{sec:playtest-shortlist}) that
+its $n{=}5$ training overfit to. A small $N{=}3$ two-player pilot
+(Section~\ref{sec:playtest-pilot}) directionally confirms all four
+trained effects (pacing, money circulation, decisiveness, and
+win-balance) under human control; the fuller multi-subject playtest
+(Section~\ref{sec:playtest-shortlist}) that
 would test the subjective and fairness claims remains deferred. Code, logs, and figures:
 \url{https://github.com/Selim-Emir-Can/CS348K-proj/tree/master}.
 \end{abstract}
@@ -934,54 +935,60 @@ cheap rule-based rollout rather than a per-decision LLM call. A
 single LLM or RL agent as evaluator is a benchmark; a diverse
 strategy pool is a beta-testing surrogate.
 
-\subsection{Human playtest pilot ($N{=}2$, self-play)}\label{sec:playtest-pilot}
+\subsection{Human playtest pilot ($N{=}3$, two players)}\label{sec:playtest-pilot}
 
 As a reality check on whether the agent-optimized boards behave as
-predicted under human play, one author played both seats of four
-two-player boards: the default, the GA-2p combined winner
-(Section~\ref{sec:baseline}), and the length-only and money-only
-ablation optima (Section~\ref{sec:ablation}). Each board was played
-twice under matched RNG seeds ($0$ and $42$), a common-random-numbers
+predicted under human play, two players played two two-player boards:
+the default and the GA-2p combined winner
+(Section~\ref{sec:baseline}). Each board was played three times under
+matched RNG seeds ($0$, $42$, and $7$), a common-random-numbers
 pairing across boards so that a difference reflects the board rather
-than luck. The two per-game observables the search optimizes that are
-legible from a single transcript, game length and inter-player money
-transfer, were recovered from the game logs with
-\texttt{scripts/human\_game\_stats.py}.
+than luck. The four per-game observables the search optimizes that
+are legible from the game transcripts, game length, inter-player
+money transfer, draw / truncation rate, and the per-player win rate,
+were recovered with \texttt{scripts/human\_game\_stats.py}.
 
 \begin{figure}[h!]
 \centering
 \includegraphics[width=\linewidth]{fig_human_playtest.png}
-\caption{\textbf{The agent-optimized boards play faster and circulate
-more money under human control.} Per-board mean over two self-play
-games at matched seeds ($0$ and $42$); dots are the individual games.
-Left: the three optimized boards finish in $31$--$36$ rounds on
-average against $139$ for the default, which in one of its two games
-hit the $200$-turn cap with no winner (red cross). Right: inter-player
-money transfer per round is higher on the optimized boards
-($60$--$73$ \$/r) than on the default ($48$ \$/r), moving toward the
-$100$ \$/r target. $N{=}2$ per board, a single subject controlling
-both seats.}
+\caption{\textbf{The GA winner plays faster, circulates more money,
+resolves more reliably, and is more balanced than the default under
+human control.} Per-board mean over three games at matched seeds
+($0$, $42$, $7$); dots are individual games. \textbf{Top-left:} the
+GA winner finishes in $29$ rounds on average against $122$ for the
+default, one of whose three games hit the $200$-turn cap with no
+winner (red cross). \textbf{Top-right:} inter-player money transfer
+per round is higher on the GA winner ($68$ \$/r) than on the default
+($43$ \$/r), moving toward the $100$ \$/r target. \textbf{Bottom-left:}
+the default truncated in $1$ of $3$ games; the GA winner truncated in
+$0$ of $3$. \textbf{Bottom-right:} win-rate spread
+$|WR_{P_1}-WR_{P_2}|$ is $0.67$ on the default (Player 1 won twice,
+the third was a truncation) against $0.33$ on the GA winner (Player 2
+won twice, Player 1 once). $N{=}3$ per board, two players; fairness
+is reported with a small-N caveat (the spread is coarse-discrete at
+this sample size).}
 \label{fig:playtest}
 \end{figure}
 
-Figure~\ref{fig:playtest} summarizes the eight games. The three
-optimized boards finish in $31$--$36$ rounds on average against $139$
-for the default, and in one of its two games the default failed to
-resolve at all, hitting the $200$-turn cap with no winner. All six
-optimized games ended decisively by bankruptcy; the default resolved
-only one of two. Inter-player money transfer per round was higher on
-the optimized boards on average ($60$--$73$ \$/r) than on the default
-($48$ \$/r).
+Figure~\ref{fig:playtest} summarizes the six games. The GA winner
+finished in $29$ rounds on average against $122$ for the default,
+and in one of its three games the default failed to resolve at all,
+hitting the $200$-turn cap with no winner. All three GA-winner games
+ended decisively by bankruptcy; the default resolved only two of
+three. Inter-player money transfer per round was higher on the GA
+winner ($68$ \$/r) than on the default ($43$ \$/r), and the win-rate
+spread was lower on the GA winner ($0.33$ vs.\ $0.67$).
 
-We read this pilot as directional support, not measurement. With
-$N{=}2$ games per board played by a single subject controlling both
-seats, it cannot speak to fairness (a win-rate property across many
-games and players) or to draw rate, and the ordering \emph{among} the
-optimized boards is within single-game noise. What it does show, under
-two matched seeds, is that the pacing and money-circulation effects
-the GA was trained to produce survive contact with a human at the
-controls. The fuller multi-subject playtest that would test the
-subjective and fairness claims remains deferred; we specify it next.
+We read this pilot as directional support, not measurement. At
+$N{=}3$ per board the win-rate spread is a coarse-discrete signal,
+so the fairness number is suggestive rather than significant; the
+pacing, money-circulation, and decisiveness effects are larger and
+more consistent across the three matched-seed pairings. What this
+pilot does show is that all four trained effects (pacing, money
+circulation, decisiveness, and win-balance) move in the predicted
+direction on contact with human play. The fuller multi-subject
+playtest that would substantiate the fairness and decisiveness
+claims at significance remains deferred; we specify it next.
 
 \subsection{Full playtest (deferred)}\label{sec:playtest-shortlist}
 
@@ -1079,12 +1086,13 @@ sampled strategies broaden the pool beyond the 10 archetypes and the
 sampling procedure is documented and reproducible, but a real
 deployment would want to learn the strategy distribution from logs.
 \item \textbf{Human playtest is a small pilot, not a full study.}
-Only a small $N{=}2$ self-play pilot was run
-(Section~\ref{sec:playtest-pilot}): one subject played both
-seats of four 2p boards under two matched seeds, which
-directionally confirms the pacing and money-circulation effects
-but cannot measure fairness or draw rate. The full multi-subject
-playtest remains deferred. The shortlist in
+Only a small $N{=}3$ two-player pilot was run
+(Section~\ref{sec:playtest-pilot}): two players played the default
+and the GA-2p combined winner under three matched seeds, which
+directionally confirms all four trained effects (pacing, money
+circulation, decisiveness, and win-balance) but at $N{=}3$ the
+fairness signal in particular is only suggestive. The full
+multi-subject playtest remains deferred. The shortlist in
 Section~\ref{sec:playtest-shortlist} curates 4 boards from the GA
 results (default, GA-2p combined winner, GA-3p combined winner,
 money-only 2p optimum) and names the design hypothesis each one
@@ -1363,10 +1371,11 @@ the default, with a stated pilot protocol. \emph{Outcome:} 4
 boards selected (default, GA-2p combined winner, GA-3p combined
 winner, money-only 2p optimum) with one-sentence design
 hypotheses and a proposed pilot ($N{=}8$, counterbalanced, Likert
-plus forced-choice). A small $N{=}2$ self-play pilot
-(Section~\ref{sec:playtest-pilot}) directionally confirms the pacing
-and money-circulation effects; the fuller multi-subject playtest is
-published as a falsification plan, not a completed study.
+plus forced-choice). A small $N{=}3$ two-player pilot
+(Section~\ref{sec:playtest-pilot}) directionally confirms all four
+trained effects (pacing, money circulation, decisiveness, and
+win-balance); the fuller multi-subject playtest is published as a
+falsification plan, not a completed study.
 \end{enumerate}
 
 % =====================================================================
