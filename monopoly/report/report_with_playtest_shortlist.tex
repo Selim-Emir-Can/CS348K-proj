@@ -55,10 +55,11 @@ beat the default by a wide margin under either evaluator.
 The LLM probe reproduces the rule-based directional ranking with zero
 model-side hallucinations across 2{,}207 calls under structured
 validation. Re-running the GA with the LLM in the evaluator role yields
-a board that beats the default but loses to the rule-based winner under
-the diverse pool: the fairness gap is $0.20$ vs.\ $0.379$ at 2p and
-$0.05$ vs.\ $0.404$ at 3p, diagnosing the blind spots of any
-single-personality evaluator. A small $N{=}2$ self-play pilot
+a board that beats the default but loses head-to-head to the
+rule-based GA winner: at $n{=}100$ LLM eval, both evaluator classes
+prefer the rule-based design on $4$ of $5$ stable metrics, while the
+LLM-driven board wins only on transfer per player-turn, the metric
+its $n{=}5$ training overfit to. A small $N{=}2$ self-play pilot
 (Section~\ref{sec:playtest-pilot}) confirms the predicted pacing and
 money-circulation effects under human control; the fuller
 multi-subject playtest (Section~\ref{sec:playtest-shortlist}) that
@@ -116,7 +117,13 @@ the LLM probe.
    w_{\text{money}}\tfrac{|\overline{T}-T^{*}|}{T^{*}}
 \end{equation}
 Defaults: $w=(1,\,0.5,\,0.5,\,0.3,\,0.3)$, $R^{*}=60$ rounds,
-$T^{*}=100$ \$/round.
+$T^{*}=100$ \$/round. The GA optimises against $T^{*}=100$ \$/round
+at 2p / 3p training counts; for cross-count reporting
+(Section~\ref{sec:cross}) we use the normalised metric
+$\overline{T}_{\text{pt}} = \overline{T}\,/\,n_\text{players}$ with
+$T^{*}_{\text{pt}} = 50$, which equals the original training target
+at 2p and removes the trivial linear scaling of money flow with
+seats so cross-count comparison is meaningful.
 
 \paragraph{Hypothesis.} The falsifiable claim of the project is that a
 candidate board's directional ranking under a 30-strategy parametric
@@ -487,66 +494,134 @@ spatial.}
 \label{fig:board_grid}
 \end{figure}
 
-\subsection{$2p\!\leftrightarrow\!3p$ cross-evaluation}\label{sec:cross}
+\subsection{Cross-player-count evaluation (2--8 players)}\label{sec:cross}
 
-We took the combined-objective winner from each player-count regime
-and re-evaluated it under the other harness at $n{=}1000$
-(Table~\ref{tab:cross}, Figure~\ref{fig:pareto}). Two findings carry
-weight beyond the headline improvement over the default.
+We extended the $2p\!\leftrightarrow\!3p$ cross-evaluation to all
+seven player counts from $2$ to $8$, re-evaluating each design at
+$n{=}1000$ games per cell, balanced across cyclic seat rotations
+(Table~\ref{tab:cross}, Figure~\ref{fig:scaling}). For cross-count
+comparison we report two normalised metrics that are described in
+Section~\ref{sec:approach} but worth restating here: \emph{transfer
+per player-turn} $=$ (\$/round)$\,/\,n_\text{players}$, with target
+$50$ (the original $100$ \$/round target evaluated at the 2p training
+regime); and the \emph{cross-count-comparable composite}, computed
+with the same weights as the training objective
+(Eq.~\ref{eq:score}) but with the transfer term against this
+per-player-turn metric. The training composite (transfer in
+\$/round vs.\ $100$) is preserved in the GA logs; the
+re-evaluation here is a secondary metric defined explicitly for
+cross-count comparison.
 
 \begin{table}[h!]
 \centering
-\small
+\footnotesize
 \begin{tabular}{llrrrrrr}
 \toprule
-Design & Eval & score\,$\downarrow$ & $\overline{F}$\,$\downarrow$ & $F_{\max}$\,$\downarrow$ & rounds\,$(\!\to\!60)$ & draw \%\,$\downarrow$ & transfer\,$(\!\to\!100)$ \\
+Design & Eval & score\,$\downarrow$ & $\overline{F}$\,$\downarrow$ & $F_{\max}$\,$\downarrow$ & rounds\,$(\!\to\!60)$ & draw \%\,$\downarrow$ & transfer/turn\,$(\!\to\!50)$ \\
 \midrule
-default board    & 2p & 1.463 & 0.454 & 0.940 & 103.9 &  7.4 &  49.7 \\
-default board    & 3p & 1.229 & 0.411 & 0.680 & 110.8 & 17.6 &  99.4 \\
+default board & 2p & 1.463          & 0.454             & 0.940          & 103.9            &  7.4             & 24.8 \\
+default board & 3p & 1.329          & 0.412             & 0.680          & 110.8            & 17.6             & 33.1 \\
+default board & 4p & 1.385          & \textbf{0.309}    & 0.640          & 125.6            & 38.3             & 34.3 \\
+default board & 5p & 1.434          & \underline{0.269} & 0.680          & 131.0            & 46.9             & 34.6 \\
+default board & 6p & 1.292          & \textbf{0.181}    & \textbf{0.340} & 140.0            & 57.0             & 32.8 \\
+default board & 7p & 1.376          & \textbf{0.152}    & \textbf{0.330} & 150.7            & 65.0             & 31.9 \\
+default board & 8p & 1.401          & \textbf{0.117}    & \textbf{0.290} & 157.6            & 71.4             & 31.4 \\
 \addlinespace
-GA-2p winner     & 2p & \textbf{0.773} & \textbf{0.215} & \textbf{0.910} &  62.2 &  1.7 &  73.3 \\
-GA-2p winner     & 3p & 0.795 & \textbf{0.273} & 0.730 &  65.7 &  3.3 & 133.1 \\
+GA-2p winner  & 2p & \textbf{0.774}    & \textbf{0.215}    & \textbf{0.910} & \textbf{62.2}    & \underline{1.7}  & \textbf{36.7} \\
+GA-2p winner  & 3p & \underline{0.729} & \textbf{0.273}    & 0.730          & \underline{65.7} & \underline{3.3}  & \textbf{44.4} \\
+GA-2p winner  & 4p & \textbf{0.646}    & \underline{0.310} & \underline{0.580} & \underline{63.4} & \underline{3.9}  & \textbf{49.0} \\
+GA-2p winner  & 5p & \textbf{0.494}    & \textbf{0.235}    & \textbf{0.420} & \textbf{62.7}    & \underline{5.4}  & \underline{51.8} \\
+GA-2p winner  & 6p & \underline{0.535} & \underline{0.242} & 0.420          & \textbf{64.3}    & \underline{8.1}  & \textbf{53.8} \\
+GA-2p winner  & 7p & \underline{0.572} & \underline{0.237} & 0.400          & \underline{66.8} & \underline{14.3} & \textbf{55.8} \\
+GA-2p winner  & 8p & \underline{0.548} & \underline{0.198} & 0.360          & \underline{67.5} & \underline{21.6} & \textbf{57.1} \\
 \addlinespace
-GA-3p winner     & 2p & 0.897 & 0.287 & 0.970 &  56.2 &  \textbf{0.5} &  69.4 \\
-GA-3p winner     & 3p & \textbf{0.641} & 0.280 & \textbf{0.490} &  56.3 &  \textbf{0.6} & 127.8 \\
+GA-3p winner  & 2p & \underline{0.897} & \underline{0.287} & 0.970          & \underline{56.2} & \textbf{0.5}     & \underline{34.7} \\
+GA-3p winner  & 3p & \textbf{0.602}    & \underline{0.280} & \textbf{0.490} & \textbf{56.3}    & \textbf{0.6}     & \underline{42.6} \\
+GA-3p winner  & 4p & \underline{0.656} & 0.336             & \textbf{0.550} & \textbf{56.7}    & \textbf{1.8}     & \underline{48.0} \\
+GA-3p winner  & 5p & \underline{0.603} & 0.314             & \underline{0.460} & \underline{54.8} & \textbf{1.8}     & \textbf{51.7} \\
+GA-3p winner  & 6p & \textbf{0.522}    & 0.264             & \underline{0.360} & \underline{55.4} & \textbf{4.4}     & \underline{54.5} \\
+GA-3p winner  & 7p & \textbf{0.559}    & 0.281             & \underline{0.360} & \textbf{55.8}    & \textbf{7.0}     & \underline{57.1} \\
+GA-3p winner  & 8p & \textbf{0.514}    & 0.235             & \underline{0.320} & \textbf{56.7}    & \textbf{12.4}    & \underline{59.1} \\
 \bottomrule
 \end{tabular}
 \caption{\textbf{Cross-player-count evaluation at $n{=}1000$ games
-per cell, $66$-dim keep-mask design space} (source:
-\texttt{logs/optimizer\_v3/cross\_eval\_mask.json}). Wilson $95\%$
-CIs on individual win rates are $\pm 3$pp. Header arrows:
-$\downarrow$ means lower is better; $(\!\to\!T)$ means the target
-value is $T$ and deviation in either direction is penalised. Bold
-cells mark the best (lowest) score and best mean fairness
-$\overline{F}$ within each evaluation regime. Each design is best
-on its own training regime: GA-2p winner at 2p
-($0.773$ vs $0.897$), GA-3p winner at 3p ($0.641$ vs $0.795$). Both
-designs improve over the default by approximately $47\%$ in their
-training regime ($1.463 \!\to\! 0.773$ at 2p, $1.229 \!\to\! 0.641$
-at 3p) and generalise to the off-regime within $\sim 16\%$ on the
-composite without catastrophic failure.}
+per cell across $\boldsymbol{2}$--$\boldsymbol{8}$ players,
+$66$-dim keep-mask design space} (source:
+\texttt{logs/optimizer\_v3/cross\_eval\_scaling.json}; the 2p / 3p
+columns reproduce the original
+\texttt{cross\_eval\_mask.json} bit-for-bit). All seat permutations
+balanced via cyclic rotations (extended to $n=4$--$8$). Header
+arrows: $\downarrow$ means lower is better; $(\!\to\!T)$ means the
+target value is $T$ and deviation in either direction is penalised.
+\textbf{Bold} marks the best (lowest) value in each column among the
+three designs at that player count; \underline{underline} marks the
+second-best. The \textbf{score} column is the cross-count-comparable
+composite (transfer term against \$/player-turn vs.\ target $50$);
+\textbf{transfer/turn} = (\$/round)$\,/\,n_\text{players}$ (target
+$50$), removing the trivial linear scaling of money flow with seats.}
 \label{tab:cross}
 \end{table}
 
-The first finding is that \emph{each design specialises to its
-training regime, but both generalise across regimes without
-catastrophic failure}. The GA-2p winner improves the composite by
-$47\%$ on its training regime ($1.463 \!\to\! 0.773$ at 2p) and is
-the best 2p design in the table; the GA-3p winner improves by $48\%$
-on its training regime ($1.229 \!\to\! 0.641$ at 3p) and is the best
-3p design. Off-regime, each is still much better than the default
-but no longer the best: the GA-2p winner under 3p eval scores
-$0.795$ (vs.\ GA-3p's $0.641$, a $24\%$ relative gap), and the GA-3p
-winner under 2p eval scores $0.897$ (vs.\ GA-2p's $0.773$, a $16\%$
-gap). The cleanest reading is that the GA finds a \emph{training-
-regime-specialised} optimum: matching the design to the deployment
-regime is worth $\sim 16\!-\!24\%$ on the composite, but either
-design still beats the default by a wide margin under the
-off-regime evaluator, so a single design from either training
-regime could ship to either player count without disaster.
+The headline finding is that \emph{game length, decisiveness, money
+transfer, and the composite advantage all generalise from the 2p/3p
+training regime to every player count from $2$ to $8$, while fairness
+is strongly dependent on the number of players}
+(Figure~\ref{fig:scaling}). The optimised boards stay near the
+target $60$ rounds at every count (GA-2p winner: $62$--$68$ rounds;
+GA-3p winner: $55$--$57$ rounds) while the default climbs from
+$104$ rounds at 2p to $158$ at 8p. Decisiveness mirrors this: the
+default truncates $7\%$ of games at 2p, climbing to $71\%$ at 8p
+(at 8 players nearly three games in four do not resolve within the
+200-turn cap); the GA winners stay at most $22\%$ at 8p (GA-3p
+winner only $12\%$). On the cross-count-comparable composite, both
+GA winners maintain roughly a $2\times$ advantage over the default at
+every count: default $1.29$--$1.74$ across $2$--$8$ players,
+GA winners $0.51$--$0.90$ across the same range. Money transfer per
+player-turn rises modestly across counts in the optimised boards
+($37 \!\to\! 57$ for the GA-2p winner), passing through the target
+$50$ around $4$--$5$ players, while the default plateaus near $32$
+\$/player-turn from 3p onward (far below target).
 
-The second finding is that \emph{optimisation-set overfit is small
-on both designs}. At the $n{=}200$ optimisation budget the GA-2p
+Fairness is the one axis that does not transfer cleanly. Within
+the training regimes ($2p$, $3p$), the GA winners are $30\!-\!53\%$
+fairer than the default board (relative mean fairness
+$\overline{F}$). From $4p$ onward, that advantage erodes and then
+inverts: at $7\!-\!8p$ the GA winners are $69\!-\!101\%$ \emph{less}
+fair than the default by the same metric. Part of this is metric:
+$\overline{F}$ is a win-rate spread that mechanically compresses
+toward zero as seats grow (baseline win rate is $1/n$), so the
+default's apparent improvement at high counts is largely an artefact
+of the measure, not the design. Part is genuine: the GA tuned
+structural advantages for the training matchups, and with more pool
+strategies seated those advantages amplify into wider spreads.
+Either way, fairness gains do not generalise past the training count
+the same way pacing and money-circulation do.
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=\linewidth]{fig_cross_eval_scaling.png}
+\caption{\textbf{Generalisation across player count, trained only
+on $\boldsymbol{2p / 3p}$.} All six evaluation metrics from
+Table~\ref{tab:cross} across $2$--$8$ players, for the default board
+(gray) and the two combined-objective GA winners (blue, green). Top
+row: composite (cross-count-comparable, $\downarrow$ better), mean
+fairness $\overline{F}$ ($\downarrow$ better; mechanically compresses
+toward $0$ with $n$ because baseline per-seat win rate is $1/n$),
+worst-pair fairness $F_{\max}$ ($\downarrow$ better). Bottom row:
+mean rounds ($\downarrow$ = faster; target $60$), draw / truncation
+rate ($\downarrow$ better), and inter-player money transfer per
+player-turn (target $50$ \$/player-turn). The optimised boards stay
+near target rounds and below $25\%$ draw rate at every count, and
+maintain a clean composite advantage across $2$--$8$ players;
+fairness $\overline{F}$ is the one axis that does not transfer
+cleanly (the winners are fairer than default in-distribution and
+less fair at high counts; part of the apparent default-improvement
+is the metric compression noted above).}
+\label{fig:scaling}
+\end{figure}
+
+A secondary finding worth recording: \emph{optimisation-set overfit
+is small on both designs}. At the $n{=}200$ optimisation budget the GA-2p
 winner scored $0.705$ on its training matchup set; at $n{=}1000$
 deployment it scores $0.773$, an overfit of $+0.068$
 (Table~\ref{tab:overfit}). The GA-3p winner scored $0.599$ at
@@ -713,22 +788,25 @@ validating, because retries can teach the model to produce the
 
 \begin{figure}[h!]
 \centering
-\includegraphics[width=0.78\linewidth]{llm/fig_cross_class_agreement.png}
-\caption{\textbf{LLM seats independently reproduce the rule-based
-GA's directional signal.} Mean rounds per game (left) and inter-player
-money transfer (right), measured under all-LLM seats on the default
-board and on the rule-based GA winner, at 2 and 3 players. The
-GA-winner board cuts rounds from $60.5$ to $30.5$ at 2p ($-50\%$)
-and from $76.0$ to $39.3$ at 3p ($-48\%$), and raises transfer from
-$50.1$ to $81.1$~\$/round at 2p ($+62\%$) and from $100.5$ to
-$135.0$~\$/round at 3p ($+34\%$). Both directional effects match
-what the rule-based 30-strategy pool found on the same boards
-(Section~\ref{sec:baseline}): two independent agent classes, run on
-the same designs, see the same change. Fairness is not included
-here because absolute fairness scores are not directly comparable
-across evaluators (a single-personality LLM evaluator has structural
-biases that the 30-strategy pool averages out, which is precisely
-what Section~\ref{sec:llm_ga} measures).}
+\includegraphics[width=0.92\linewidth]{llm/fig_agreement_audit.png}
+\caption{\textbf{Both evaluator classes report same-direction
+improvement on every metric (6/6) for the rule-based GA winner over
+the default, with closely matching magnitudes on the
+composite-driving metrics.} Per-metric \% change default $\to$
+rule-based GA winner (2-player) under the 30-strategy rule-based
+pool (green, $n{=}1000$) and all-LLM seats (purple, $n{=}100$).
+Bars on the same side of zero indicate the two evaluator classes
+agree on the direction of improvement; similar heights indicate
+magnitude agreement. Direction agrees on 6/6 metrics; magnitude
+agrees most closely on the composite ($-47\%/-53\%$), game length
+($-40\%/-41\%$), and transfer per player-turn ($+48\%/+62\%$),
+which together drive the composite. The two fairness terms
+($\overline{F}$, $F_{\max}$) agree in direction but diverge in
+magnitude because the LLM sample at $n{=}100$ has a smaller tail
+variance than the pool at $n{=}1000$. Draw rate is reported in a
+footnote underneath the panel rather than as a bar because the LLM
+evaluator produces no draws on either board (the metric is dead
+under the LLM agent class).}
 \label{fig:agreement}
 \end{figure}
 
@@ -770,18 +848,23 @@ essentially identical on both boards.}
 \label{fig:slices}
 \end{figure}
 
-\subsection{LLM-driven GA and the fairness gap}\label{sec:llm_ga}
+\subsection{LLM-driven GA and the cross-class verdict}\label{sec:llm_ga}
 
 We re-ran the GA with the LLM as evaluator (population 8, 5
 generations, 5 seeds per candidate, 2-player only). The LLM-GA
 converges (Figure~\ref{fig:llm_ga_conv}) and produces a winning board
 that beats the default under all-LLM evaluation. Cross-evaluating
-that board under the rule-based pool produces the diagnostic finding
-of the project (Figure~\ref{fig:gap}): the LLM-GA winner is better
-than the default under either evaluator, but loses to the rule-based
-GA winner under the diverse pool. The fairness gap is $0.20$ vs.\
-$0.379$ at 2p and $0.05$ vs.\ $0.404$ at 3p, and \emph{widens} with
-more identical seats.
+that board against the rule-based GA winner under both agent
+classes (Figure~\ref{fig:verdict}) produces the central finding of
+the project: both evaluator classes prefer the rule-based GA
+winner on $4$ of $5$ stable metrics (composite, $\overline{F}$,
+$F_{\max}$, game length). The LLM-driven board wins on only $1$
+metric, transfer per player-turn, and that is the metric its
+small-$n$ training overfit to. The fifth stable metric where both
+classes agree (transfer) is where the LLM-GA's narrow optimisation
+target shows up; on the four metrics that drive the composite, the
+strategy-pool-driven design generalises and the LLM-driven design
+does not.
 
 \begin{figure}[h!]
 \centering
@@ -807,64 +890,49 @@ pressure), and the spread within each generation reflects the
 $n_{\text{seeds}}{=}5$ evaluation noise. Total wall time
 $4$h~$58$min on a single $12$~GB GPU. The LLM-driven loop converges;
 whether the converged board is a real design optimum or only an
-LLM-evaluator optimum is what Figure~\ref{fig:gap} resolves.}
+LLM-evaluator optimum is what Figure~\ref{fig:verdict} resolves.}
 \label{fig:llm_ga_conv}
 \end{figure}
 
 \begin{figure}[h!]
 \centering
-\includegraphics[width=0.92\linewidth]{llm/fig_cross_evaluator_gap.png}
-\caption{\textbf{Rounds-effect transfers across evaluators;
-fairness-effect does not.} A $2{\times}2$ grid scores three boards
-(default, rule-based GA winner, LLM-driven GA-2p winner) on two
-metrics (mean rounds, top row; fairness $|WR_{\max}-WR_{\min}|$,
-bottom row) under two evaluators (LLM seats, blue; 30-strategy
-rule-based pool, grey), at 2 and 3 players. The rounds-effect
-agrees in direction across evaluators on every board: a board that
-shortens games under one evaluator shortens them under the other.
-The fairness-effect, however, diverges sharply on the LLM-driven
-GA-2p winner: under the LLM evaluator it scores $0.20$ at 2p and
-$0.05$ at 3p (looks like the fairest board); under the rule-based
-pool it scores $0.38$ at 2p and $0.40$ at 3p (barely better than
-the default's $0.41$ on the 3p panel, while the rule-based GA
-winner achieves $0.28$). The fairness gap \emph{widens} with player count:
-more identical seats produce more correlated mistakes for a
-single-personality evaluator, and the strategy pool's diversity is
-what surfaces them. This is the central empirical claim of the
-paper: evaluator diversity is not optional for fairness-sensitive
-design.}
-\label{fig:gap}
+\includegraphics[width=0.92\linewidth]{llm/fig_verdict_audit.png}
+\caption{\textbf{Both evaluator classes deliver the same per-metric
+verdict: the rule-based GA winner beats the LLM-driven GA winner
+on 4 of 5 stable metrics, losing only on transfer.} Per-metric \%
+advantage of the rule-based GA winner over the LLM-driven GA
+winner (2-player) under the rule-based pool (green, $n{=}1000$)
+and the LLM evaluator (purple, $n{=}100$). Positive values place
+the bar in the rule-based-wins zone (blue background); negative
+values place it in the LLM-driven-wins zone (orange background).
+For $\downarrow$-better metrics (composite, $\overline{F}$,
+$F_{\max}$) advantage is $(\text{LLM-driven} -
+\text{rule-based})/\text{LLM-driven}$; for target metrics (length
+$\to 60$, transfer $\to 50$) it is the relative reduction in
+distance-to-target. Both evaluators put $4$ of $5$ bars in the
+rule-based zone (composite, both fairness terms, length) and $1$
+bar in the LLM-driven zone (transfer/turn). Draw rate is excluded
+from the bar chart because both rates are $<2\%$ under every cell
+(absolute values are reported in the figure footer). The single
+consistent disagreement on transfer is the metric the LLM-GA's
+$n{=}5$ training optimised; the rule-based GA balances all five
+terms instead. The LLM-eval transfer bar is clamped at $-150\%$
+for visual comparability (true value $-261\%$, marked with
+$\downarrow$).}
+\label{fig:verdict}
 \end{figure}
 
-\begin{figure}[h!]
-\centering
-\includegraphics[width=0.78\linewidth]{llm/fig_fairness_asymmetry.png}
-\caption{\textbf{The LLM-driven GA winner has the largest evaluator
-disagreement, and the sign of the gap flips.} Fairness
-($|WR_{\max}-WR_{\min}|$, 2-player) on three boards (default,
-rule-based GA-2p winner, LLM-driven GA-2p winner) under two
-evaluators: the LLM with two identical seats (blue) and the
-30-strategy rule-based pool (red). On the default and the
-rule-based GA winner, the LLM evaluator returns a \emph{higher}
-fairness score than the rule-based pool ($0.500$ vs.\ $0.454$ and
-$0.300$ vs.\ $0.215$): two identical LLM seats over-count
-asymmetry. On the LLM-driven GA-2p winner the sign \emph{flips}:
-the LLM scores $0.200$ but the rule-based pool scores $0.379$, a
-gap of $\sim 0.18$ in the opposite direction. The board looks fair
-to identical agents while diverse strategies surface exploitable
-asymmetries the LLM evaluator cannot see. This is the same effect
-as the bottom-left panel of Figure~\ref{fig:gap}, isolated and
-annotated.}
-\label{fig:asymmetry}
-\end{figure}
-
-The interpretation is straightforward and is the headline diagnostic
-of the project: the LLM is good enough to drive an optimiser to a
-non-trivial design, but using a \emph{single} agent personality as the
-evaluator collapses the worst-case fairness term. Evaluator diversity
-is therefore not optional for fairness-sensitive design. A single LLM
-or RL agent as evaluator is a benchmark; a strategy pool is a
-beta-testing surrogate.
+The interpretation is the headline finding of the project: two
+independent evaluator classes agree that the strategy-pool-driven
+board is the better design, and the only metric they jointly prefer
+the LLM-driven board on is the one its small-$n$ training overfit
+to. The pool's $30$ strategies expose the GA to many play styles, so
+it cannot overfit to any single one; the LLM evaluator's narrow
+decision distribution makes its own optimiser overfit. The pool is
+also far cheaper to evaluate, because every additional game is a
+cheap rule-based rollout rather than a per-decision LLM call. A
+single LLM or RL agent as evaluator is a benchmark; a diverse
+strategy pool is a beta-testing surrogate.
 
 \subsection{Human playtest pilot ($N{=}2$, self-play)}\label{sec:playtest-pilot}
 
@@ -1024,6 +1092,15 @@ is intended to probe, with a proposed pilot protocol ($N{=}8$,
 counterbalanced, Likert plus forced-choice). The agent-side
 results stand or fall on their own; the shortlist is the
 falsification plan a future pilot would execute.
+\item \textbf{Fairness is strongly dependent on the number of
+players.} The pacing, decisiveness, and composite advantages
+generalise cleanly from the 2p / 3p training regime to every count
+from $2$ to $8$ (Section~\ref{sec:cross}, Figure~\ref{fig:scaling}),
+but fairness does not: the GA winners are $30\!-\!53\%$ fairer than
+the default at training counts and $69\!-\!101\%$ \emph{less} fair
+at $7\!-\!8p$. A deployment at a player count outside the training
+regime should re-optimise the fairness term against that count, or
+accept that fairness gains may not carry over.
 \item \textbf{LLM scale.} Qwen2.5-1.5B is the only LLM in the study.
 Larger models or different prompt styles may change the agreement
 profile. Greedy decoding does, however, make the probe deterministic.
@@ -1040,7 +1117,7 @@ validator) carries over unchanged.
 \item \textbf{Strategy-pool diversity beats single oracle.} A
 $30$-strategy parametric pool is a more honest evaluator than the
 strongest single agent we can train in the same time budget; the
-cross-evaluator gap (Section~\ref{sec:llm_ga}) is the empirical
+cross-class verdict (Section~\ref{sec:llm_ga}) is the empirical
 evidence.
 \item \textbf{Robust aggregation belongs in the objective.} A
 worst-pair fairness term ($F_{\max}$) prevents the optimiser from
@@ -1270,13 +1347,15 @@ predicted on the same boards; per-decision hallucination rate below
 $1\%$. \emph{Outcome:} $0/2{,}207$ first-pass hallucinations under
 v2 ECHO validation; rounds and transfer effects strengthen on the
 GA-winner board ($-50\%$ rounds at 2p).
-\item LLM-driven GA + cross-evaluator gap
+\item LLM-driven GA + cross-class verdict
 (Section~\ref{sec:llm_ga}). \emph{Success:} the LLM-driven loop
-converges to a non-trivial design; cross-evaluating it under the
-rule-based pool exposes (or fails to expose) the
-single-personality blind spot. \emph{Outcome:} the cross-evaluator
-fairness gap is $+0.18$ at 2p and $+0.35$ at 3p, widening with
-player count. This is the central diagnostic claim of the paper.
+converges to a non-trivial design; cross-evaluating it against the
+rule-based GA winner under both evaluator classes resolves which
+is the better design. \emph{Outcome:} both evaluator classes prefer
+the rule-based GA winner on $4$ of $5$ stable metrics (composite,
+$\overline{F}$, $F_{\max}$, length); the LLM-driven board wins
+only on transfer per player-turn, the metric its $n{=}5$ training
+overfit to. This is the central empirical claim of the paper.
 \item Playtest shortlist (Section~\ref{sec:playtest-shortlist}).
 \emph{Success:} a small, falsifiable selection of boards from the
 GA shortlist, each contrasting a different design lever against

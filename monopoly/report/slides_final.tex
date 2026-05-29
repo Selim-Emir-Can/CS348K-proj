@@ -55,10 +55,9 @@
   \begin{columns}[T,onlytextwidth]
     \begin{column}{0.58\textwidth}
       \begin{itemize}\itemsep=0.7em
-        \item Beta testing is resource-intensive: balancing a game before release takes many diverse human testers over many sessions, and still cannot cover the full design space.
+        \item Beta testing is resource-intensive: balancing a game before release takes many diverse human testers over many sessions.
         \item Game designers face combinatorial design spaces that human playtesting cannot cover.
-        \item A single trained agent (RL or LLM) used as an oracle collapses design quality to one playstyle's quirks.
-        \item What is needed: an automated, reproducible way to evaluate each candidate design against a diverse population of strategies rather than a single oracle.
+        \item What is needed: an automated, reproducible way to test each candidate design against a \emph{diverse population} of simulated players, not just one fixed test-player.
       \end{itemize}
     \end{column}
     \begin{column}{0.4\textwidth}
@@ -72,26 +71,27 @@
 % ===================== 3. The problem, and why it is hard =====================
 \begin{frame}{The problem, and why it is hard}
   \begin{itemize}\itemsep=0.7em
-    \item \textbf{The core question:} how can we accelerate beta testing while ensuring that every playstyle enjoys the game, across a combination of metrics?
+    \item How can we accelerate beta testing while ensuring that every playstyle enjoys the game, across a combination of metrics?
     \item \textbf{Prior automated playtesting evaluates with a single agent class:}
       \begin{itemize}\itemsep=0.2em
-        \item a single trained oracle (AlphaStar-style league play, or one LLM player model),
-        \item a pool of agents / \emph{procedural personas} standing in for distinct playstyles,
-        \item content generation scored by a single fitness signal.
+        \item a single trained LLM player,
+        \item \emph{procedural personas}: learned agents matched to human playstyles, deterministic dynamics,
+        \item Isaksen et al.\ (2018): one \emph{skill model}, varies skill level (modes of play not modeled).
       \end{itemize}
     \item \textbf{Why they fall short:} one agent class cannot detect its own blind spots; even a diverse pool can rate a design fair while a different class sees it as broken.
   \end{itemize}
 \end{frame}
 
-% ===================== 4. Our approach =====================
-\begin{frame}{Our approach, and why it is better}
+% ===================== 4. Our approach (HIDDEN: the method slide covers it) =====================
+\iffalse
+\begin{frame}{Our approach}
   \begin{columns}[T,onlytextwidth]
     \begin{column}{0.6\textwidth}
-      \begin{itemize}\itemsep=0.7em
+      \begin{itemize}\itemsep=0.6em
         \item \textbf{Closed loop:} a genetic algorithm searches a 66-dim board design space to minimise a 5-axis composite objective.
         \item \textbf{Evaluate} each candidate board against a fixed pool of 30 diverse rule-based strategies (10 archetypes + 20 sampled).
         \item \textbf{Cross-class check:} re-evaluate the winners with an \emph{independent} agent class (a small LLM, Qwen2.5-1.5B).
-        \item \textbf{Why it is better:} no single evaluator sees its own blind spots; two independent classes do. Agreement builds trust; disagreement is the diagnostic.
+        \item \textbf{Human pilot:} play the winning boards with people to check the predicted pacing and money-flow effects hold.
       \end{itemize}
     \end{column}
     \begin{column}{0.4\textwidth}
@@ -102,6 +102,16 @@
       \tiny 3-player GA winner (vs.\ default)
     \end{column}
   \end{columns}
+\end{frame}
+\fi
+
+% ===================== Method figure =====================
+\begin{frame}{The method, end to end}
+  \centerline{\includegraphics[width=\linewidth,height=0.74\textheight,keepaspectratio]{fig_method.png}}
+  \vspace{0.2em}
+  \begin{center}\footnotesize
+    A genetic search proposes boards; each is scored by simulated play against a diverse strategy pool; the best board is then re-checked by an independent LLM and by a human pilot.
+  \end{center}
 \end{frame}
 
 % ===================== The strategy pool =====================
@@ -149,23 +159,23 @@
     $F_{\max}$ worst-pair fairness   & the \emph{worst} matchup's spread (robustness)        & minimise \\
     $\overline{R}$ length            & mean rounds per game                                  & target $60$ \\
     $\overline{D}$ draw rate         & fraction of games with no winner                      & minimise \\
-    $\overline{T}$ transfer          & inter-player money moved per round                    & target $100$ \\
+    $\overline{T}$ transfer          & inter-player money moved per player-turn              & target $50$ \\
     \bottomrule
   \end{tabular}
   \end{center}
   \vspace{0.4em}
   \begin{itemize}\small
-    \item Weights $w=(1,\,0.5,\,0.5,\,0.3,\,0.3)$ are fixed; zeroing terms one at a time gives the single-objective ablations.
+    \item Zeroing terms one at a time gives the single-objective ablations.
   \end{itemize}
 \end{frame}
 
 % ===================== 6. Results: rule-based GA =====================
-\begin{frame}{Results: the GA finds better boards}
+\begin{frame}{Results: the conventional board is not optimal}
   \begin{columns}[T,onlytextwidth]
     \begin{column}{0.5\textwidth}
       \begin{itemize}\itemsep=0.7em
-        \item \textbf{$+47\%$} composite-score improvement over the default board, at both 2p and 3p.
-        \item \textbf{$+13\%$} over a random-search baseline at a matched $\sim$842-evaluation budget.
+        \item \textbf{Takeaway: the standard Monopoly board is far from optimal.} A closed-loop search beats it by \textbf{$+47\%$} on the composite objective, at both 2p and 3p.
+        \item \textbf{$+13\%$} over a random-search baseline at a matched $\sim$842-evaluation budget, so it is the GA doing the work, not just any search.
         \item Single-objective ablations confirm every term in the objective is non-redundant: each drives a visibly different optimum.
       \end{itemize}
     \end{column}
@@ -179,58 +189,91 @@
   \end{columns}
 \end{frame}
 
+% ===================== Results: 2-8 player data table =====================
+\begin{frame}{Results: cross-player-count evaluation (data, 2--8 players)}
+  \centering
+  \scriptsize
+  \begin{tabular}{llrrrrrr}
+    \toprule
+    Design & Eval & score$^*$\,$\downarrow$ & $\overline{F}$\,$\downarrow$ & $F_{\max}$\,$\downarrow$ & rounds\,$(\!\to\!60)$ & draw \%\,$\downarrow$ & transfer/turn\,$(\!\to\!50)$ \\
+    \midrule
+    default board & 2p & 1.463          & 0.454             & 0.940          & 103.9            &  7.4             & 24.8 \\
+    default board & 3p & 1.329          & 0.412             & 0.680          & 110.8            & 17.6             & 33.1 \\
+    default board & 4p & 1.385          & \textbf{0.309}    & 0.640          & 125.6            & 38.3             & 34.3 \\
+    default board & 5p & 1.434          & \underline{0.269} & 0.680          & 131.0            & 46.9             & 34.6 \\
+    default board & 6p & 1.292          & \textbf{0.181}    & \textbf{0.340} & 140.0            & 57.0             & 32.8 \\
+    default board & 7p & 1.376          & \textbf{0.152}    & \textbf{0.330} & 150.7            & 65.0             & 31.9 \\
+    default board & 8p & 1.401          & \textbf{0.117}    & \textbf{0.290} & 157.6            & 71.4             & 31.4 \\
+    \addlinespace
+    GA-2p winner  & 2p & \textbf{0.774}    & \textbf{0.215}    & \textbf{0.910} & \textbf{62.2}    & \underline{1.7}  & \textbf{36.7} \\
+    GA-2p winner  & 3p & \underline{0.729} & \textbf{0.273}    & 0.730          & \underline{65.7} & \underline{3.3}  & \textbf{44.4} \\
+    GA-2p winner  & 4p & \textbf{0.646}    & \underline{0.310} & \underline{0.580} & \underline{63.4} & \underline{3.9}  & \textbf{49.0} \\
+    GA-2p winner  & 5p & \textbf{0.494}    & \textbf{0.235}    & \textbf{0.420} & \textbf{62.7}    & \underline{5.4}  & \underline{51.8} \\
+    GA-2p winner  & 6p & \underline{0.535} & \underline{0.242} & 0.420          & \textbf{64.3}    & \underline{8.1}  & \textbf{53.8} \\
+    GA-2p winner  & 7p & \underline{0.572} & \underline{0.237} & 0.400          & \underline{66.8} & \underline{14.3} & \textbf{55.8} \\
+    GA-2p winner  & 8p & \underline{0.548} & \underline{0.198} & 0.360          & \underline{67.5} & \underline{21.6} & \textbf{57.1} \\
+    \addlinespace
+    GA-3p winner  & 2p & \underline{0.897} & \underline{0.287} & 0.970          & \underline{56.2} & \textbf{0.5}     & \underline{34.7} \\
+    GA-3p winner  & 3p & \textbf{0.602}    & \underline{0.280} & \textbf{0.490} & \textbf{56.3}    & \textbf{0.6}     & \underline{42.6} \\
+    GA-3p winner  & 4p & \underline{0.656} & 0.336             & \textbf{0.550} & \textbf{56.7}    & \textbf{1.8}     & \underline{48.0} \\
+    GA-3p winner  & 5p & \underline{0.603} & 0.314             & \underline{0.460} & \underline{54.8} & \textbf{1.8}     & \textbf{51.7} \\
+    GA-3p winner  & 6p & \textbf{0.522}    & 0.264             & \underline{0.360} & \underline{55.4} & \textbf{4.4}     & \underline{54.5} \\
+    GA-3p winner  & 7p & \textbf{0.559}    & 0.281             & \underline{0.360} & \textbf{55.8}    & \textbf{7.0}     & \underline{57.1} \\
+    GA-3p winner  & 8p & \textbf{0.514}    & 0.235             & \underline{0.320} & \textbf{56.7}    & \textbf{12.4}    & \underline{59.1} \\
+    \bottomrule
+  \end{tabular}
+\end{frame}
+
+% ===================== Results: generalization to 2-8 players =====================
+\begin{frame}{Results: generalization to 2--8 players}
+  \centerline{\includegraphics[width=\linewidth,height=0.62\textheight,keepaspectratio]{fig_cross_eval_scaling.png}}
+  \vspace{0.2em}
+  \begin{itemize}\footnotesize\itemsep=0.28em
+    \item \textbf{Takeaway:} every metric except \emph{fairness} generalises from training (2p / 3p) to every count from $2$ to $8$; fairness is \emph{strongly dependent on the number of players}.
+    \item \textbf{Game Length:} $\sim$$60$ rounds at every count vs.\ $104 \!\to\! 158$ for the default.
+    \item \textbf{Decisiveness:} optimised boards finish $\geq 78\%$ of games at 8p; the default finishes only $\mathbf{29\%}$.
+    \item \textbf{Fairness:} winners are $30$--$53\%$ \emph{fairer} than default at 2p / 3p but $69$--$101\%$ \emph{less} fair at 7--8p (regime-specific, by construction).
+  \end{itemize}
+\end{frame}
+
+% ===================== Results: real human play =====================
+\begin{frame}{Does it hold up with a human at the controls?}
+  \centerline{\includegraphics[width=\linewidth,height=0.52\textheight,keepaspectratio]{fig_human_playtest.png}}
+  \vspace{0.3em}
+  \begin{itemize}\small\itemsep=0.3em
+    \item \textbf{Pilot:} one player, both seats, four 2p boards, each played twice under \emph{matched} seeds (common random numbers); $N{=}2$, so this probes pacing and money only, not fairness.
+    \item \textbf{Pacing holds:} optimised boards finish in $\sim$31--36 rounds vs.\ \textbf{139} for the default, which once hit the 200-turn cap with \emph{no winner}; all 6 optimised games ended decisively, the default only 1 of 2.
+    \item \textbf{Money circulates more:} $60$--$73$ \$/round vs.\ $48$. Directional evidence that the trained effects survive contact with a real player.
+  \end{itemize}
+\end{frame}
+
 % ===================== Results: the cross-class check =====================
 \begin{frame}{Results: the cross-class check}
-  \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.5\textwidth}
-      \begin{itemize}\itemsep=0.7em
-        \item \textbf{Validation:} re-evaluated by the independent LLM class (Qwen2.5-1.5B), the GA winner boards show the same pacing and interaction effects as the strategy pool (shorter games, more transfer).
-        \item \textbf{The diagnostic:} in contrast, a board optimised \emph{by} the LLM looks fair to the LLM but performs consistently worse under the strategy pool: fairness gap $0.20$ vs.\ $0.379$ at 2p, $0.05$ vs.\ $0.404$ at 3p.
-        \item We need \emph{both} generalist (diverse-pool) and player-mode-specific (LLM) feedback to guide our designs.
-      \end{itemize}
-    \end{column}
-    \begin{column}{0.48\textwidth}
-      \centering
-      \includegraphics[width=\linewidth,height=0.32\textheight,keepaspectratio]{fig_cross_class_agreement.png}\\
-      \tiny validation: LLM reproduces the pool's pacing/transfer ranking\\[0.4em]
-      \includegraphics[width=\linewidth,height=0.32\textheight,keepaspectratio]{fig_cross_evaluator_gap.png}\\
-      \tiny diagnostic: LLM-optimised board is fair to the LLM, unfair to the pool
-    \end{column}
-  \end{columns}
+  \centerline{\includegraphics[width=0.92\linewidth,height=0.30\textheight,keepaspectratio]{fig_agreement_audit.png}}
+  \vspace{0.1em}
+  \centerline{\includegraphics[width=0.92\linewidth,height=0.30\textheight,keepaspectratio]{fig_verdict_audit.png}}
+  \vspace{0.2em}
+  \begin{itemize}\footnotesize\itemsep=0.35em
+    \item \textbf{LLM evaluator agrees with the strategy-pool evaluator} on the rule-based GA winner: the pool's optimum survives an independent agent class.
+    \item \textbf{Strategy-pool board beats LLM-driven board} under \emph{both} evaluators (4/5 metrics): the pool's 30 strategies generalise across play styles so the GA can't overfit to one; LLM-only training overfits to its narrow decision distribution. Pool is also far cheaper, no per-decision LLM call.
+  \end{itemize}
 \end{frame}
 
 % ===================== Results: strategy win-rate diff =====================
 \begin{frame}{What the GA fixed: strategy-vs-strategy win rates}
-  \centerline{\includegraphics[width=\linewidth,height=0.62\textheight,keepaspectratio]{heatmap_ga2p.diff.png}}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.5\textwidth}\centering
+      \includegraphics[width=\linewidth,height=0.62\textheight,keepaspectratio]{heatmap_ga2p.png}\\
+      \tiny GA-2p board: $P(\text{row beats column})$
+    \end{column}
+    \begin{column}{0.5\textwidth}\centering
+      \includegraphics[width=\linewidth,height=0.62\textheight,keepaspectratio]{heatmap_ga2p.diff.png}\\
+      \tiny $\Delta P$: GA-2p winner $-$ default
+    \end{column}
+  \end{columns}
   \vspace{0.2em}
   \begin{itemize}\small
-    \item \textbf{Takeaway:} relative to the default, the GA shifts most matchups' win probability toward balance (red/blue $=$ change vs.\ default); strategies that ignore colour groups (e.g.\ \emph{RailroadKing}) barely respond, so a few pairs stay structurally locked.
-  \end{itemize}
-\end{frame}
-
-% ===================== Results: 2p <-> 3p cross-evaluation =====================
-\begin{frame}{Results: 2p $\leftrightarrow$ 3p cross-evaluation}
-  \centering
-  \small
-  \begin{tabular}{llrrrrrr}
-    \toprule
-    Design & Eval & score\,$\downarrow$ & $\overline{F}$\,$\downarrow$ & $F_{\max}$\,$\downarrow$ & rounds\,$(\!\to\!60)$ & draw \%\,$\downarrow$ & transfer\,$(\!\to\!100)$ \\
-    \midrule
-    default board & 2p & 1.463 & 0.454 & 0.940 & 103.9 &  7.4 &  49.7 \\
-    default board & 3p & 1.229 & 0.411 & 0.680 & 110.8 & 17.6 &  99.4 \\
-    \addlinespace
-    GA-2p winner  & 2p & \textbf{0.773} & \textbf{0.215} & \textbf{0.910} &  62.2 &  1.7 &  73.3 \\
-    GA-2p winner  & 3p & 0.795 & \textbf{0.273} & 0.730 &  65.7 &  3.3 & 133.1 \\
-    \addlinespace
-    GA-3p winner  & 2p & 0.897 & 0.287 & 0.970 &  56.2 &  \textbf{0.5} &  69.4 \\
-    GA-3p winner  & 3p & \textbf{0.641} & 0.280 & \textbf{0.490} &  56.3 &  \textbf{0.6} & 127.8 \\
-    \bottomrule
-  \end{tabular}
-  \vspace{0.8em}
-  \begin{itemize}\small\itemsep=0.3em
-    \item Each design is best on its \emph{own} player count: GA-2p winner at 2p ($0.773$ vs.\ $0.897$); GA-3p winner at 3p ($0.641$ vs.\ $0.795$).
-    \item Both beat the default by $\sim$$47\%$ in their training regime and generalise off-regime within $\sim$$16\%$, with no catastrophic failure.
-    \item Arrows: $\downarrow$ lower is better; $(\!\to\!T)$ target is $T$. $n{=}1000$ games/cell, Wilson $95\%$ CIs $\pm3$pp.
+    \item \textbf{Takeaway:} the absolute matrix (left) shows the GA winner's per-pair fairness landscape; the diff (right) highlights what changed: the GA shifts most matchups' win probability toward balance, while strategies that ignore colour groups (e.g.\ \emph{RailroadKing}) barely respond, leaving a few pairs structurally locked.
   \end{itemize}
 \end{frame}
 
@@ -250,6 +293,21 @@
   \begin{itemize}\small
     \item \textbf{Takeaway:} fairness and game length trade off (red 2-D frontier); the GA optimum (star) deliberately sits \emph{inside} the cloud, balancing all five objective terms rather than minimising any single one.
   \end{itemize}
+\end{frame}
+
+% ===================== Takeaway =====================
+\begin{frame}{Takeaway}
+  \begin{itemize}\footnotesize\itemsep=0.55em
+    \item Optimised boards play \textbf{$\sim$2--3$\times$ faster}, finish reliably at \textbf{2--8 players}, and maintain a clean $\sim$$2\times$ composite advantage at every count under cross-count-comparable normalisation, even though the GA only trained at 2p / 3p.
+    \item \textbf{Fairness}, by contrast, is \emph{strongly dependent on the number of players}: the winners are fairer than default in their training regime but \emph{less} fair at 6--8 players.
+    \item \textbf{Two evaluator classes (rule-based pool + LLM seats) agree on the rule-based GA winner}, and rate it 4/5 metrics over an LLM-driven board: the pool generalises across many play styles where LLM-only training overfits to its narrow decision distribution, and costs nothing per decision.
+    \item A small $N{=}2$ human playtest pilot confirms the predicted pacing and money-flow effects survive contact with real players.
+    \item The recipe (closed-loop GA $+$ diverse evaluator pool $+$ independent cross-class checks) transfers to any parameterised multi-agent system: market mechanisms, RL environments, recommendation systems.
+  \end{itemize}
+  \vspace{0.7em}
+  \begin{center}
+    \small Code, logs, figures: \url{github.com/Selim-Emir-Can/CS348K-proj/tree/master}
+  \end{center}
 \end{frame}
 
 % ===================== 9. Generated boards: 2p default & combined =====================
@@ -306,29 +364,5 @@
   \end{itemize}
 \end{frame}
 
-% ===================== Results: real human play =====================
-\begin{frame}{Does it hold up with a human at the controls?}
-  \centerline{\includegraphics[width=\linewidth,height=0.52\textheight,keepaspectratio]{fig_human_playtest.png}}
-  \vspace{0.3em}
-  \begin{itemize}\small\itemsep=0.3em
-    \item \textbf{Pilot:} one player, both seats, four 2p boards, each played twice under \emph{matched} seeds (common random numbers); $N{=}2$, so this probes pacing and money only, not fairness.
-    \item \textbf{Pacing holds:} optimised boards finish in $\sim$31--36 rounds vs.\ \textbf{139} for the default, which once hit the 200-turn cap with \emph{no winner}; all 6 optimised games ended decisively, the default only 1 of 2.
-    \item \textbf{Money circulates more:} $60$--$73$ \$/round vs.\ $48$. Directional evidence that the trained effects survive contact with a real player.
-  \end{itemize}
-\end{frame}
-
-% ===================== 15. Takeaway =====================
-\begin{frame}{Takeaway}
-  \begin{itemize}\itemsep=0.8em
-    \item A diverse strategy pool beats a single oracle as an evaluator for game-design optimisation.
-    \item Cross-class probing turns evaluator disagreement into a blind-spot diagnostic you cannot get from one class.
-    \item Variance reduction (shared random numbers) lets a small search budget see real signal; the bottleneck is problem framing, not optimiser cleverness.
-    \item The recipe transfers to any parameterised multi-agent system: market mechanisms, recommendation systems, RL environment design.
-  \end{itemize}
-  \vspace{1.0em}
-  \begin{center}
-    \small Code, logs, figures: \url{github.com/Selim-Emir-Can/CS348K-proj/tree/master}
-  \end{center}
-\end{frame}
 
 \end{document}
