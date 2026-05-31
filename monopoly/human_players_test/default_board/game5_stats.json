@@ -1,0 +1,34 @@
+{
+  "board": "default",
+  "seed": 2,
+  "n_players": 2,
+  "winner": null,
+  "truncated": true,
+  "terminated_by": "turn_limit",
+  "rounds": 199,
+  "total_turn_blocks": 480,
+  "doubles_go_again": {
+    "Player 1": 36,
+    "Player 2": 48
+  },
+  "transfer_total": 4182.0,
+  "transfer_rate_per_round": 21.02,
+  "transfer_breakdown": {
+    "Player 2->Player 1": 1488.0,
+    "Player 1->Player 2": 2694.0
+  },
+  "properties_bought": {
+    "Player 2": 13,
+    "Player 1": 15
+  },
+  "houses_built": {},
+  "hotels_built": {},
+  "jail_entries": {
+    "Player 2": 11,
+    "Player 1": 8
+  },
+  "players": [
+    "Player 1",
+    "Player 2"
+  ]
+}

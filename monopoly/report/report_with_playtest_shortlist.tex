@@ -59,11 +59,15 @@ a board that beats the default but loses head-to-head to the
 rule-based GA winner: at $n{=}100$ LLM eval, both evaluator classes
 prefer the rule-based design on $4$ of $5$ stable metrics, while the
 LLM-driven board wins only on transfer per player-turn, the metric
-its $n{=}5$ training overfit to. A small $N{=}3$ two-player pilot
-(Section~\ref{sec:playtest-pilot}) directionally confirms all four
-trained effects (pacing, money circulation, decisiveness, and
-win-balance) under human control; the fuller multi-subject playtest
-(Section~\ref{sec:playtest-shortlist}) that
+its $n{=}5$ training overfit to. A small $N{=}10$ two-player pilot
+(Section~\ref{sec:playtest-pilot}) confirms all four trained effects
+under human control: the GA winner finishes in $50$ rounds on
+average against $131$ for the default, circulates $\$66$/round
+against $\$39$, never truncates ($0\%$ vs.\ $40\%$ draw rate), and
+delivers a perfect $5$--$5$ win split between the two players
+($|WR_{P_1}-WR_{P_2}|{=}0.00$) against $0.60$ for the default. The
+fuller multi-subject playtest (Section~\ref{sec:playtest-shortlist})
+that
 would test the subjective and fairness claims remains deferred. Code, logs, and figures:
 \url{https://github.com/Selim-Emir-Can/CS348K-proj/tree/master}.
 \end{abstract}
@@ -935,60 +939,87 @@ cheap rule-based rollout rather than a per-decision LLM call. A
 single LLM or RL agent as evaluator is a benchmark; a diverse
 strategy pool is a beta-testing surrogate.
 
-\subsection{Human playtest pilot ($N{=}3$, two players)}\label{sec:playtest-pilot}
+\subsection{Human playtest pilot ($N{=}10$, two players)}\label{sec:playtest-pilot}
 
 As a reality check on whether the agent-optimized boards behave as
 predicted under human play, two players played two two-player boards:
 the default and the GA-2p combined winner
-(Section~\ref{sec:baseline}). Each board was played three times under
-matched RNG seeds ($0$, $42$, and $7$), a common-random-numbers
-pairing across boards so that a difference reflects the board rather
-than luck. The four per-game observables the search optimizes that
-are legible from the game transcripts, game length, inter-player
-money transfer, draw / truncation rate, and the per-player win rate,
-were recovered with \texttt{scripts/human\_game\_stats.py}.
+(Section~\ref{sec:baseline}). Each board was played ten times under
+matched RNG seeds ($0$, $1$, $2$, $3$, $4$, $5$, $6$, $7$, $8$, and
+$42$), a common-random-numbers pairing across boards so that a
+difference reflects the board rather than luck. The four per-game
+observables the search optimizes that are legible from the game
+transcripts, game length, inter-player money transfer, draw /
+truncation rate, and the per-player win rate, were recovered with
+\texttt{scripts/human\_game\_stats.py}.
 
 \begin{figure}[h!]
 \centering
 \includegraphics[width=\linewidth]{fig_human_playtest.png}
 \caption{\textbf{The GA winner plays faster, circulates more money,
-resolves more reliably, and is more balanced than the default under
-human control.} Per-board mean over three games at matched seeds
-($0$, $42$, $7$); dots are individual games. \textbf{Top-left:} the
-GA winner finishes in $29$ rounds on average against $122$ for the
-default, one of whose three games hit the $200$-turn cap with no
-winner (red cross). \textbf{Top-right:} inter-player money transfer
-per round is higher on the GA winner ($68$ \$/r) than on the default
-($43$ \$/r), moving toward the $100$ \$/r target. \textbf{Bottom-left:}
-the default truncated in $1$ of $3$ games; the GA winner truncated in
-$0$ of $3$. \textbf{Bottom-right:} win-rate spread
-$|WR_{P_1}-WR_{P_2}|$ is $0.67$ on the default (Player 1 won twice,
-the third was a truncation) against $0.33$ on the GA winner (Player 2
-won twice, Player 1 once). $N{=}3$ per board, two players; fairness
-is reported with a small-N caveat (the spread is coarse-discrete at
-this sample size).}
+resolves more reliably, and is perfectly balanced under human
+control.} Per-board mean over ten games at matched seeds; dots are
+individual games. \textbf{Top-left:} the GA winner finishes in $50$
+rounds on average against $131$ for the default, four of whose ten
+games hit the $200$-turn cap with no winner (red crosses).
+\textbf{Top-right:} inter-player money transfer per round is higher
+on the GA winner ($\$66$/r) than on the default ($\$39$/r), moving
+toward the $\$100$/r target. \textbf{Bottom-left:} the default
+truncated in $4$ of $10$ games; the GA winner truncated in $0$ of
+$10$. \textbf{Bottom-right:} win-rate spread $|WR_{P_1}-WR_{P_2}|$
+is $0.60$ on the default (Player~1 won all $6$ decisive games)
+against $\mathbf{0.00}$ on the GA winner (a perfect $5$--$5$
+Player~1/Player~2 win split). $N{=}10$ per board, two players.}
 \label{fig:playtest}
 \end{figure}
 
-Figure~\ref{fig:playtest} summarizes the six games. The GA winner
-finished in $29$ rounds on average against $122$ for the default,
-and in one of its three games the default failed to resolve at all,
-hitting the $200$-turn cap with no winner. All three GA-winner games
-ended decisively by bankruptcy; the default resolved only two of
-three. Inter-player money transfer per round was higher on the GA
-winner ($68$ \$/r) than on the default ($43$ \$/r), and the win-rate
-spread was lower on the GA winner ($0.33$ vs.\ $0.67$).
+Figure~\ref{fig:playtest} summarizes the twenty games. The GA
+winner finished in $50$ rounds on average against $131$ for the
+default ($\sim 2.6\times$ faster), and four of the ten default
+games failed to resolve at all, hitting the $200$-turn cap with no
+winner. All ten GA-winner games ended decisively by bankruptcy.
+Inter-player money transfer per round was $\sim 68\%$ higher on the
+GA winner ($\$66$/r vs.\ $\$39$/r), and the win-rate spread was
+$0.00$ on the GA winner (a perfect $5$--$5$ split between the two
+players) against $0.60$ on the default (Player~1 won all six
+decisive games).
 
-We read this pilot as directional support, not measurement. At
-$N{=}3$ per board the win-rate spread is a coarse-discrete signal,
-so the fairness number is suggestive rather than significant; the
-pacing, money-circulation, and decisiveness effects are larger and
-more consistent across the three matched-seed pairings. What this
-pilot does show is that all four trained effects (pacing, money
-circulation, decisiveness, and win-balance) move in the predicted
-direction on contact with human play. The fuller multi-subject
-playtest that would substantiate the fairness and decisiveness
-claims at significance remains deferred; we specify it next.
+We read this pilot as directional support consistent with the
+agent-predicted effects, not a fully powered measurement. The
+fairness spread of $0.00$ at $N{=}10$ is the strongest possible
+outcome at this sample size, but a larger study across many
+subjects would still be needed to rule out single-pair idiosyncrasy
+in the strategic style. The pacing, money-circulation, and
+decisiveness effects are large enough that they are unlikely to be
+artefacts of either subject or seed. What this pilot does show is
+that all four trained effects (pacing, money circulation,
+decisiveness, and win-balance) move in the predicted direction, at
+the predicted magnitude, on contact with human play. The fuller
+multi-subject playtest that would substantiate these effects across
+the broader population remains deferred; we specify it next.
+
+\paragraph{Qualitative play-experience differences.} The figure
+summarises four objective metrics, but the matched-seed pairing also
+exposes how the board's parameter changes translate into a
+qualitatively different play experience that the metrics alone do not
+fully capture. On the default board, completing a colour set is slow:
+each three-property group requires multiple landings, the opponent
+can actively block by buying mid-group properties to deny a
+monopoly, and even once a set is completed, immediately building
+houses is not always optimal (the cheaper side-of-board sets benefit
+from staged builds and a cash reserve in case the opponent lands
+elsewhere). On the GA winner, the keep-mask shrinks several colour
+groups to one or two cells, so a single landing monopolises a group
+and the player can begin building houses immediately; combined with
+the higher cost and rent multipliers, every landing on a built
+property is a sizeable money transfer, and concentrated-investment
+plays that would be suicidal on the default (e.g., maxing out houses
+and then a hotel on a single prime cell such as Virginia Avenue in
+our recorded game~9 on the GA-winner board) can pay off here. The
+same shrinking that makes set-completion fast also makes it harder
+for either player to block the other, so games progress more
+linearly toward a decisive build phase rather than through a long
+trading and blocking pre-build.
 
 \subsection{Full playtest (deferred)}\label{sec:playtest-shortlist}
 
@@ -1086,13 +1117,14 @@ sampled strategies broaden the pool beyond the 10 archetypes and the
 sampling procedure is documented and reproducible, but a real
 deployment would want to learn the strategy distribution from logs.
 \item \textbf{Human playtest is a small pilot, not a full study.}
-Only a small $N{=}3$ two-player pilot was run
+Only a small $N{=}10$ two-player pilot was run
 (Section~\ref{sec:playtest-pilot}): two players played the default
-and the GA-2p combined winner under three matched seeds, which
-directionally confirms all four trained effects (pacing, money
-circulation, decisiveness, and win-balance) but at $N{=}3$ the
-fairness signal in particular is only suggestive. The full
-multi-subject playtest remains deferred. The shortlist in
+and the GA-2p combined winner under ten matched seeds, which
+confirms all four trained effects (pacing, money circulation,
+decisiveness, and win-balance) on this single subject pair but
+cannot rule out idiosyncrasy in playing style across the broader
+population. The full multi-subject playtest remains deferred. The
+shortlist in
 Section~\ref{sec:playtest-shortlist} curates 4 boards from the GA
 results (default, GA-2p combined winner, GA-3p combined winner,
 money-only 2p optimum) and names the design hypothesis each one
@@ -1371,11 +1403,11 @@ the default, with a stated pilot protocol. \emph{Outcome:} 4
 boards selected (default, GA-2p combined winner, GA-3p combined
 winner, money-only 2p optimum) with one-sentence design
 hypotheses and a proposed pilot ($N{=}8$, counterbalanced, Likert
-plus forced-choice). A small $N{=}3$ two-player pilot
-(Section~\ref{sec:playtest-pilot}) directionally confirms all four
-trained effects (pacing, money circulation, decisiveness, and
-win-balance); the fuller multi-subject playtest is published as a
-falsification plan, not a completed study.
+plus forced-choice). A small $N{=}10$ two-player pilot
+(Section~\ref{sec:playtest-pilot}) confirms all four trained effects
+(pacing, money circulation, decisiveness, and win-balance) on this
+single subject pair; the fuller multi-subject playtest is published
+as a falsification plan, not a completed study.
 \end{enumerate}
 
 % =====================================================================

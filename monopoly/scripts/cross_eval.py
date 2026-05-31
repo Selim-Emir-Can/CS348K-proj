@@ -104,6 +104,9 @@ def main():
     ap.add_argument('--base-seed',  type=int, default=42)
     ap.add_argument('--matchup-seed', type=int, default=1234)
     ap.add_argument('--max-turns',  type=int, default=200)
+    ap.add_argument('--player-counts', default='2,3',
+                    help='Comma-separated player counts to evaluate each design under '
+                         '(default "2,3"; pass "4" for a 4-player transfer check).')
     ap.add_argument('--removal-direction', choices=('cheapest', 'expensive', 'middle'),
                     default='cheapest',
                     help='Must match the optimisation-run setting for the design vec '
@@ -140,10 +143,11 @@ def main():
     if not designs:
         raise SystemExit('Pass --runs and/or --identity and/or --vec.')
 
-    # Eval each design × {2p, 3p}.
+    # Eval each design × the requested player counts (default {2p, 3p}).
+    player_counts = [int(x) for x in args.player_counts.split(',') if x.strip()]
     results = []
     for label, vec, source in designs:
-        for n_players in (2, 3):
+        for n_players in player_counts:
             matchups = load_eval_matchups(n_players, pool_size=len(pool),
                                            n_matchups=args.n_matchups,
                                            seed=args.matchup_seed)

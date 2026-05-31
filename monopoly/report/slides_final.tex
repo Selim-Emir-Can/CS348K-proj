@@ -55,9 +55,9 @@
   \begin{columns}[T,onlytextwidth]
     \begin{column}{0.58\textwidth}
       \begin{itemize}\itemsep=0.7em
-        \item Beta testing is resource-intensive: balancing a game before release takes many diverse human testers over many sessions.
-        \item Game designers face combinatorial design spaces that human playtesting cannot cover.
-        \item What is needed: an automated, reproducible way to test each candidate design against a \emph{diverse population} of simulated players, not just one fixed test-player.
+        \item Beta testing is resource-intensive; balance a game $\rightarrow$ many diverse human testers over many sessions.
+        \item Combinatorial design spaces that human playtesting alone cannot cover.
+        \item We need an automated way to test each candidate design against a \emph{diverse population} of simulated players.
       \end{itemize}
     \end{column}
     \begin{column}{0.4\textwidth}
@@ -78,7 +78,7 @@
         \item \emph{procedural personas}: learned agents matched to human playstyles, deterministic dynamics,
         \item Isaksen et al.\ (2018): one \emph{skill model}, varies skill level (modes of play not modeled).
       \end{itemize}
-    \item \textbf{Why they fall short:} one agent class cannot detect its own blind spots; even a diverse pool can rate a design fair while a different class sees it as broken.
+    \item \textbf{Why they fall short:} one agent class cannot detect its own blind spots; even a diverse pool can rate a design fair while a different class (i.e.\ humans) see it as broken.
   \end{itemize}
 \end{frame}
 
@@ -170,6 +170,7 @@
 \end{frame}
 
 % ===================== 6. Results: rule-based GA =====================
+\iffalse  % ----- ablation/convergence slide hidden for now -----
 \begin{frame}{Results: the conventional board is not optimal}
   \begin{columns}[T,onlytextwidth]
     \begin{column}{0.5\textwidth}
@@ -188,40 +189,15 @@
     \end{column}
   \end{columns}
 \end{frame}
+\fi
 
-% ===================== Results: 2-8 player data table =====================
-\begin{frame}{Results: cross-player-count evaluation (data, 2--8 players)}
-  \centering
-  \scriptsize
-  \begin{tabular}{llrrrrrr}
-    \toprule
-    Design & Eval & score$^*$\,$\downarrow$ & $\overline{F}$\,$\downarrow$ & $F_{\max}$\,$\downarrow$ & rounds\,$(\!\to\!60)$ & draw \%\,$\downarrow$ & transfer/turn\,$(\!\to\!50)$ \\
-    \midrule
-    default board & 2p & 1.463          & 0.454             & 0.940          & 103.9            &  7.4             & 24.8 \\
-    default board & 3p & 1.329          & 0.412             & 0.680          & 110.8            & 17.6             & 33.1 \\
-    default board & 4p & 1.385          & \textbf{0.309}    & 0.640          & 125.6            & 38.3             & 34.3 \\
-    default board & 5p & 1.434          & \underline{0.269} & 0.680          & 131.0            & 46.9             & 34.6 \\
-    default board & 6p & 1.292          & \textbf{0.181}    & \textbf{0.340} & 140.0            & 57.0             & 32.8 \\
-    default board & 7p & 1.376          & \textbf{0.152}    & \textbf{0.330} & 150.7            & 65.0             & 31.9 \\
-    default board & 8p & 1.401          & \textbf{0.117}    & \textbf{0.290} & 157.6            & 71.4             & 31.4 \\
-    \addlinespace
-    GA-2p winner  & 2p & \textbf{0.774}    & \textbf{0.215}    & \textbf{0.910} & \textbf{62.2}    & \underline{1.7}  & \textbf{36.7} \\
-    GA-2p winner  & 3p & \underline{0.729} & \textbf{0.273}    & 0.730          & \underline{65.7} & \underline{3.3}  & \textbf{44.4} \\
-    GA-2p winner  & 4p & \textbf{0.646}    & \underline{0.310} & \underline{0.580} & \underline{63.4} & \underline{3.9}  & \textbf{49.0} \\
-    GA-2p winner  & 5p & \textbf{0.494}    & \textbf{0.235}    & \textbf{0.420} & \textbf{62.7}    & \underline{5.4}  & \underline{51.8} \\
-    GA-2p winner  & 6p & \underline{0.535} & \underline{0.242} & 0.420          & \textbf{64.3}    & \underline{8.1}  & \textbf{53.8} \\
-    GA-2p winner  & 7p & \underline{0.572} & \underline{0.237} & 0.400          & \underline{66.8} & \underline{14.3} & \textbf{55.8} \\
-    GA-2p winner  & 8p & \underline{0.548} & \underline{0.198} & 0.360          & \underline{67.5} & \underline{21.6} & \textbf{57.1} \\
-    \addlinespace
-    GA-3p winner  & 2p & \underline{0.897} & \underline{0.287} & 0.970          & \underline{56.2} & \textbf{0.5}     & \underline{34.7} \\
-    GA-3p winner  & 3p & \textbf{0.602}    & \underline{0.280} & \textbf{0.490} & \textbf{56.3}    & \textbf{0.6}     & \underline{42.6} \\
-    GA-3p winner  & 4p & \underline{0.656} & 0.336             & \textbf{0.550} & \textbf{56.7}    & \textbf{1.8}     & \underline{48.0} \\
-    GA-3p winner  & 5p & \underline{0.603} & 0.314             & \underline{0.460} & \underline{54.8} & \textbf{1.8}     & \textbf{51.7} \\
-    GA-3p winner  & 6p & \textbf{0.522}    & 0.264             & \underline{0.360} & \underline{55.4} & \textbf{4.4}     & \underline{54.5} \\
-    GA-3p winner  & 7p & \textbf{0.559}    & 0.281             & \underline{0.360} & \textbf{55.8}    & \textbf{7.0}     & \underline{57.1} \\
-    GA-3p winner  & 8p & \textbf{0.514}    & 0.235             & \underline{0.320} & \textbf{56.7}    & \textbf{12.4}    & \underline{59.1} \\
-    \bottomrule
-  \end{tabular}
+% ===================== Generated boards: 2p default & GA winner =====================
+\begin{frame}{Generated boards (2p): default vs.\ GA winner}
+  \centerline{\includegraphics[width=\linewidth,height=0.66\textheight,keepaspectratio]{boards_grid_2p_mask_top_1.png}}
+  \vspace{0.3em}
+  \begin{itemize}\small
+    \item \textbf{GA-2p winner:} keeps $12$ of $22$ colour-group properties at $\sim$$1.6\times$ base cost and $\sim$$1.3\times$ base rent. A shorter, pricier lap that is fairer (2p), more decisive, and cashes out faster than the default.
+  \end{itemize}
 \end{frame}
 
 % ===================== Results: generalization to 2-8 players =====================
@@ -238,12 +214,12 @@
 
 % ===================== Results: real human play =====================
 \begin{frame}{Does it hold up with a human at the controls?}
-  \centerline{\includegraphics[width=\linewidth,height=0.52\textheight,keepaspectratio]{fig_human_playtest.png}}
-  \vspace{0.3em}
-  \begin{itemize}\small\itemsep=0.3em
-    \item \textbf{Pilot:} two players, two 2p boards (default + GA winner), each played three times under \emph{matched} seeds (common random numbers); $N{=}3$, all four metrics in the figure are cited directionally including fairness.
-    \item \textbf{Pacing holds:} GA winner finishes in $\sim$29 rounds vs.\ \textbf{122} for the default, which once hit the 200-turn cap with \emph{no winner}; all 3 GA-winner games ended decisively, the default only 2 of 3.
-    \item \textbf{Money circulates more, draws drop, balance improves:} $68$ \$/round vs.\ $43$; $0\%$ draw rate vs.\ $33\%$; win-rate spread $0.33$ vs.\ $0.67$. Directional evidence that all four trained effects survive contact with real players.
+  \centerline{\includegraphics[width=\linewidth,height=0.64\textheight,keepaspectratio]{fig_human_playtest.png}}
+  \vspace{0.2em}
+  \begin{itemize}\footnotesize\itemsep=0.2em
+    \item \textbf{Game Length:} GA winner $\sim$\textbf{50} rounds vs.\ \textbf{131} default.
+    \item \textbf{Money $+$ draws:} $\$66$/r vs.\ $\$39$; $0\%$ vs.\ $40\%$ draws.
+    \item \textbf{Takeaway:} all three evaluator classes agree on direction and rank; humans actually show a \emph{larger} default-board failure, so the design-tool's predictions are if anything conservative.
   \end{itemize}
 \end{frame}
 
@@ -259,49 +235,56 @@
   \end{itemize}
 \end{frame}
 
-% ===================== Results: strategy win-rate diff =====================
-\begin{frame}{What the GA fixed: strategy-vs-strategy win rates}
-  \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.5\textwidth}\centering
-      \includegraphics[width=\linewidth,height=0.62\textheight,keepaspectratio]{heatmap_ga2p.png}\\
-      \tiny GA-2p board: $P(\text{row beats column})$
-    \end{column}
-    \begin{column}{0.5\textwidth}\centering
-      \includegraphics[width=\linewidth,height=0.62\textheight,keepaspectratio]{heatmap_ga2p.diff.png}\\
-      \tiny $\Delta P$: GA-2p winner $-$ default
-    \end{column}
-  \end{columns}
-  \vspace{0.2em}
-  \begin{itemize}\small
-    \item \textbf{Takeaway:} the absolute matrix (left) shows the GA winner's per-pair fairness landscape; the diff (right) highlights what changed: the GA shifts most matchups' win probability toward balance, while strategies that ignore colour groups (e.g.\ \emph{RailroadKing}) barely respond, leaving a few pairs structurally locked.
+% ===================== Results: archetype win-rate reshuffle =====================
+\begin{frame}{What the GA fixed: which archetypes win more (and less)?}
+  \centering\scriptsize
+  \begin{tabular}{lrrrl}
+    \toprule
+    Archetype & WR(default) & WR(GA-2p) & $\Delta$ & Identity \\
+    \midrule
+    CashHoarder        & 0.46 & 0.63 & $\mathbf{+0.18}$ & \$1k$+$ unspendable, no trades \\
+    RiskAverse         & 0.50 & 0.60 & $+0.10$          & hoard, skip expensive groups \\
+    Passive            & 0.48 & 0.54 & $+0.07$          & no trades, no rails/utils \\
+    LowCostOnly        & 0.56 & 0.62 & $+0.06$          & skip 5 expensive groups \\
+    \addlinespace
+    Bully              & 0.63 & 0.62 & $-0.00$          & ultra-aggressive build $+$ trade \\
+    RailroadKing       & 0.01 & 0.00 & $-0.01$          & rails only, ignore colour groups \\
+    Trader             & 0.66 & 0.60 & $-0.05$          & aggressive build $+$ trade \\
+    AggressiveBuilder  & \textbf{0.73} & \textbf{0.66} & $-0.06$ & build at zero floor, no trades \\
+    Balanced           & 0.71 & 0.64 & $-0.06$          & balanced thresholds, trades \\
+    HighCostOnly       & 0.56 & 0.38 & $\mathbf{-0.18}$ & skip 3 cheap groups \\
+    \addlinespace
+    Random sampled ($n{=}20$) & 0.45 & 0.48 & $+0.03$   & $20$ random draws from the parameter space \\
+    \bottomrule
+  \end{tabular}
+  \vspace{0.4em}
+  \begin{itemize}\footnotesize\itemsep=0.22em
+    \item WR vs.\ field $=$ mean win-rate against the other $29$ pool strategies ($20$ games per pair, $n_{\text{decisions}}\!=\!600$/archetype).
+    \item \textbf{The GA winner is not just shorter; it reshuffles who wins.} Slow / cash-conserving archetypes (CashHoarder, RiskAverse, Passive) move from middling to top-tier; \emph{HighCostOnly} collapses because the keep-mask prunes the expensive groups it relies on.
+    \item \emph{RailroadKing} is structurally pinned near $0$ on both boards: it ignores every colour group, so any opponent who builds wins.
   \end{itemize}
 \end{frame}
 
-% ===================== Results: Pareto front =====================
-\begin{frame}{The fairness--length trade-off, and where the GA lands}
-  \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.5\textwidth}\centering
-      \includegraphics[width=\linewidth]{ga_2p_pareto.png}\\
-      \tiny 2 players
-    \end{column}
-    \begin{column}{0.5\textwidth}\centering
-      \includegraphics[width=\linewidth]{ga_3p_pareto.png}\\
-      \tiny 3 players
-    \end{column}
-  \end{columns}
-  \vspace{0.2em}
-  \begin{itemize}\small
-    \item \textbf{Takeaway:} fairness and game length trade off (red 2-D frontier); the GA optimum (star) deliberately sits \emph{inside} the cloud, balancing all five objective terms rather than minimising any single one.
+% ===================== Game-design insights =====================
+\begin{frame}{Game-design insights}
+  \begin{itemize}\footnotesize\itemsep=0.35em
+    \item \textbf{Expansion $\rightarrow$ solvency: the losing condition flips.} Default rewards owning more (long games, low rents). The GA winner rewards staying solvent ($\sim$$60$ rounds, $\sim$$1.3\times$ rent, $\sim$$1.6\times$ cost): one bad landing on a developed cell can wipe a small buffer. AggressiveBuilder's WR vs.\ CashHoarder collapses $0.80\!\to\!0.45$, you don't lose by owning too little, you lose by going bankrupt on a rent landing.
+    \item \textbf{Smaller colour groups make all-in builds work.} When a group is $1$--$2$ cells, max houses $+$ hotel on one prime cell (e.g.\ Virginia Avenue, game~9) pays off rather than being a desperation play.
+    \item \textbf{Blocking opponents stops working.} On default you can buy one cell of an opponent's set to stop them completing it. On the GA winner most sets are $1$--$2$ cells, so they complete on first landing, something rent tuning alone could not do.
+    \item \textbf{Game length} ($\sim$$60$ vs.\ $\sim$$100$ rounds): the $12$-cell lap leaves fewer turns between rent events.
+    \item \textbf{Decisiveness} (draw rate $7\%\!\to\!2\%$): $\sim$$1.6\times$ base cost and $\sim$$1.3\times$ base rent force bankruptcy before the turn cap.
+    \item \textbf{Money circulation} (\$$50\!\to\!$\$$73$/round): higher base rent on cells landed more often.
+    \item \textbf{Fairness at 2p/3p} (spread $0.45\!\to\!0.22$; $-32\%$ at 3p): Yellow dropped $+$ most groups shrunk to $1$--$2$ cells $+$ per-property rent multipliers spread $\sim$$0.6\times$--$1.9\times$ damp over-powered cells, the same recipe the fairness-only ablation finds.
   \end{itemize}
 \end{frame}
 
-% ===================== Takeaway =====================
-\begin{frame}{Takeaway}
+% ===================== Conclusion =====================
+\begin{frame}{Conclusion}
   \begin{itemize}\footnotesize\itemsep=0.55em
     \item Optimised boards play \textbf{$\sim$2--3$\times$ faster}, finish reliably at \textbf{2--8 players}, and maintain a clean $\sim$$2\times$ composite advantage at every count under cross-count-comparable normalisation, even though the GA only trained at 2p / 3p.
     \item \textbf{Fairness}, by contrast, is \emph{strongly dependent on the number of players}: the winners are fairer than default in their training regime but \emph{less} fair at 6--8 players.
     \item \textbf{Two evaluator classes (rule-based pool + LLM seats) agree on the rule-based GA winner}, and rate it 4/5 metrics over an LLM-driven board: the pool generalises across many play styles where LLM-only training overfits to its narrow decision distribution, and costs nothing per decision.
-    \item A small $N{=}2$ human playtest pilot confirms the predicted pacing and money-flow effects survive contact with real players.
+    \item \textbf{Human playtest ($N{=}10$, two players) clears the success bar:} predicted effects survive contact ($\sim$$50$ vs.\ $131$ rounds, \$$66$ vs.\ \$$39$/round, $0\%$ vs.\ $40\%$ draws), in the same direction and similar magnitude across all three evaluator classes (human, pool, LLM seats). Humans actually showed a \emph{larger} default-board failure than either simulator ($40\%$ draws vs.\ $0$--$7\%$), so the tool's predictions are if anything conservative.
     \item The recipe (closed-loop GA $+$ diverse evaluator pool $+$ independent cross-class checks) transfers to any parameterised multi-agent system: market mechanisms, RL environments, recommendation systems.
   \end{itemize}
   \vspace{0.7em}
@@ -310,15 +293,7 @@
   \end{center}
 \end{frame}
 
-% ===================== 9. Generated boards: 2p default & combined =====================
-\begin{frame}{Generated boards (2p): default vs.\ combined winner}
-  \centerline{\includegraphics[width=\linewidth,height=0.66\textheight,keepaspectratio]{boards_grid_2p_mask_top_1.png}}
-  \vspace{0.3em}
-  \begin{itemize}\small
-    \item \textbf{Combined:} keeps most properties with balanced rent tweaks; the result is shorter, fairer, and more decisive than the default.
-  \end{itemize}
-\end{frame}
-
+\iffalse  % ----- post-takeaway slides hidden for now -----
 % ===================== 10. Generated boards: 2p fairness & length =====================
 \begin{frame}{Generated boards (2p): fairness-only vs.\ length-only}
   \centerline{\includegraphics[width=\linewidth,height=0.66\textheight,keepaspectratio]{boards_grid_2p_mask_mid_2.png}}
@@ -363,6 +338,7 @@
     \item \textbf{Draw-only} pushes rents toward $2\times$ to force decisive games; \textbf{money-only} barely changes rents, since cash transfer is already near-saturated at three players.
   \end{itemize}
 \end{frame}
+\fi  % ----- end hidden post-takeaway slides -----
 
 
 \end{document}

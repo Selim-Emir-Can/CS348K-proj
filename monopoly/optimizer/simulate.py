@@ -184,6 +184,17 @@ def run_matchup(cfg, matchup_strategies: List[Tuple[str, object, Optional[str]]]
             perms = [(0, 1), (1, 0)]
         elif n_players == 3:
             perms = [(0, 1, 2), (1, 2, 0), (2, 0, 1)]
+        elif n_players == 4:
+            perms = [(0, 1, 2, 3), (1, 2, 3, 0), (2, 3, 0, 1), (3, 0, 1, 2)]
+        elif n_players == 5:
+            perms = [(0, 1, 2, 3, 4), (1, 2, 3, 4, 0), (2, 3, 4, 0, 1),
+                     (3, 4, 0, 1, 2), (4, 0, 1, 2, 3)]
+        elif n_players == 6:
+            perms = [tuple((i + k) % 6 for i in range(6)) for k in range(6)]
+        elif n_players == 7:
+            perms = [tuple((i + k) % 7 for i in range(7)) for k in range(7)]
+        elif n_players == 8:
+            perms = [tuple((i + k) % 8 for i in range(8)) for k in range(8)]
         else:
             perms = [tuple(range(n_players))]
     else:
