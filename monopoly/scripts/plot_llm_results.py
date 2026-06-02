@@ -1112,6 +1112,250 @@ def fig_verdict_audit():
     plt.close(fig)
 
 
+def fig_agreement_audit_3p():
+    """3p analogue of fig_agreement_audit: default -> rule-based GA-3p winner
+    under pool (n=1000) vs. LLM seats (n=100)."""
+    sys.path.insert(0, str(_ROOT))
+    from optimizer.objectives import evaluate
+
+    def _norm_composite(m, n, t_pt=50.0, t_rounds=60.0):
+        len_pen = abs(m['mean_rounds'] - t_rounds) / t_rounds
+        t_pen   = abs(m['mean_transfer_rate'] / max(1, n) - t_pt) / t_pt
+        return (1.0 * m['mean_fairness'] + 0.5 * m['max_fairness']
+                + 0.5 * len_pen + 0.3 * m['mean_draw_rate'] + 0.3 * t_pen)
+
+    def _llm_metrics(board_tag, n_players, run_dir):
+        rows = _read_summary(_ROOT / f'logs/llm_eval/{run_dir}/summary.csv')
+        rows = [r for r in rows if r['board_tag'] == board_tag]
+        games = [{
+            'rounds':         int(r['rounds']),
+            'truncated':      bool(int(r['truncated'])),
+            'transfer_total': int(float(r['transfer_total'])),
+            'winner':         r['winner'] or None,
+            'strategy_names': [f'LLM_p{i}' for i in range(n_players)],
+        } for r in rows]
+        return evaluate([games])['metrics']
+
+    pool_main = json.load(open(_ROOT / 'logs/optimizer_v3/cross_eval_mask.json',
+                                encoding='utf-8'))
+    pool_idx = {(r['design'], r['n_players']): r['metrics']
+                for r in pool_main['results']}
+    p_def = pool_idx[('identity_default', 3)]
+    p_rb  = pool_idx[('ga_3p_mask_best',  3)]
+    l_def = _llm_metrics('default',      3, '3p_n100')
+    l_rb  = _llm_metrics('ga_3p_winner', 3, '3p_n100')
+
+    n = 3
+    metrics = [
+        ('Composite',                r'$\downarrow$ better',
+         lambda m: _norm_composite(m, n)),
+        (r'Fairness $\overline{F}$', r'$\downarrow$ better',
+         lambda m: m['mean_fairness']),
+        (r'Worst-pair $F_{\max}$',   r'$\downarrow$ better',
+         lambda m: m['max_fairness']),
+        ('Game length',              r'$\rightarrow$ target 60',
+         lambda m: m['mean_rounds']),
+        ('Draw rate',                r'$\downarrow$ better',
+         lambda m: m['mean_draw_rate']),
+        ('Transfer/turn',            r'$\rightarrow$ target 50',
+         lambda m: m['mean_transfer_rate'] / n),
+    ]
+
+    def _pct(d, g):
+        return None if d == 0 else 100.0 * (g - d) / d
+
+    pct_pool, pct_llm = [], []
+    for _, _, fn in metrics:
+        pct_pool.append(_pct(fn(p_def), fn(p_rb)))
+        pct_llm.append(_pct(fn(l_def), fn(l_rb)))
+
+    # Auto-compute agreement counts for the suptitle.
+    dir_agree = sum(1 for p, l in zip(pct_pool, pct_llm)
+                    if p is not None and l is not None
+                    and (p >= 0) == (l >= 0))
+    valid = sum(1 for p, l in zip(pct_pool, pct_llm)
+                if p is not None and l is not None)
+
+    labels = [f'{m[0]}\n({m[1]})' for m in metrics]
+    x = np.arange(len(labels))
+    w = 0.38
+    C_POOL, C_LLM = '#2ca02c', '#9467bd'
+
+    fig, ax = plt.subplots(figsize=(13.5, 6.0))
+    bp_vals = [v if v is not None else 0.0 for v in pct_pool]
+    bl_vals = [v if v is not None else 0.0 for v in pct_llm]
+    b1 = ax.bar(x - w/2, bp_vals, w, label='pool eval (n=1000)', color=C_POOL)
+    b2 = ax.bar(x + w/2, bl_vals, w, label='LLM eval (n=100)',  color=C_LLM)
+    ax.axhline(0, color='black', lw=0.8)
+
+    ymax = max([abs(v) for v in bp_vals + bl_vals] + [1.0])
+    pad = ymax * 0.04
+    for bars, raw in ((b1, pct_pool), (b2, pct_llm)):
+        for b, v in zip(bars, raw):
+            if v is None:
+                ax.text(b.get_x() + b.get_width()/2, pad,
+                        'n/a\n(no draws)', ha='center', va='bottom',
+                        fontsize=8, color='#666666', style='italic')
+                continue
+            y_off = pad if v >= 0 else -pad
+            va = 'bottom' if v >= 0 else 'top'
+            ax.text(b.get_x() + b.get_width()/2, v + y_off,
+                    f'{v:+.0f}%', ha='center', va=va,
+                    fontsize=9.5, fontweight='bold')
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels, fontsize=10)
+    ax.set_ylabel(r'% change from default $\rightarrow$ rule-based GA-3p winner',
+                  fontsize=11)
+    ax.set_ylim(-ymax * 1.20, ymax * 0.55)
+    ax.grid(axis='y', alpha=0.3)
+    ax.legend(fontsize=10, loc='lower right', framealpha=0.95)
+
+    fig.suptitle(f'Cross-class agreement at 3p: {dir_agree}/{valid} on direction',
+                 fontsize=12, fontweight='bold')
+    fig.tight_layout(rect=[0, 0, 1, 0.93])
+    _save(fig, 'fig_agreement_audit_3p.png')
+    plt.close(fig)
+
+
+def fig_verdict_audit_3p():
+    """3p analogue of fig_verdict_audit: rule-based GA-3p winner vs LLM-driven
+    board (evaluated at 3p), under pool (n=1000) and LLM seats (n=100)."""
+    sys.path.insert(0, str(_ROOT))
+    from optimizer.objectives import evaluate
+
+    def _llm_metrics(board_tag, n_players, run_dir):
+        rows = _read_summary(_ROOT / f'logs/llm_eval/{run_dir}/summary.csv')
+        rows = [r for r in rows if r['board_tag'] == board_tag]
+        games = [{
+            'rounds':         int(r['rounds']),
+            'truncated':      bool(int(r['truncated'])),
+            'transfer_total': int(float(r['transfer_total'])),
+            'winner':         r['winner'] or None,
+            'strategy_names': [f'LLM_p{i}' for i in range(n_players)],
+        } for r in rows]
+        return evaluate([games])['metrics']
+
+    pool_main = json.load(open(_ROOT / 'logs/optimizer_v3/cross_eval_mask.json',
+                                encoding='utf-8'))
+    pool_idx = {(r['design'], r['n_players']): r['metrics']
+                for r in pool_main['results']}
+    pool_lga = json.load(open(_ROOT / 'logs/optimizer/cross_eval_llm_ga_winner.json',
+                               encoding='utf-8'))
+    pool_lga_idx = {(r['design'], r['n_players']): r['metrics']
+                    for r in pool_lga['results']}
+    p_rb  = pool_idx[('ga_3p_mask_best',  3)]
+    p_lga = pool_lga_idx[('evals_best',   3)]
+    # The LLM-driven board was trained at 2p, so its tag stays 'llm_ga_2p_winner'
+    # even when evaluated at 3 players (mirrors the rule-based GA-2p winner being
+    # cross-evaluated at 3p elsewhere).
+    l_rb  = _llm_metrics('ga_3p_winner',     3, '3p_n100')
+    l_lga = _llm_metrics('llm_ga_2p_winner', 3, 'llm_ga_winner_3p_n100')
+
+    n = 3
+
+    def _adv_lower(ref, val):
+        return 100.0 * (ref - val) / ref if ref else 0.0
+
+    def _adv_target(ref, val, target):
+        d_ref = abs(target - ref)
+        d_val = abs(target - val)
+        return 100.0 * (d_ref - d_val) / d_ref if d_ref else 0.0
+
+    metrics = [
+        ('Composite',                r'$\downarrow$ better',
+         lambda m: 1.0 * m['mean_fairness'] + 0.5 * m['max_fairness']
+                   + 0.5 * abs(m['mean_rounds'] - 60) / 60
+                   + 0.3 * m['mean_draw_rate']
+                   + 0.3 * abs(m['mean_transfer_rate'] / n - 50) / 50,
+         _adv_lower, None),
+        (r'Fairness $\overline{F}$', r'$\downarrow$ better',
+         lambda m: m['mean_fairness'], _adv_lower, None),
+        (r'Worst-pair $F_{\max}$',   r'$\downarrow$ better',
+         lambda m: m['max_fairness'], _adv_lower, None),
+        ('Game length',              r'$\rightarrow$ target 60',
+         lambda m: m['mean_rounds'],  _adv_target, 60),
+        ('Transfer/turn',            r'$\rightarrow$ target 50',
+         lambda m: m['mean_transfer_rate'] / n, _adv_target, 50),
+    ]
+
+    adv_pool, adv_llm = [], []
+    for _, _, get, adv_fn, target in metrics:
+        if target is None:
+            adv_pool.append(adv_fn(get(p_lga), get(p_rb)))
+            adv_llm.append(adv_fn(get(l_lga), get(l_rb)))
+        else:
+            adv_pool.append(adv_fn(get(p_lga), get(p_rb), target))
+            adv_llm.append(adv_fn(get(l_lga), get(l_rb), target))
+
+    # Auto-compute "rule-based wins" count for the suptitle (pool side, since
+    # both evaluators usually agree on the verdict).
+    rb_wins_pool = sum(1 for v in adv_pool if v > 0)
+    rb_wins_llm  = sum(1 for v in adv_llm  if v > 0)
+
+    labels = [f'{m[0]}\n({m[1]})' for m in metrics]
+    x = np.arange(len(labels))
+    w = 0.38
+    C_POOL, C_LLM = '#2ca02c', '#9467bd'
+
+    fig, ax = plt.subplots(figsize=(12.5, 6.4))
+    CLAMP = 150.0
+    adv_pool_draw = [max(-CLAMP, min(CLAMP, v)) for v in adv_pool]
+    adv_llm_draw  = [max(-CLAMP, min(CLAMP, v)) for v in adv_llm]
+    b1 = ax.bar(x - w/2, adv_pool_draw, w, label='pool eval (n=1000)', color=C_POOL)
+    b2 = ax.bar(x + w/2, adv_llm_draw,  w, label='LLM eval (n=100)',  color=C_LLM)
+    ax.axhline(0, color='black', lw=0.8)
+
+    ymax = CLAMP
+    pad = ymax * 0.04
+    for bars, raw, drawn in ((b1, adv_pool, adv_pool_draw),
+                             (b2, adv_llm,  adv_llm_draw)):
+        for b, v_raw, v_draw in zip(bars, raw, drawn):
+            clamped = abs(v_raw) > CLAMP
+            y_off = pad if v_draw >= 0 else -pad
+            va = 'bottom' if v_draw >= 0 else 'top'
+            arrow = ''
+            if clamped:
+                arrow = r' $\downarrow$' if v_raw < 0 else r' $\uparrow$'
+            ax.text(b.get_x() + b.get_width()/2, v_draw + y_off,
+                    f'{v_raw:+.0f}%{arrow}', ha='center', va=va,
+                    fontsize=9.5, fontweight='bold')
+
+    ax.axhspan(0, ymax * 1.30, color='#1f77b4', alpha=0.06, zorder=0)
+    ax.axhspan(-ymax * 1.30, 0, color='#ff7f0e', alpha=0.06, zorder=0)
+    ax.text(0.005, 0.98, 'rule-based wins',
+            transform=ax.transAxes, ha='left', va='top',
+            fontsize=9, style='italic', color='#1f4d6f')
+    ax.text(0.005, 0.02, 'LLM-driven wins',
+            transform=ax.transAxes, ha='left', va='bottom',
+            fontsize=9, style='italic', color='#7f3d00')
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels, fontsize=10)
+    ax.set_ylabel('rule-based advantage over LLM-driven (%)', fontsize=11)
+    ax.set_ylim(-ymax * 1.30, ymax * 1.30)
+    ax.grid(axis='y', alpha=0.3)
+    ax.legend(fontsize=10, loc='upper right', framealpha=0.95)
+
+    pool_dr_rb  = 100.0 * p_rb['mean_draw_rate']
+    pool_dr_lga = 100.0 * p_lga['mean_draw_rate']
+    llm_dr_rb   = 100.0 * l_rb['mean_draw_rate']
+    llm_dr_lga  = 100.0 * l_lga['mean_draw_rate']
+    fig.text(0.5, 0.005,
+             f'Draw rate (not on bar chart): '
+             f'pool — rule-based {pool_dr_rb:.1f}% vs LLM-driven {pool_dr_lga:.1f}%; '
+             f'LLM — rule-based {llm_dr_rb:.1f}% vs LLM-driven {llm_dr_lga:.1f}%.',
+             ha='center', va='bottom', fontsize=8.5, style='italic', color='#444444')
+
+    fig.suptitle(f'Rule-based vs LLM-driven at 3p (cross-class verdict): '
+                 f'pool {rb_wins_pool}/5 favor rule-based, '
+                 f'LLM {rb_wins_llm}/5 favor rule-based',
+                 fontsize=12, fontweight='bold')
+    fig.tight_layout(rect=[0, 0.04, 1, 0.93])
+    _save(fig, 'fig_verdict_audit_3p.png')
+    plt.close(fig)
+
+
 def main():
     fig_cross_class_agreement()
     fig_llm_ga_convergence()
@@ -1120,6 +1364,8 @@ def main():
     # fig_evaluator_contrast()  # deprecated: moved to monopoly/outdated_results/
     fig_agreement_audit()
     fig_verdict_audit()
+    fig_agreement_audit_3p()
+    fig_verdict_audit_3p()
     fig_fairness_asymmetry()
     fig_llm_ga_score_distribution()
     fig_v1_vs_v2_hallucination()

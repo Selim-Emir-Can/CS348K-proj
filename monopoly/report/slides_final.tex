@@ -34,8 +34,8 @@
   {../final_report/figures/}%
 }
 
-\title{Beta-Testing Monopoly}
-\subtitle{Closed-Loop Game-Design Optimisation over a Diverse Strategy Pool}
+\title{Beta-Testing Without Beta-Testers}
+\subtitle{Diverse Agent Surrogates for Game-Design Optimisation}
 \author{Selim Emir Can}
 \institute{Stanford CS348K}
 \date{June 2026}
@@ -69,7 +69,8 @@
 \end{frame}
 
 % ===================== 3. The problem, and why it is hard =====================
-\begin{frame}{The problem, and why it is hard}
+\iffalse
+\begin{frame}{Problem \& Prior Work}
   \begin{itemize}\itemsep=0.7em
     \item How can we accelerate beta testing while ensuring that every playstyle enjoys the game, across a combination of metrics?
     \item \textbf{Prior automated playtesting evaluates with a single agent class:}
@@ -78,9 +79,10 @@
         \item \emph{procedural personas}: learned agents matched to human playstyles, deterministic dynamics,
         \item Isaksen et al.\ (2018): one \emph{skill model}, varies skill level (modes of play not modeled).
       \end{itemize}
-    \item \textbf{Why they fall short:} one agent class cannot detect its own blind spots; even a diverse pool can rate a design fair while a different class (i.e.\ humans) see it as broken.
+    % \item \textbf{Why they fall short:} one agent class cannot detect its own blind spots; even a diverse pool can rate a design fair while a different class (i.e.\ humans) see it as broken.
   \end{itemize}
 \end{frame}
+\fi
 
 % ===================== 4. Our approach (HIDDEN: the method slide covers it) =====================
 \iffalse
@@ -106,7 +108,7 @@
 \fi
 
 % ===================== Method figure =====================
-\begin{frame}{The method, end to end}
+\begin{frame}{Method}
   \centerline{\includegraphics[width=\linewidth,height=0.74\textheight,keepaspectratio]{fig_method.png}}
   \vspace{0.2em}
   \begin{center}\footnotesize
@@ -136,7 +138,6 @@
   \end{tabular}
   \vspace{0.7em}
   \begin{itemize}\small
-    \item Plus \textbf{20 sampled} strategies drawn from the 17-dim space (Bernoulli booleans, random cash/trade thresholds, each colour group ignored w.p.\ $0.25$).
     \item ``Cash floor'' $=$ cash kept un-spent; ``Build'' $=$ max houses/turn vs.\ one/turn; ``Buys'' $=$ railroads / utilities.
   \end{itemize}
 \end{frame}
@@ -200,6 +201,51 @@
   \end{itemize}
 \end{frame}
 
+% ===================== Game-design insights =====================
+\begin{frame}{Game-design insights}
+  \begin{itemize}\footnotesize\itemsep=0.35em
+    \item \textbf{Expansion $\rightarrow$ solvency: losing condition flips.}
+      \begin{itemize}\scriptsize\itemsep=0.15em
+        \item Default (long games, low rents): reward owning more.
+        \item GA winner ($\sim$$60$ rounds, $\sim$$1.3\times$ rent, $\sim$$1.6\times$ cost): reward staying solvent.
+        \item One bad landing can drain a \$$300$ reserve.
+        \item AggressiveBuilder vs.\ CashHoarder: $0.80\!\to\!0.45$ (WR).
+      \end{itemize}
+    \item \textbf{Smaller colour groups make all-in builds work.}
+      \begin{itemize}\scriptsize\itemsep=0.15em
+        \item Default: cheap 2-cell groups (Brown) can't win; need an expensive triplet.
+        \item GA winner: $1$--$2$ cell groups $+$ $1.6\times$ cost / $1.3\times$ rent $\rightarrow$ max houses $+$ hotel pays off.
+      \end{itemize}
+    \item \textbf{Blocking opponents stops working.}
+      \begin{itemize}\scriptsize\itemsep=0.15em
+        \item Default: buy one cell of opponent's set to deny completion.
+        \item GA winner: $1$--$2$ cell sets complete on first landing.
+        \item Higher costs ($\sim$$1.6\times$) prevent hoarding properties before crossing GO.
+        \item Something rent tuning alone could not do.
+      \end{itemize}
+    \item \textbf{Game length} ($\sim$$60$ vs.\ $\sim$$100$ rounds): the $12$-cell lap leaves fewer turns between rent events.
+    \item \textbf{Decisiveness} (draw rate $7\%\!\to\!2\%$): $\sim$$1.6\times$ base cost and $\sim$$1.3\times$ base rent force bankruptcy before the turn cap.
+    \item \textbf{Money circulation} (\$$50\!\to\!$\$$73$/round): higher base rent on cells landed more often.
+    \item \textbf{Fairness at 2p/3p} (spread $0.45\!\to\!0.22$; $-32\%$ at 3p): Yellow dropped $+$ most groups shrunk to $1$--$2$ cells $+$ per-property rent multipliers spread $\sim$$0.6\times$--$1.9\times$ damp over-powered cells, the same recipe the fairness-only ablation finds.
+  \end{itemize}
+\end{frame}
+
+% ===================== Results: archetype win-rate reshuffle =====================
+\begin{frame}{What the GA fixed: which archetypes win more (and less)?}
+  \centerline{\includegraphics[width=\linewidth,height=0.60\textheight,keepaspectratio]{fig_archetype_shift.png}}
+  \vspace{0.2em}
+  \begin{itemize}\footnotesize\itemsep=0.22em
+    % \item WR vs.\ field $=$ mean win-rate against the other $29$ pool strategies ($20$ games per pair, $580$ games/archetype/board).
+    \item \textbf{GA winner reshuffles \emph{who} wins, not just shortens:}
+      \begin{itemize}\scriptsize\itemsep=0.15em
+        \item Slow / cash-conserving (CashHoarder, RiskAverse, Passive): middling $\rightarrow$ top-tier.
+        \item HighCostOnly: collapses, keep-mask prunes the expensive groups it relies on.
+      \end{itemize}
+    \item Bad strategies perform the same across both boards: performance is a function of strategy \emph{and} board type.
+    \item Top \emph{and} bottom are board-robust; reshuffle concentrated in the \emph{middle} (assuming similar dynamics).
+  \end{itemize}
+\end{frame}
+
 % ===================== Results: generalization to 2-8 players =====================
 \begin{frame}{Results: generalization to 2--8 players}
   \centerline{\includegraphics[width=\linewidth,height=0.62\textheight,keepaspectratio]{fig_cross_eval_scaling.png}}
@@ -224,73 +270,39 @@
 \end{frame}
 
 % ===================== Results: the cross-class check =====================
+\iffalse
 \begin{frame}{Results: the cross-class check}
   \centerline{\includegraphics[width=0.92\linewidth,height=0.30\textheight,keepaspectratio]{fig_agreement_audit.png}}
   \vspace{0.1em}
   \centerline{\includegraphics[width=0.92\linewidth,height=0.30\textheight,keepaspectratio]{fig_verdict_audit.png}}
   \vspace{0.2em}
   \begin{itemize}\footnotesize\itemsep=0.35em
-    \item \textbf{LLM evaluator agrees with the strategy-pool evaluator} on the rule-based GA winner: the pool's optimum survives an independent agent class.
-    \item \textbf{Strategy-pool board beats LLM-driven board} under \emph{both} evaluators (4/5 metrics): the pool's 30 strategies generalise across play styles so the GA can't overfit to one; LLM-only training overfits to its narrow decision distribution. Pool is also far cheaper, no per-decision LLM call.
+    \item Big rule-based pool $\rightarrow$ generalises to evaluators \emph{unseen at training} (LLM seats).
+    \item Far cheaper: no per-decision LLM call.
+    \item Pool-driven board beats LLM-driven board, $4/5$ metrics, under \emph{both} evaluators.
+    \item LLM-only training overfits its narrow decision distribution.
   \end{itemize}
 \end{frame}
-
-% ===================== Results: archetype win-rate reshuffle =====================
-\begin{frame}{What the GA fixed: which archetypes win more (and less)?}
-  \centering\scriptsize
-  \begin{tabular}{lrrrl}
-    \toprule
-    Archetype & WR(default) & WR(GA-2p) & $\Delta$ & Identity \\
-    \midrule
-    CashHoarder        & 0.46 & 0.63 & $\mathbf{+0.18}$ & \$1k$+$ unspendable, no trades \\
-    RiskAverse         & 0.50 & 0.60 & $+0.10$          & hoard, skip expensive groups \\
-    Passive            & 0.48 & 0.54 & $+0.07$          & no trades, no rails/utils \\
-    LowCostOnly        & 0.56 & 0.62 & $+0.06$          & skip 5 expensive groups \\
-    \addlinespace
-    Bully              & 0.63 & 0.62 & $-0.00$          & ultra-aggressive build $+$ trade \\
-    RailroadKing       & 0.01 & 0.00 & $-0.01$          & rails only, ignore colour groups \\
-    Trader             & 0.66 & 0.60 & $-0.05$          & aggressive build $+$ trade \\
-    AggressiveBuilder  & \textbf{0.73} & \textbf{0.66} & $-0.06$ & build at zero floor, no trades \\
-    Balanced           & 0.71 & 0.64 & $-0.06$          & balanced thresholds, trades \\
-    HighCostOnly       & 0.56 & 0.38 & $\mathbf{-0.18}$ & skip 3 cheap groups \\
-    \addlinespace
-    Random sampled ($n{=}20$) & 0.45 & 0.48 & $+0.03$   & $20$ random draws from the parameter space \\
-    \bottomrule
-  \end{tabular}
-  \vspace{0.4em}
-  \begin{itemize}\footnotesize\itemsep=0.22em
-    \item WR vs.\ field $=$ mean win-rate against the other $29$ pool strategies ($20$ games per pair, $n_{\text{decisions}}\!=\!600$/archetype).
-    \item \textbf{The GA winner is not just shorter; it reshuffles who wins.} Slow / cash-conserving archetypes (CashHoarder, RiskAverse, Passive) move from middling to top-tier; \emph{HighCostOnly} collapses because the keep-mask prunes the expensive groups it relies on.
-    \item \emph{RailroadKing} is structurally pinned near $0$ on both boards: it ignores every colour group, so any opponent who builds wins.
-  \end{itemize}
-\end{frame}
-
-% ===================== Game-design insights =====================
-\begin{frame}{Game-design insights}
-  \begin{itemize}\footnotesize\itemsep=0.35em
-    \item \textbf{Expansion $\rightarrow$ solvency: the losing condition flips.} Default rewards owning more (long games, low rents). The GA winner rewards staying solvent ($\sim$$60$ rounds, $\sim$$1.3\times$ rent, $\sim$$1.6\times$ cost): one bad landing on a developed cell can wipe a small buffer. AggressiveBuilder's WR vs.\ CashHoarder collapses $0.80\!\to\!0.45$, you don't lose by owning too little, you lose by going bankrupt on a rent landing.
-    \item \textbf{Smaller colour groups make all-in builds work.} When a group is $1$--$2$ cells, max houses $+$ hotel on one prime cell (e.g.\ Virginia Avenue, game~9) pays off rather than being a desperation play.
-    \item \textbf{Blocking opponents stops working.} On default you can buy one cell of an opponent's set to stop them completing it. On the GA winner most sets are $1$--$2$ cells, so they complete on first landing, something rent tuning alone could not do.
-    \item \textbf{Game length} ($\sim$$60$ vs.\ $\sim$$100$ rounds): the $12$-cell lap leaves fewer turns between rent events.
-    \item \textbf{Decisiveness} (draw rate $7\%\!\to\!2\%$): $\sim$$1.6\times$ base cost and $\sim$$1.3\times$ base rent force bankruptcy before the turn cap.
-    \item \textbf{Money circulation} (\$$50\!\to\!$\$$73$/round): higher base rent on cells landed more often.
-    \item \textbf{Fairness at 2p/3p} (spread $0.45\!\to\!0.22$; $-32\%$ at 3p): Yellow dropped $+$ most groups shrunk to $1$--$2$ cells $+$ per-property rent multipliers spread $\sim$$0.6\times$--$1.9\times$ damp over-powered cells, the same recipe the fairness-only ablation finds.
-  \end{itemize}
-\end{frame}
+\fi
 
 % ===================== Conclusion =====================
 \begin{frame}{Conclusion}
   \begin{itemize}\footnotesize\itemsep=0.55em
-    \item Optimised boards play \textbf{$\sim$2--3$\times$ faster}, finish reliably at \textbf{2--8 players}, and maintain a clean $\sim$$2\times$ composite advantage at every count under cross-count-comparable normalisation, even though the GA only trained at 2p / 3p.
-    \item \textbf{Fairness}, by contrast, is \emph{strongly dependent on the number of players}: the winners are fairer than default in their training regime but \emph{less} fair at 6--8 players.
-    \item \textbf{Two evaluator classes (rule-based pool + LLM seats) agree on the rule-based GA winner}, and rate it 4/5 metrics over an LLM-driven board: the pool generalises across many play styles where LLM-only training overfits to its narrow decision distribution, and costs nothing per decision.
-    \item \textbf{Human playtest ($N{=}10$, two players) clears the success bar:} predicted effects survive contact ($\sim$$50$ vs.\ $131$ rounds, \$$66$ vs.\ \$$39$/round, $0\%$ vs.\ $40\%$ draws), in the same direction and similar magnitude across all three evaluator classes (human, pool, LLM seats). Humans actually showed a \emph{larger} default-board failure than either simulator ($40\%$ draws vs.\ $0$--$7\%$), so the tool's predictions are if anything conservative.
+    \item \textbf{Human playtest ($N{=}10$, two players) clears the success bar:}
+      % \begin{itemize}\scriptsize\itemsep=0.15em
+      %   \item Constraints specified in the agent setting are satisfied in real human play ($\sim$$50$ vs.\ $131$ rounds, \$$66$ vs.\ \$$39$/round, $0\%$ vs.\ $40\%$ draws); direction $+$ magnitude hold across pool, LLM, and human.
+      %   \item Agent feedback is conservative, not optimistic: humans show a \emph{larger} default failure ($40\%$ draws) than either simulator ($0$--$7\%$).
+      % \end{itemize}
+    \item Optimised boards play \textbf{$\sim$2--3$\times$ faster}, finish reliably at \textbf{2--8 players}, and maintain a clean $\sim$$2\times$ composite advantage, even though the GA only trained at 2p / 3p.
+    \item \textbf{Pool $+$ LLM evaluators agree on the rule-based GA winner.}
+      % \begin{itemize}\scriptsize\itemsep=0.15em
+      %   \item Pool-driven board beats LLM-driven board, $4/5$ metrics, under \emph{both} evaluators.
+      %   \item Pool generalises to unseen evaluator classes; LLM-only overfits its narrow decisions.
+      %   \item Pool is essentially free, no per-decision LLM call.
+      % \end{itemize}
+    \item Some metrics depend on number of players (e.g.\ fairness); performance is a function of player count, strategy space, \emph{and} board.
     \item The recipe (closed-loop GA $+$ diverse evaluator pool $+$ independent cross-class checks) transfers to any parameterised multi-agent system: market mechanisms, RL environments, recommendation systems.
   \end{itemize}
-  \vspace{0.7em}
-  \begin{center}
-    \small Code, logs, figures: \url{github.com/Selim-Emir-Can/CS348K-proj/tree/master}
-  \end{center}
 \end{frame}
 
 \iffalse  % ----- post-takeaway slides hidden for now -----

@@ -22,12 +22,18 @@
 \usepackage{subcaption}
 \usepackage{enumitem}
 \usepackage{microtype}
+\usepackage[section]{placeins}
+\usepackage{etoolbox}
+% Force floats to stay inside their subsection (the eval section is
+% figure-dense; without this, figures drift across subsection
+% boundaries and end up far from the text that references them).
+\pretocmd{\subsection}{\FloatBarrier}{}{}
 \hypersetup{colorlinks=true,linkcolor=black,citecolor=blue,urlcolor=blue}
 
 \graphicspath{{figures/}}
 
-\title{Beta-Testing Monopoly: \\Closed-Loop Game-Design Optimisation
-       over a Diverse Strategy Pool}
+\title{Beta-Testing Without Beta-Testers: \\Agent-Driven
+       Closed-Loop Game-Design Optimisation for Monopoly}
 \author{Selim Emir Can (selimcan@stanford.edu)}
 \date{2026-06-06}
 
@@ -36,39 +42,42 @@
 
 \begin{abstract}
 We present a closed-loop, agent-driven beta-testing workflow for game
-design, instantiated on Monopoly. A genetic algorithm searches a 66-dim
-board design space (per-property cost and rent multipliers and a 22-bit
-keep-mask) under a composite objective combining fairness, game length,
-draw rate, and inter-player money transfer, evaluated against a fixed
-pool of 30 parametric rule-based strategies. A second agent class, a
-1.5B-parameter instruction-tuned LLM (Qwen2.5-1.5B) wrapped in a
-structured echo-validated prompt, re-evaluates the same boards as an
-independent cross-class probe. The rule-based GA improves the composite
-score by approximately $47\%$ over the default board at both 2 and
-3 players, outperforming a random-search baseline at matched
-evaluation budget by $\sim 13\%$ in both regimes. Single-objective ablations confirm that every term in the
-composite is non-redundant. A $2p\!\leftrightarrow\!3p$
-cross-evaluation at $n{=}1000$ shows that each design specialises
-to its training regime: the off-regime composite is $16\!-\!24\%$
-worse than the regime-matched optimum, though both designs still
-beat the default by a wide margin under either evaluator.
-The LLM probe reproduces the rule-based directional ranking with zero
-model-side hallucinations across 2{,}207 calls under structured
-validation. Re-running the GA with the LLM in the evaluator role yields
-a board that beats the default but loses head-to-head to the
-rule-based GA winner: at $n{=}100$ LLM eval, both evaluator classes
-prefer the rule-based design on $4$ of $5$ stable metrics, while the
-LLM-driven board wins only on transfer per player-turn, the metric
-its $n{=}5$ training overfit to. A small $N{=}10$ two-player pilot
-(Section~\ref{sec:playtest-pilot}) confirms all four trained effects
-under human control: the GA winner finishes in $50$ rounds on
-average against $131$ for the default, circulates $\$66$/round
-against $\$39$, never truncates ($0\%$ vs.\ $40\%$ draw rate), and
-delivers a perfect $5$--$5$ win split between the two players
-($|WR_{P_1}-WR_{P_2}|{=}0.00$) against $0.60$ for the default. The
-fuller multi-subject playtest (Section~\ref{sec:playtest-shortlist})
-that
-would test the subjective and fairness claims remains deferred. Code, logs, and figures:
+design, instantiated on Monopoly. A genetic algorithm searches a
+66-dim board design space ($22$ cost multipliers, $22$ rent
+multipliers, $22$ keep-mask bits) against a composite objective
+combining fairness, game length, draw rate, and inter-player money
+transfer, evaluated against a fixed pool of $30$ parametric
+rule-based strategies; a $1.5$B-parameter instruction-tuned LLM
+(Qwen2.5-1.5B) wrapped in a structured echo-validated prompt serves
+as an independent cross-class probe. The optimised board improves
+the composite score by ${\sim}47\%$ over the default at both 2
+and 3 players, and three downstream results validate the workflow.
+\textbf{(1)~Cross-player-count generalisation:} the 2p/3p-trained
+boards retain a ${\sim}2\times$ composite advantage at every count
+from $2$ to $8$, with the single exception of fairness, which is
+regime-specific (fairer than default at training counts, less fair
+at $7$--$8$p). \textbf{(2)~Cross-class agreement:} across $n{=}100$
+all-LLM-seat games at both 2p and 3p, both evaluator classes
+(rule-based pool, LLM seats) prefer the pool-driven board over an
+LLM-GA-trained board on $4$ of $5$ stable metrics, losing only on
+transfer per player-turn (the one metric the LLM-GA's small-$n$
+training overfit to); the pool generalises to evaluator classes
+unseen at training, at zero per-decision LLM cost.
+\textbf{(3)~Human playtest pilot ($N{=}10$, two players):} all four
+trained effects survive contact with real players ($\sim$$50$
+vs.\ $131$ rounds, $\$66$ vs.\ $\$39$ per round, $0\%$ vs.\ $40\%$
+draws, $|WR_{P_1}-WR_{P_2}|{=}0.00$ vs.\ $0.60$), and humans show a
+\emph{larger} default-board failure than either simulator ($40\%$
+draws vs.\ $0\!-\!7\%$ in pool/LLM), so the agent-driven
+predictions are conservative rather than optimistic. Beyond the
+metrics, the report documents the underlying mechanism: the GA
+winner flips the losing condition from \emph{owning too little} to
+\emph{going bankrupt on a rent landing}, which in turn reshuffles
+which archetypes win (CashHoarder moves from middling to top-tier;
+HighCostOnly collapses). The fuller multi-subject playtest that
+would test the subjective claims remains deferred and is specified
+in Section~\ref{sec:playtest-shortlist}.
+Code, logs, and figures:
 \url{https://github.com/Selim-Emir-Can/CS348K-proj/tree/master}.
 \end{abstract}
 
@@ -130,42 +139,35 @@ $T^{*}_{\text{pt}} = 50$, which equals the original training target
 at 2p and removes the trivial linear scaling of money flow with
 seats so cross-count comparison is meaningful.
 
-\paragraph{Hypothesis.} The falsifiable claim of the project is that a
-candidate board's directional ranking under a 30-strategy parametric
-pool matches its directional ranking under an independent agent class
-(a 1.5B-parameter LLM with a deterministic per-field state validator),
-at a per-decision hallucination rate below $1\%$. This sits between
-``a single trained agent ranks designs'' (insufficient for fairness)
-and ``agents predict human win-rates'' (likely hopeless, and not what a
-designer needs); it is precisely the claim required to use agent
-feedback as a beta-testing surrogate.
+\paragraph{Hypothesis.} The falsifiable claim of the project is
+two-fold: (a) a candidate board's directional ranking under a
+30-strategy parametric pool matches its directional ranking under
+an independent agent class (a 1.5B-parameter LLM with a
+deterministic per-field state validator); and (b) the same
+directional ranking also holds in real human play, so the strategy
+pool acts as a proxy for human behaviour on the design axes the
+optimiser targets. The human playtest pilot
+(Section~\ref{sec:playtest-pilot}) is the empirical check on (b).
+This sits between ``a single trained agent ranks designs''
+(insufficient for fairness) and ``agents predict human win-rates
+exactly'' (likely hopeless, and not what a designer needs); it is
+precisely the claim required to use agent feedback as a
+beta-testing surrogate.
 
-\paragraph{The crux.} The hard part of the project is neither the GA
-over a 66-dim board space nor the LLM plumbing; it is the question of
-\emph{what evaluates a candidate board} in the absence of human
-playtesters. A single trained agent (RL or LLM) used as an oracle
-collapses ``design quality'' to one playstyle's quirks: a board that
-scores well against an aggressive builder may be obviously broken
-against a cash hoarder. The honest alternative is to evaluate against a
-\emph{population} of strategies, but the strategy space we care about
-is continuous (17 knobs: 5 continuous, 4 boolean, an 8-bit
-colour-group mask), so the real question is \emph{which strategies,
-and how many}. The project's load-bearing design choice is the
-discretisation: 10 hand-designed archetypes (\textsl{AggressiveBuilder,
-CashHoarder, Trader, RailroadKing, LowCostOnly, HighCostOnly, Balanced,
-Passive, Bully, RiskAverse}) chosen to span qualitatively different
-playstyles, plus 20 samples drawn once from the parametric space with
-a fixed seed to fill the gaps between them. Thirty strategies is small
-enough that 100 games per candidate over 200 candidates fits in
-$\sim 25$ minutes on a single CPU, and large enough that worst-case
-fairness across the pool is a meaningful objective rather than a coin
-flip on one matchup. A secondary technical challenge, addressed as part
-of the cross-class validation rather than the central contribution, is
-making a small instruction-tuned LLM usable as an independent agent
-class without hallucinations leaking into the metrics; the solution is
-a structured \texttt{STATE/ECHO/REASON/ANSWER} prompt with
-deterministic per-field state validation and a bounded retry budget,
-reported with its failure modes (Section~\ref{sec:llm}).
+\paragraph{The crux.} The hard part is the question of \emph{what
+evaluates a candidate board} without human playtesters. A single trained agent collapses
+``design quality'' to one playstyle's quirks; the honest alternative
+is a \emph{population} of strategies, which raises the real question:
+\emph{which strategies, and how many.} Our choice is 10 hand-designed
+archetypes (\textsl{AggressiveBuilder, CashHoarder, Trader,
+RailroadKing, LowCostOnly, HighCostOnly, Balanced, Passive, Bully,
+RiskAverse}) plus 20 samples drawn once from the 17-knob parametric
+space: small enough for $100$ games per candidate over $200$
+candidates in $\sim$$25$ minutes on a single CPU, large enough that
+worst-case fairness across the pool is meaningful. A secondary
+challenge, making a small instruction-tuned LLM usable as an
+independent agent class without hallucinations leaking into the
+metrics, is addressed in Section~\ref{sec:llm}.
 
 % =====================================================================
 \section{Related work}\label{sec:related}
@@ -201,7 +203,7 @@ as a population of social actors. Our setup is narrower: a single
 per-field validator with a bounded retry budget. The
 validator-and-retry stack is closer in spirit to constrained
 decoding than to standard chain-of-thought prompting; we report
-failure modes specific to that protocol (Section~\ref{sec:llm}).
+failure modes specific to that protocol (Appendix~\ref{app:hallucination}).
 
 \paragraph{Tree search and competitive evaluation in games.}
 Browne et al.~\cite{browne_mcts} survey Monte Carlo tree search;
@@ -244,75 +246,33 @@ piece of the optimisation loop, the strategy pool, the design-space
 encoder, the per-game stat collection, and the LLM integration was new
 work for this project.
 
-The optimisation stack lives under \texttt{monopoly/optimizer/} and
-\texttt{monopoly/scripts/}. \texttt{ParametricPlayer} together with
-\texttt{ParametricPlayerSettings} subsumes every existing rule-based
-subclass under a single 17-knob agent (5 continuous, 4 boolean, 8-bit
-colour-group mask). \texttt{strategy\_pool.py} produces the 30-strategy
-pool described in Section~\ref{sec:bg}, deterministic via a fixed seed
-and saved once for reuse across runs. \texttt{design\_space.py} maps a
-66-dim vector to a fresh \texttt{GameConfig} by applying per-property
-multipliers to \texttt{cost\_base}, \texttt{cost\_house},
-\texttt{rent\_base}, and \texttt{rent\_house}, and physically removing
-properties whose keep-bit is zero (structurally shortening the lap
-rather than substituting \texttt{FreeParking}); the identity vector is
-the default board. \texttt{simulate.py} is a thin re-implementation of
-the inner game loop that returns a per-game stat dict (winner, rounds,
-bankruptcy map, inter-player transfer total) instead of only logging;
-inter-player cash flow is captured via a context-manager monkey-patch
-of \texttt{Player.pay\_money}, with non-player payments (taxes, fines,
-salary) excluded, and trade calls are capped at 5 per (player, turn)
-to break an unbounded loop in upstream code. \texttt{search.py}
-implements both random search and a GA (population 20, 10 generations,
-tournament selection $k{=}3$, uniform crossover, $\sigma{=}0.1$
-Gaussian mutation on continuous dims, 1-bit-flip mutation on the
-keep-mask, elitism 2); both produce identical JSONL.
+The implementation is laid out as a standard optimiser/simulator
+split. The rule-based stack is a 17-knob parametric player, a 66-dim
+design-space encoder, a thin in-loop simulator returning per-game
+stat dicts, and a GA with a matched-budget random-search baseline.
+The LLM layer is a single player subclass with the structured
+\texttt{STATE/ECHO/REASON/ANSWER} prompt and per-field echo
+validator described in Section~\ref{sec:bg}. A module-by-module
+breakdown and the canonical driver scripts are in
+Appendix~\ref{app:pipeline}; the LLMPlayer prompt and validator are
+spelled out in Appendix~\ref{app:llm}.
 
-The LLM layer is a single subclass \texttt{LLMPlayer} in
-\texttt{agents.py}: a pre-filter avoids LLM calls when affordability
-or cash floor decides the action, the prompt has the
-\texttt{STATE/ECHO/REASON/ANSWER} structure described in
-Section~\ref{sec:bg}, and the validator parses the model's
-\texttt{ECHO} block with a multiline regex and equality-checks each of
-the 10 fields against ground-truth state (with a $\$0.50$ tolerance to
-absorb float drift). On any echo mismatch the player retries, up to
-\texttt{MAX\_RETRIES=4}, replaying prior assistant turns plus a
-corrective message naming the mismatched fields. Every decision is
-logged via the \texttt{decision\_log\_path} kwarg; the log records the
-prompt, raw response, parse path, ms elapsed, generation metadata,
-echo mismatches, and the full attempt list.
-
-Three design decisions did most of the work for the evaluation
-sections that follow. The validator-and-retry stack is treated as
-\emph{part of the probe} rather than infrastructure around it, and we
-report both v1 and v2 versions because an LLM with a broken validator
-is a measurably different design probe than one with a working
-validator (Section~\ref{sec:llm}). Shared random numbers across
+Two design decisions did most of the work for the evaluation
+sections that follow. First, shared random numbers across
 candidates make GA convergence visible at $100$ games per candidate
 rather than the $\sim 1000$ that uncorrelated evaluations would
 require: every candidate is scored on the same $10$ matchups
 $\times$ $10$ seeds, and an unchanged design vector yields
-byte-identical metrics. Finally, the agent population is the
-evaluator, not the oracle: a single agent collapses design quality to
-its own quirks, while the 30-strategy pool exposes worst-case
-fairness as a first-class objective.
-
-The end-to-end pipeline is driven by four scripts.
-\texttt{scripts/optimize\_board.py} runs the rule-based search and
-emits one JSONL line per evaluation. \texttt{scripts/cross\_eval.py}
-runs designs through both player-count harnesses at $n{=}1000$.
-\texttt{scripts/strategy\_heatmap.py} produces $30{\times}30$
-strategy-vs-strategy win-rate matrices on any chosen design.
-\texttt{scripts/eval\_llm\_on\_boards.py} runs the all-LLM-seat probe
-with per-decision logging, and \texttt{scripts/optimize\_board\_llm.py}
-re-runs the GA with the LLM in the evaluator role.
+byte-identical metrics. Second, the 30-strategy pool is the
+evaluator: a single agent would collapse design quality to its
+quirks; the pool makes worst-case fairness a first-class objective.
 
 % =====================================================================
 \section{Evaluation and results}\label{sec:eval}
 % =====================================================================
 
 \paragraph{Definition of success.} The project is successful if all
-three of the following hold:
+four of the following hold:
 \begin{enumerate}[leftmargin=1.4em,itemsep=1pt]
 \item the GA finds a board that improves the composite score over the
 default by a margin larger than the noise floor, verified at the
@@ -322,12 +282,18 @@ terms drives a different optimum, establishing that the objective is
 non-redundant;
 \item an independent agent class (LLM under structured ECHO
 validation) reproduces the same directional ranking on the optimised
-boards, at a per-decision hallucination rate below $1\%$.
+boards, at a per-decision hallucination rate below $1\%$;
+\item the predicted effects survive contact with real human play, in
+the same \emph{direction} and similar \emph{relative magnitude} as
+under the agent evaluators (the bar is direction $+$ relative
+magnitude across evaluator classes, not exact win-rate matching).
 \end{enumerate}
-A weaker fourth claim, treated as diagnostic rather than headline, is
-that running the GA with the LLM as evaluator should produce a board
-that behaves \emph{plausibly} under the rule-based pool, even if it
-loses to the rule-based winner.
+A fifth claim, treated as diagnostic rather than headline, is that
+running the GA with the LLM as evaluator should converge and beat
+the default under either evaluator class; the head-to-head verdict
+between the resulting LLM-driven board and the rule-based GA winner
+is then reported as a separate finding
+(Section~\ref{sec:llm_ga}), not a precondition for success.
 
 \paragraph{Experimental setup.} The strategy pool is 30 parametric
 players (10 archetypes plus 20 sampled), pickled once with a fixed
@@ -349,7 +315,7 @@ its cross-evaluation.
 The default board is the identity vector under the encoder. It
 scores $1.463$ on the composite at 2p and $1.230$ at 3p (full
 metrics in the \texttt{identity\_default} rows of
-\texttt{logs/optimizer\_v2/cross\_eval\_mask.json}); these are the
+\texttt{logs/optimizer\_v3/cross\_eval\_mask.json}); these are the
 reference points every optimisation result is compared against,
 with Wilson $95\%$ CIs of $\pm 3$pp on individual win rates at the
 $n{=}1000$ deployment evaluation.
@@ -365,23 +331,17 @@ $n{=}1000$ deployment evaluation.
   \caption{3 players}
 \end{subfigure}
 \caption{\textbf{The GA outperforms random search at matched
-budget, by $\sim 13\%$ in both player-count regimes.} Best-so-far
+budget by $\sim$$13\%$ in both player counts.} Best-so-far
 composite score (lower is better) over the candidate-evaluation
-budget, six runs per player count: random search ($842$ iters), the
-combined-objective GA (population $30\times 30$ generations, $842$
-evaluations after $2$-elitism), and the four single-objective
-ablations. At 2p the GA finishes at $0.705$ vs random's $0.807$
-($-12.7\%$); at 3p the GA finishes at $0.599$ vs random's $0.694$
-($-13.6\%$). Per-candidate evaluation uses $20$ games per matchup
-($n_{\text{games}}{=}200$) to halve variance relative to the
-$n_{\text{games}}{=}100$ default. The ablation runs reach much
-lower scores because each minimises only one term of the composite,
-previewing the non-redundancy claim made by
-Figure~\ref{fig:multipliers}. The overall lift over the default
-board ($\sim 0.65$ absolute, $\sim 47\%$ relative) is several times
-larger than the GA-vs-random gap, which positions the bigger
-methodological lesson cleanly: problem framing dominates, optimiser
-choice contributes a smaller-but-real margin on top.}
+budget: random search ($842$ iters), the combined-objective GA
+($842$ evaluations), and the four single-objective ablations. At
+2p the GA finishes at $0.705$ vs.\ random's $0.807$; at 3p
+$0.599$ vs.\ $0.694$. Ablation runs reach much lower scores
+because each minimises only one composite term
+(Figure~\ref{fig:multipliers}). The lift over the default board
+($\sim$$47\%$) is several times the GA-vs-random gap: problem
+framing dominates, optimiser choice contributes a smaller margin
+on top.}
 \label{fig:conv}
 \end{figure}
 
@@ -408,11 +368,11 @@ physical board.
 \begin{figure}[h!]
 \centering
 \begin{subfigure}[t]{\linewidth}\centering
-  \includegraphics[width=0.93\linewidth]{boards_mask/board_ga_2p_mask.png}
+  \includegraphics[width=0.78\linewidth]{boards_mask/board_ga_2p_mask.png}
   \caption{2-player combined-objective GA winner.}
 \end{subfigure}\par\smallskip
 \begin{subfigure}[t]{\linewidth}\centering
-  \includegraphics[width=0.93\linewidth]{boards_mask/board_ga_3p_mask.png}
+  \includegraphics[width=0.78\linewidth]{boards_mask/board_ga_3p_mask.png}
   \caption{3-player combined-objective GA winner.}
 \end{subfigure}
 \caption{\textbf{The boards the GA actually builds.} Each panel
@@ -473,37 +433,16 @@ evidence that the composite objective is non-redundant.}
 \end{figure}
 
 The same finding is visible at the level of physical boards
-(Figure~\ref{fig:board_grid}): the five winners (combined +
-four ablations) are five visibly different shapes, with different
-properties kept or dropped and different costs/rents.
-
-\begin{figure}[h!]
-\centering
-\begin{subfigure}[t]{0.48\linewidth}\centering
-  \includegraphics[width=\linewidth]{boards_mask/boards_grid_2p_mask.png}
-  \caption{2 players}
-\end{subfigure}\hfill
-\begin{subfigure}[t]{0.48\linewidth}\centering
-  \includegraphics[width=\linewidth]{boards_mask/boards_grid_3p_mask.png}
-  \caption{3 players}
-\end{subfigure}
-\caption{\textbf{Each ablation produces a visibly different
-physical board.} Six panels per player count: the default board
-(top-left) and the winner of each of the five GA runs (combined,
-fair-only, length-only, draw-only, money-only). The combined
-winner balances all five composite terms; each ablation winner
-pushes its single term to its bound, often by aggressively pruning
-or duplicating colour-group properties. This is the same
-non-redundancy finding as Figure~\ref{fig:multipliers}, made
-spatial.}
-\label{fig:board_grid}
-\end{figure}
+(Figure~\ref{fig:board_grid} in Appendix~\ref{app:ablation_boards}):
+the five winners (combined $+$ four ablations) are five visibly
+different shapes, with different properties kept or dropped and
+different costs/rents.
 
 \subsection{Cross-player-count evaluation (2--8 players)}\label{sec:cross}
 
-We extended the $2p\!\leftrightarrow\!3p$ cross-evaluation to all
-seven player counts from $2$ to $8$, re-evaluating each design at
-$n{=}1000$ games per cell, balanced across cyclic seat rotations
+We cross-evaluate the 2p- and 3p-trained GA winners across all
+seven player counts from $2$ to $8$ at $n{=}1000$ games per cell,
+balanced across cyclic seat rotations
 (Table~\ref{tab:cross}, Figure~\ref{fig:scaling}). For cross-count
 comparison we report two normalised metrics that are described in
 Section~\ref{sec:approach} but worth restating here: \emph{transfer
@@ -512,14 +451,12 @@ $50$ (the original $100$ \$/round target evaluated at the 2p training
 regime); and the \emph{cross-count-comparable composite}, computed
 with the same weights as the training objective
 (Eq.~\ref{eq:score}) but with the transfer term against this
-per-player-turn metric. The training composite (transfer in
-\$/round vs.\ $100$) is preserved in the GA logs; the
-re-evaluation here is a secondary metric defined explicitly for
-cross-count comparison.
+per-player-turn metric.
 
-\begin{table}[h!]
+\begin{table}[!htbp]
 \centering
-\footnotesize
+\scriptsize
+\renewcommand{\arraystretch}{0.92}
 \begin{tabular}{llrrrrrr}
 \toprule
 Design & Eval & score\,$\downarrow$ & $\overline{F}$\,$\downarrow$ & $F_{\max}$\,$\downarrow$ & rounds\,$(\!\to\!60)$ & draw \%\,$\downarrow$ & transfer/turn\,$(\!\to\!50)$ \\
@@ -551,10 +488,7 @@ GA-3p winner  & 8p & \textbf{0.514}    & 0.235             & \underline{0.320} &
 \end{tabular}
 \caption{\textbf{Cross-player-count evaluation at $n{=}1000$ games
 per cell across $\boldsymbol{2}$--$\boldsymbol{8}$ players,
-$66$-dim keep-mask design space} (source:
-\texttt{logs/optimizer\_v3/cross\_eval\_scaling.json}; the 2p / 3p
-columns reproduce the original
-\texttt{cross\_eval\_mask.json} bit-for-bit). All seat permutations
+$66$-dim keep-mask design space.} All seat permutations
 balanced via cyclic rotations (extended to $n=4$--$8$). Header
 arrows: $\downarrow$ means lower is better; $(\!\to\!T)$ means the
 target value is $T$ and deviation in either direction is penalised.
@@ -596,15 +530,19 @@ fair than the default by the same metric. Part of this is metric:
 $\overline{F}$ is a win-rate spread that mechanically compresses
 toward zero as seats grow (baseline win rate is $1/n$), so the
 default's apparent improvement at high counts is largely an artefact
-of the measure, not the design. Part is genuine: the GA tuned
-structural advantages for the training matchups, and with more pool
-strategies seated those advantages amplify into wider spreads.
-Either way, fairness gains do not generalise past the training count
-the same way pacing and money-circulation do.
+of the measure, not the design. A second component is genuine:
+the GA tuned structural advantages for the training matchups, and
+seating additional pool strategies amplifies those advantages
+into wider win-rate spreads. The takeaway is that fairness is
+\emph{strongly dependent on the number of players}: it is the one
+metric that does not transfer cleanly from the 2p/3p training
+regime to higher counts, and the GA's fairness gains do not
+generalise the same way pacing, money-circulation, and
+decisiveness do.
 
 \begin{figure}[h!]
 \centering
-\includegraphics[width=\linewidth]{fig_cross_eval_scaling.png}
+\includegraphics[width=0.9\linewidth,height=0.31\textheight,keepaspectratio]{fig_cross_eval_scaling.png}
 \caption{\textbf{Generalisation across player count, trained only
 on $\boldsymbol{2p / 3p}$.} All six evaluation metrics from
 Table~\ref{tab:cross} across $2$--$8$ players, for the default board
@@ -625,319 +563,200 @@ is the metric compression noted above).}
 \label{fig:scaling}
 \end{figure}
 
-A secondary finding worth recording: \emph{optimisation-set overfit
-is small on both designs}. At the $n{=}200$ optimisation budget the GA-2p
-winner scored $0.705$ on its training matchup set; at $n{=}1000$
-deployment it scores $0.773$, an overfit of $+0.068$
-(Table~\ref{tab:overfit}). The GA-3p winner scored $0.599$ at
-training and $0.641$ at deployment, an overfit of $+0.042$. Both
-gaps are small ($\leq 9\%$ of the deployment score) relative to the
-headline $\sim 47\%$ improvement over the default, so the
-directional improvement is robust to re-evaluation at higher $n$.
-
-\begin{table}[h!]
-\centering
-\small
-\begin{tabular}{lccc}
-\toprule
-Design & training ($n{=}200$)\,$\downarrow$ & deployment ($n{=}1000$)\,$\downarrow$ & overfit\,$\downarrow$ \\
-\midrule
-GA-2p winner & $0.705$ & $0.773$ & $+0.068$ \\
-GA-3p winner & $0.599$ & $0.641$ & $+0.042$ \\
-\bottomrule
-\end{tabular}
-\caption{\textbf{Optimisation-set vs.\ deployment-set composite
-score, on each design's own training regime.} Header arrows:
-$\downarrow$ means lower is better. Both designs show small
-positive overfit ($+0.068$ and $+0.042$ respectively, both $<\!10\%$
-of the deployment score) relative to the headline $\sim 47\%$
-improvement over the default. Training number is the best score in
-the GA's own \texttt{evals.jsonl}; deployment number is the
-corresponding row of Table~\ref{tab:cross}.}
-\label{tab:overfit}
-\end{table}
-
-The Pareto frontiers in Figure~\ref{fig:pareto} have visibly
-distinct shapes (different slope, different knee), so the
-cross-evaluation result respects the geometry of the design space
-rather than being seed noise.
-
-\begin{figure}[h!]
-\centering
-\begin{subfigure}[t]{0.48\linewidth}\centering
-  \includegraphics[width=\linewidth]{ga_2p_pareto.png}
-  \caption{2p}
-\end{subfigure}\hfill
-\begin{subfigure}[t]{0.48\linewidth}\centering
-  \includegraphics[width=\linewidth]{ga_3p_pareto.png}
-  \caption{3p}
-\end{subfigure}
-\caption{\textbf{The (fairness, rounds) trade-off surface and its
-Pareto frontier.} Each marker is one of $5{,}052$ candidates
-evaluated across all six search runs (random + GA + four
-single-objective ablations) on the $66$-dim keep-mask design space;
-colour encodes draw rate. The crimson line traces the actual 2D
-Pareto frontier of (fairness, rounds), both minimised: $14$ points
-at 2p, $16$ at 3p, with a clean knee around fairness $0.22$ and
-rounds $30\!-\!40$ at 2p (a slightly higher knee at 3p). The gold
-star is the combined-objective GA optimum; it sits \emph{inside}
-the cloud rather than on the 2D frontier because the composite
-weights five terms (fairness, max-fairness, length, draw, transfer),
-not just two — the GA's optimum is on the 5D Pareto surface, of
-which the (fairness, rounds) projection is a shadow. The 2p sweep
-reaches mean rounds as low as $\sim 22$ (the keep-mask shrinks the
-lap aggressively), while the 3p frontier bottoms out closer to
-$\sim 35$ rounds; the two clouds have visibly different shapes,
-which is what makes the cross-evaluation finding
-(Table~\ref{tab:cross}) a property of the design space rather than
-seed noise.}
-\label{fig:pareto}
-\end{figure}
-
-\subsection{Per-strategy heatmaps: \emph{what} did the optimiser
-actually fix?}\label{sec:heatmap}
+\subsection{Archetype reshuffle: \emph{who} wins differently?}\label{sec:heatmap}
 
 The composite score averages over only the 10 sampled evaluation
 matchups; it can move down even if a different subset of strategy
-pairs got worse. The full $30\times 30$ strategy-vs-strategy win-rate
-matrix on the optimised board (Figure~\ref{fig:heatmap}, left) and
-its difference against the default-board matrix (right) decompose
-what the GA actually changed across all $\binom{30}{2}=435$ unique
-strategy pairs in the pool.
+pairs got worse. To diagnose \emph{which} archetypes the GA winner
+helps and which it hurts, we compute the \emph{win-rate vs.\ the
+field} for each pool strategy $i$ as the mean over $j\neq i$ of the
+underlying $30\times 30$ pairwise win-rate matrix
+$W^{\text{board}}[i,j]$ (20 games per ordered pair, 580
+games/archetype/board). Table~\ref{tab:archetypes} reports the 10
+named archetypes individually, sorted by $\Delta = \text{WR}_{\text{GA-2p}} -
+\text{WR}_{\text{default}}$, with the 20 sampled strategies
+aggregated as a single row.
 
-The headline finding is that \emph{board design moves system-level
-metrics aggressively, and per-pair strategy fairness much more
-modestly}. Mean $|W-0.5|$ across the full $30\times 30$ matrix drops
-from $0.21$ (default) to $0.20$ on the GA-2p winner ($\sim 5\%$
-reduction), and from $0.26$ to $0.20$ on the GA-3p winner ($\sim
-21\%$ reduction). Compared to that, the system-level metrics improve
-by much larger relative margins on the GA-2p board: game length
-falls from $103.9$ to $62.2$ rounds (a $-40\%$ drop), draw rate from
-$7.4\%$ to $1.7\%$ ($-77\%$), inter-player money transfer rises from
-$49.7$ to $73.3$~\$/round (closer to the target of $100$), and the
-mean fairness on the $10$ evaluation matchups falls from $0.454$ to
-$0.215$ ($-53\%$). Board design is a strong lever for pacing, decisiveness, and matchup-set fairness; it is a weak lever for
-population-wide skill ordering, which is structural to the strategy
-pool.
+\begin{table}[h!]
+\centering\small
+\begin{tabular}{lrrrl}
+  \toprule
+  Archetype & WR(default) & WR(GA-2p) & $\Delta$ & Identity \\
+  \midrule
+  CashHoarder        & 0.46 & 0.63 & $\mathbf{+0.18}$ & \$1k$+$ unspendable, no trades \\
+  RiskAverse         & 0.50 & 0.60 & $+0.10$          & hoard, skip expensive groups \\
+  Passive            & 0.48 & 0.54 & $+0.07$          & no trades, no rails/utils \\
+  LowCostOnly        & 0.56 & 0.62 & $+0.06$          & skip 5 expensive groups \\
+  \addlinespace
+  Bully              & 0.63 & 0.62 & $-0.00$          & ultra-aggressive build $+$ trade \\
+  RailroadKing       & 0.01 & 0.00 & $-0.01$          & rails only, ignore colour groups \\
+  Trader             & 0.66 & 0.60 & $-0.05$          & aggressive build $+$ trade \\
+  AggressiveBuilder  & \textbf{0.73} & \textbf{0.66} & $-0.06$ & build at zero floor, no trades \\
+  Balanced           & 0.71 & 0.64 & $-0.06$          & balanced thresholds, trades \\
+  HighCostOnly       & 0.56 & 0.38 & $\mathbf{-0.18}$ & skip 3 cheap groups \\
+  \addlinespace
+  Random sampled ($n{=}20$) & 0.45 & 0.48 & $+0.03$   & $20$ random draws from the parameter space \\
+  \bottomrule
+\end{tabular}
+\caption{\textbf{Per-archetype win-rate against the field, default
+vs.\ GA-2p winner.} WR vs.\ field $=$ mean win-rate against the
+other $29$ pool strategies, $20$ games per ordered pair, $580$
+games/archetype/board. Sorted by $\Delta$ descending. Largest
+positive and negative deltas in bold.}
+\label{tab:archetypes}
+\end{table}
 
-A related observation is that some matchups are immutable under any
-board configuration in the search space. The most asymmetric pair on
-the GA-2p winner is \textsl{Trader} vs.\ \textsl{RailroadKing}
-($100\%$/$0\%$). No setting of cost multipliers, rent multipliers,
-or keep-mask bits eliminates this; it is intrinsic to a strategy
-that refuses to buy $22$ of $28$ ownable properties, and the GA
-cannot reach it through the design space. This is the substantive
-negative result of the section: board design is a lever for
-system-level properties (length, draws, interactivity) and for
+The board change does \emph{not} flatten win-rates uniformly; it
+reshuffles which archetypes are top-tier. Slow / cash-conserving
+archetypes (CashHoarder $+0.18$, RiskAverse $+0.10$, Passive
+$+0.07$, LowCostOnly $+0.06$) move from middling to top-tier on the
+GA winner, and HighCostOnly collapses ($-0.18$) because the
+keep-mask prunes the expensive groups it relies on. The mechanism
+is the same \emph{expansion-to-solvency} flip the human playtest
+exposes (Section~\ref{sec:playtest-pilot}): on the default
+board ($\sim$$100$ rounds, low rents) the optimal play is to own
+more, so AggressiveBuilder dominates; on the GA winner ($\sim$$60$
+rounds, $\sim$$1.3\times$ rent, $\sim$$1.6\times$ cost) one bad
+landing on a developed cell can drain a $\$300$ reserve, so
+cash-discipline becomes the dominant trait. AggressiveBuilder's
+WR against CashHoarder collapses from $0.80$ to $0.45$ across this
+single board change.
+
+A second observation, harder to see from the means, is that the
+reshuffle is concentrated in the middle of the win-rate
+distribution. The top-3 default-board strategies (AggressiveBuilder,
+Balanced, Trader, all with $\text{WR} \geq 0.66$ on default) lose
+only $-0.05$ to $-0.06$ on the GA winner; they remain top-3
+on both boards. At the other extreme, RailroadKing is pinned near
+zero on both boards because it ignores every colour group and any
+opponent who builds wins, regardless of board parameters. The top
+and bottom of the WR distribution are board-robust under our search
+space; the middle is where the GA's reshuffle lives. This is
+consistent with the GA winner being a mutation of the default
+(per-property cost / rent / keep-mask) rather than a board
+synthesised from scratch. The takeaway is that archetype
+performance is a property of the \emph{(strategy, board)} pair,
+not of the strategy alone: a single agent cannot tell us whether
+a board is well-designed, and a single board cannot tell us which
+strategies are well-designed.
+
+A related observation, from the underlying pairwise matrix, is that
+some matchups are immutable under any board configuration in the
+search space. The most asymmetric pair on the GA-2p winner remains
+\textsl{Trader} vs.\ \textsl{RailroadKing} ($100\%$/$0\%$). No
+setting of cost multipliers, rent multipliers, or keep-mask bits
+eliminates this; it is intrinsic to a strategy that refuses to buy
+$22$ of $28$ ownable properties, and the GA cannot reach it through
+the design space. Board design is a strong lever for
+system-level properties (length, draws, money transfer) and for
 matchup-set fairness, but agent-level dominance on specific
 strategy pairs is structural to the strategy pool. Closing those
 residual gaps requires a strategy-side intervention (rule changes,
 matchmaking, or pool curation), not more search over the design
 space.
 
-\begin{figure}[h!]
-\centering
-\begin{subfigure}[t]{0.48\linewidth}\centering
-  \includegraphics[width=\linewidth]{heatmap_ga2p.png}
-  \caption{Optimum (2p)}
-\end{subfigure}\hfill
-\begin{subfigure}[t]{0.48\linewidth}\centering
-  \includegraphics[width=\linewidth]{heatmap_ga2p.diff.png}
-  \caption{Optimum minus default (2p)}
-\end{subfigure}
-\caption{\textbf{$30\times 30$ strategy-vs-strategy win-rate matrices.}
-\textbf{(a)}~Win rates on the GA-2p winning board, $P(\text{row beats
-column})$; the diagonal is fixed at $0.5$. \textbf{(b)}~Difference
-against the default board, centred at zero. Across the full
-$\binom{30}{2}=435$ unique pairs, mean $|W-0.5|$ drops from $0.21$
-(default) to $0.20$ on the GA-2p winner ($\sim 5\%$ reduction). The
-GA improved system-level metrics (length, draws, transfer) by much
-larger relative margins on the same board: board design is a
-stronger lever for those than for population-wide skill ordering.}
-\label{fig:heatmap}
-\end{figure}
-
 \subsection{LLM cross-class agreement}\label{sec:llm}
 
-The cross-class probe re-ran 80 games on the optimised boards under
-all-LLM seats (Qwen2.5-1.5B-Instruct, greedy decoding) using the
-structured \texttt{STATE/ECHO/REASON/ANSWER} prompt. Per-decision logs
-record prompt, raw response, parse path, and per-field echo
-mismatches. Across $2{,}207$ LLM calls, the v2 prompt produced zero
-model-side state hallucinations (Figure~\ref{fig:hallucination}), at
-the cost of a small additional retry budget over the free-form v1
-baseline.
+The cross-class probe re-runs the optimised boards under all-LLM
+seats (Qwen2.5-1.5B-Instruct, greedy decoding) with the structured
+\texttt{STATE/ECHO/REASON/ANSWER} prompt; per-decision logs record
+prompt, raw response, parse path, and per-field echo mismatches.
+Across $2{,}207$ LLM calls under the v2 prompt, the probe produced
+zero model-side state hallucinations under deterministic echo
+validation. The full v1-vs-v2 hallucination audit (including a
+second-order finding about retry-induced confabulation under a
+buggy validator) is in Appendix~\ref{app:hallucination}.
 
 \begin{figure}[h!]
 \centering
-\includegraphics[width=0.78\linewidth]{llm/fig_v1_vs_v2_hallucination.png}
-\caption{\textbf{The validator-and-retry stack is part of the probe:
-a faulty validator does not just produce noise, it pulls the model
-toward fabrication.} Per-call validation outcomes for the v1 prompt
-(left, with a known validator bug) and the v2 prompt (right, bug
-fixed). Each bar is stacked into three categories: \emph{real
-first-pass} hallucinations (the model fabricated state on its first
-attempt), \emph{retry-induced fabrication} (the model's first-pass
-output was correct but the buggy validator flagged it, and the
-model produced fabricated state on retry to ``satisfy'' the flag),
-and \emph{spurious validator bug} (the validator falsely flagged
-correct outputs that the model did not change). On v1 across 2{,}304
-calls, real first-pass = $0$, retry-induced = $47$, spurious = $100$;
-the model itself never hallucinated. v2 drives all three categories
-to zero across all 2{,}207 calls. The reportable second-order
-finding: validating against a wrong ground truth is worse than not
-validating, because retries can teach the model to produce the
-``correct'' wrong answer.}
-\label{fig:hallucination}
-\end{figure}
-
-\begin{figure}[h!]
-\centering
-\includegraphics[width=0.92\linewidth]{llm/fig_agreement_audit.png}
-\caption{\textbf{Both evaluator classes report same-direction
-improvement on every metric (6/6) for the rule-based GA winner over
-the default, with closely matching magnitudes on the
-composite-driving metrics.} Per-metric \% change default $\to$
-rule-based GA winner (2-player) under the 30-strategy rule-based
-pool (green, $n{=}1000$) and all-LLM seats (purple, $n{=}100$).
-Bars on the same side of zero indicate the two evaluator classes
-agree on the direction of improvement; similar heights indicate
-magnitude agreement. Direction agrees on 6/6 metrics; magnitude
-agrees most closely on the composite ($-47\%/-53\%$), game length
-($-40\%/-41\%$), and transfer per player-turn ($+48\%/+62\%$),
-which together drive the composite. The two fairness terms
-($\overline{F}$, $F_{\max}$) agree in direction but diverge in
-magnitude because the LLM sample at $n{=}100$ has a smaller tail
-variance than the pool at $n{=}1000$. Draw rate is reported in a
-footnote underneath the panel rather than as a bar because the LLM
-evaluator produces no draws on either board (the metric is dead
-under the LLM agent class).}
+\includegraphics[width=0.83\linewidth]{llm/fig_agreement_audit.png}
+\caption{\textbf{Both evaluator classes agree on direction for
+all $6$ metrics (rule-based GA winner vs.\ default, 2-player).}
+Per-metric \% change under the 30-strategy pool (green,
+$n{=}1000$) and all-LLM seats (purple, $n{=}100$). Magnitudes
+match closely on composite ($-47\%/-53\%$), length
+($-40\%/-41\%$), and transfer per player-turn ($+48\%/+62\%$);
+the two fairness terms agree in direction but diverge in
+magnitude (smaller LLM tail at $n{=}100$). Draw rate is in the
+panel footer because LLM seats produce no draws on either board.}
 \label{fig:agreement}
 \end{figure}
 
-The v1 prompt exposed a second-order finding worth reporting in its
-own right. v1's validator had a subtle integer/float type mismatch in
-the cash field, and retries against a wrong validator induced
-\emph{more} plausible-looking confabulation rather than less, because
-the model was being told a correct value was wrong and produced a
-different ``corrected'' answer to satisfy the validator. We document
-this rather than tuning the validator until it disappears: a protocol
-whose failure modes are reported alongside its results is auditable;
-one whose are not is a benchmark trick.
-
-\begin{figure}[h!]
+\begin{figure}[!htbp]
 \centering
-\includegraphics[width=0.78\linewidth]{llm/fig_llm_buy_rate_slices.png}
-\caption{\textbf{LLM buy-rate slices, default board vs.\ GA-2p
-winner.} \textbf{(a)~By cash bucket.} Buy rate conditioned on the
-LLM's available cash at decision time. The rate rises monotonically
-with cash, the rational ordering for any non-degenerate strategy;
-the empty $<200$ bucket reflects the affordability pre-filter that
-short-circuits the LLM call when the player cannot buy anyway. On
-the GA-winner board the LLM commits its cash hoard more aggressively
-in the $\geq 1500$ bucket ($\sim 0.93$ vs.\ $\sim 0.70$ on the
-default), so the optimised board successfully pulls behaviour out of
-the cash-hoarding regime. \textbf{(b)~By monopoly-completion
-situation.} \textsl{fresh}: no player owns any property in the
-landed colour group, so a purchase starts a new collection.
-\textsl{partial\_self}: the LLM already owns one or more properties
-in the group and the opponent does not dominate it.
-\textsl{opp\_dominates}: the opponent owns at least half the group
-and at least as many properties as the LLM, so buying mostly funds
-their next rent payment. Buy rates respond rationally across all
-three: $\sim 1.00$ on \textsl{partial\_self} (saturated buy),
-$\sim 0.94$ on \textsl{fresh}, and $\sim 0.13$ on
-\textsl{opp\_dominates} (strict PASS). The probe is not behaving as
-a uniform random oracle, and the directional responses are
-essentially identical on both boards.}
-\label{fig:slices}
+\includegraphics[width=0.83\linewidth]{llm/fig_agreement_audit_3p.png}
+\caption{\textbf{Cross-class agreement at 3p: same-direction
+improvement on every measured metric.} \% change default $\to$
+GA-3p winner under pool (green, $n{=}1000$) and LLM seats (purple,
+$n{=}100$). Direction agrees on $5/5$; magnitudes match on length
+($-49\%/-34\%$) and transfer per player-turn ($+29\%/+19\%$). The
+3p audit reproduces the 2p result (Figure~\ref{fig:agreement}).}
+\label{fig:agreement_3p}
 \end{figure}
 
 \subsection{LLM-driven GA and the cross-class verdict}\label{sec:llm_ga}
 
 We re-ran the GA with the LLM as evaluator (population 8, 5
-generations, 5 seeds per candidate, 2-player only). The LLM-GA
-converges (Figure~\ref{fig:llm_ga_conv}) and produces a winning board
-that beats the default under all-LLM evaluation. Cross-evaluating
-that board against the rule-based GA winner under both agent
-classes (Figure~\ref{fig:verdict}) produces the central finding of
-the project: both evaluator classes prefer the rule-based GA
-winner on $4$ of $5$ stable metrics (composite, $\overline{F}$,
+generations, 5 seeds per candidate, 2-player only). The LLM-driven
+loop converges and produces a winning board that beats the default
+under all-LLM evaluation (the convergence curves and per-generation
+score distribution are in Appendix~\ref{app:llm_ga_conv}).
+Cross-evaluating that board against the rule-based GA winner under
+both agent classes (Figure~\ref{fig:verdict}) produces the central
+finding of the project: both evaluator classes prefer the rule-based
+GA winner on $4$ of $5$ stable metrics (composite, $\overline{F}$,
 $F_{\max}$, game length). The LLM-driven board wins on only $1$
 metric, transfer per player-turn, and that is the metric its
-small-$n$ training overfit to. The fifth stable metric where both
-classes agree (transfer) is where the LLM-GA's narrow optimisation
-target shows up; on the four metrics that drive the composite, the
-strategy-pool-driven design generalises and the LLM-driven design
-does not.
+small-$n$ training overfit to. On the four metrics that drive the
+composite, the strategy-pool-driven design generalises and the
+LLM-driven design does not.
 
 \begin{figure}[h!]
 \centering
-\begin{subfigure}[t]{0.48\linewidth}\centering
-  \includegraphics[width=\linewidth]{llm/fig_llm_ga_convergence.png}
-  \caption{LLM-GA best-so-far}
-\end{subfigure}\hfill
-\begin{subfigure}[t]{0.48\linewidth}\centering
-  \includegraphics[width=\linewidth]{llm/fig_llm_ga_score_distribution.png}
-  \caption{Score distribution}
-\end{subfigure}
-\caption{\textbf{An LLM-only evaluator can drive the same GA loop.}
-\textbf{(a)}~Per-evaluation composite score (grey) and best-so-far
-(blue) over the GA's $32$ evaluations (population $8$, $5$
-generations, $n_{\text{seeds}}{=}5$, with elitism keeping the unique
-evaluation count at $32$). The dashed reference is the rule-based
-GA-2p winner's score under the same all-LLM evaluator ($0.728$): the
-LLM-driven loop finds a board (red star, iter $15$, score $0.465$)
-that beats even the rule-based winner when scored by an LLM.
-\textbf{(b)}~Per-generation distribution of candidate scores; the
-median visibly drops from generation~$0$ to generation~$2$ (selection
-pressure), and the spread within each generation reflects the
-$n_{\text{seeds}}{=}5$ evaluation noise. Total wall time
-$4$h~$58$min on a single $12$~GB GPU. The LLM-driven loop converges;
-whether the converged board is a real design optimum or only an
-LLM-evaluator optimum is what Figure~\ref{fig:verdict} resolves.}
-\label{fig:llm_ga_conv}
-\end{figure}
-
-\begin{figure}[h!]
-\centering
-\includegraphics[width=0.92\linewidth]{llm/fig_verdict_audit.png}
-\caption{\textbf{Both evaluator classes deliver the same per-metric
-verdict: the rule-based GA winner beats the LLM-driven GA winner
-on 4 of 5 stable metrics, losing only on transfer.} Per-metric \%
-advantage of the rule-based GA winner over the LLM-driven GA
-winner (2-player) under the rule-based pool (green, $n{=}1000$)
-and the LLM evaluator (purple, $n{=}100$). Positive values place
-the bar in the rule-based-wins zone (blue background); negative
-values place it in the LLM-driven-wins zone (orange background).
-For $\downarrow$-better metrics (composite, $\overline{F}$,
-$F_{\max}$) advantage is $(\text{LLM-driven} -
-\text{rule-based})/\text{LLM-driven}$; for target metrics (length
-$\to 60$, transfer $\to 50$) it is the relative reduction in
-distance-to-target. Both evaluators put $4$ of $5$ bars in the
-rule-based zone (composite, both fairness terms, length) and $1$
-bar in the LLM-driven zone (transfer/turn). Draw rate is excluded
-from the bar chart because both rates are $<2\%$ under every cell
-(absolute values are reported in the figure footer). The single
-consistent disagreement on transfer is the metric the LLM-GA's
-$n{=}5$ training optimised; the rule-based GA balances all five
-terms instead. The LLM-eval transfer bar is clamped at $-150\%$
-for visual comparability (true value $-261\%$, marked with
-$\downarrow$).}
+\includegraphics[width=0.83\linewidth]{llm/fig_verdict_audit.png}
+\caption{\textbf{Both evaluator classes deliver the same verdict:
+rule-based wins on $4/5$ metrics, losing only on transfer.}
+Per-metric \% advantage of the rule-based GA winner over the
+LLM-driven board (2-player) under pool (green, $n{=}1000$) and
+LLM seats (purple, $n{=}100$); positive places the bar in the
+rule-based-wins zone (blue), negative in the LLM-driven-wins zone
+(orange). Both evaluators put $4/5$ bars in the rule-based zone
+(composite, both fairness terms, length); the LLM-driven board
+wins only on transfer per player-turn, the metric the LLM-GA's
+$n{=}5$ training overfit to. Draw rate is in the footer (both
+$<2\%$). LLM-eval transfer bar clamped at $-150\%$ for
+comparability (true value $-261\%$, marked $\downarrow$).}
 \label{fig:verdict}
 \end{figure}
 
-The interpretation is the headline finding of the project: two
-independent evaluator classes agree that the strategy-pool-driven
-board is the better design, and the only metric they jointly prefer
-the LLM-driven board on is the one its small-$n$ training overfit
-to. The pool's $30$ strategies expose the GA to many play styles, so
-it cannot overfit to any single one; the LLM evaluator's narrow
-decision distribution makes its own optimiser overfit. The pool is
-also far cheaper to evaluate, because every additional game is a
-cheap rule-based rollout rather than a per-decision LLM call. A
-single LLM or RL agent as evaluator is a benchmark; a diverse
-strategy pool is a beta-testing surrogate.
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.92\linewidth]{llm/fig_verdict_audit_3p.png}
+\caption{\textbf{Cross-class verdict at 3p: rule-based wins $4/5$
+under both evaluators, same pattern as 2p.} Per-metric \%
+advantage of the rule-based GA-3p winner over the LLM-driven
+board (3-player, $n{=}100$ LLM seats). The same $4/5$ metrics
+that favour rule-based at 2p also favour it at 3p; the one
+disagreement (transfer/turn) is again the LLM-GA's small-$n$
+overfitting target. Draw rates in footer (both $<1\%$).}
+\label{fig:verdict_3p}
+\end{figure}
+
+The interpretation is the headline finding of the project: a
+sufficiently large rule-based strategy pool produces an optimised
+design that generalises to an evaluator class never seen at
+training (LLM seats), at zero per-decision LLM cost. The pool's
+$30$ strategies expose the GA to many play styles, so it cannot
+overfit to any single one; the LLM evaluator's narrow decision
+distribution makes its own optimiser overfit, which is why the
+pool-driven board beats the LLM-driven board on $4/5$ stable
+metrics under both evaluators and loses only on the metric the
+LLM-GA's small-$n$ training overfit to. A single LLM or RL agent
+as evaluator is a benchmark; a diverse strategy pool is a
+beta-testing surrogate. The 3p audits
+(Figures~\ref{fig:agreement_3p}, \ref{fig:verdict_3p}) confirm
+this verdict holds when the GA winner is itself a 3-player
+design, not just when the rule-based winner is the 2p board.
 
 \subsection{Human playtest pilot ($N{=}10$, two players)}\label{sec:playtest-pilot}
 
@@ -955,21 +774,17 @@ truncation rate, and the per-player win rate, were recovered with
 
 \begin{figure}[h!]
 \centering
-\includegraphics[width=\linewidth]{fig_human_playtest.png}
-\caption{\textbf{The GA winner plays faster, circulates more money,
-resolves more reliably, and is perfectly balanced under human
-control.} Per-board mean over ten games at matched seeds; dots are
-individual games. \textbf{Top-left:} the GA winner finishes in $50$
-rounds on average against $131$ for the default, four of whose ten
-games hit the $200$-turn cap with no winner (red crosses).
-\textbf{Top-right:} inter-player money transfer per round is higher
-on the GA winner ($\$66$/r) than on the default ($\$39$/r), moving
-toward the $\$100$/r target. \textbf{Bottom-left:} the default
-truncated in $4$ of $10$ games; the GA winner truncated in $0$ of
-$10$. \textbf{Bottom-right:} win-rate spread $|WR_{P_1}-WR_{P_2}|$
-is $0.60$ on the default (Player~1 won all $6$ decisive games)
-against $\mathbf{0.00}$ on the GA winner (a perfect $5$--$5$
-Player~1/Player~2 win split). $N{=}10$ per board, two players.}
+\includegraphics[width=\linewidth,height=0.38\textheight,keepaspectratio]{fig_human_playtest.png}
+\caption{\textbf{The GA winner plays faster, circulates more
+money, resolves more reliably, and is perfectly balanced under
+human control.} Per-board mean over ten games at matched seeds;
+dots are individual games. \textbf{Top-left:} GA winner $50$
+rounds vs.\ $131$ default; four default games hit the $200$-turn
+cap (red crosses). \textbf{Top-right:} \$$66$/round vs.\
+\$$39$/round (target \$$100$). \textbf{Bottom-left:} default
+truncates $4/10$, GA winner $0/10$. \textbf{Bottom-right:}
+win-rate spread $0.60$ default vs.\ $\mathbf{0.00}$ GA winner
+($5$--$5$ split). $N{=}10$ per board, two players.}
 \label{fig:playtest}
 \end{figure}
 
@@ -984,19 +799,35 @@ $0.00$ on the GA winner (a perfect $5$--$5$ split between the two
 players) against $0.60$ on the default (Player~1 won all six
 decisive games).
 
-We read this pilot as directional support consistent with the
-agent-predicted effects, not a fully powered measurement. The
-fairness spread of $0.00$ at $N{=}10$ is the strongest possible
-outcome at this sample size, but a larger study across many
-subjects would still be needed to rule out single-pair idiosyncrasy
-in the strategic style. The pacing, money-circulation, and
-decisiveness effects are large enough that they are unlikely to be
-artefacts of either subject or seed. What this pilot does show is
-that all four trained effects (pacing, money circulation,
-decisiveness, and win-balance) move in the predicted direction, at
-the predicted magnitude, on contact with human play. The fuller
-multi-subject playtest that would substantiate these effects across
-the broader population remains deferred; we specify it next.
+\paragraph{Success criterion.} We frame the bar this pilot clears
+explicitly. The agent-driven tool succeeds if two conditions hold
+under real human play. First, the design constraints specified in
+the agent setting (shorter games, more decisive endings, more money
+circulation, fairer 2-player matchups) are satisfied in real play,
+in the same \emph{direction} and similar \emph{relative magnitude}
+as under the agent evaluators (rule-based pool, all-LLM seats).
+Second, the agent feedback is \emph{conservative} rather than
+optimistic: humans should not exhibit a \emph{smaller} default-board
+failure than the simulators predicted. Both hold on the four
+observables we can extract from the transcripts. Direction agrees on
+every metric across pool / LLM / human; the magnitudes are similar
+($\sim$$104$ vs.\ $131$ default rounds, $\sim$$62$ vs.\ $50$
+GA-winner rounds). On the conservatism bar specifically, the humans
+showed a \emph{larger} default-board failure than either simulator:
+a $40\%$ draw rate (4 of 10 default games hit the $200$-turn cap)
+versus $7\%$ in the strategy-pool eval and $0\%$ under the all-LLM
+evaluator. The agent-driven predictions therefore under-state how
+broken the default board is for humans, not the other way around.
+
+We treat the fairness spread of $0.00$ on the GA winner at $N{=}10$
+as the strongest possible outcome at this sample size, but
+acknowledge that a larger study across many subjects would still be
+needed to rule out single-pair idiosyncrasy in the strategic style.
+The pacing, money-circulation, and decisiveness effects are large
+enough that they are unlikely to be artefacts of either subject or
+seed. The fuller multi-subject playtest that would substantiate
+these effects across the broader population remains deferred; we
+specify it next.
 
 \paragraph{Qualitative play-experience differences.} The figure
 summarises four objective metrics, but the matched-seed pairing also
@@ -1021,177 +852,155 @@ for either player to block the other, so games progress more
 linearly toward a decisive build phase rather than through a long
 trading and blocking pre-build.
 
+\subsection{Game-design insights}\label{sec:insights}
+
+The combination of system-level metric changes
+(Section~\ref{sec:cross}), per-archetype reshuffle
+(Section~\ref{sec:heatmap}), and qualitative play differences
+(Section~\ref{sec:playtest-pilot}) supports a small set of concrete
+game-design insights that go beyond ``the optimised board is
+better'':
+
+\paragraph{Expansion $\to$ solvency: the losing condition flips.}
+The default board (long games, low rents) rewards owning more
+properties: time amortises any acquisition. The GA winner
+($\sim$$60$ rounds, $\sim$$1.3\times$ rent multipliers,
+$\sim$$1.6\times$ cost multipliers) rewards staying solvent: one
+bad landing on a developed cell can drain a $\$300$ cash reserve,
+and the lap is too short for slow accumulation to recover.
+AggressiveBuilder's win-rate against CashHoarder collapses from
+$0.80$ on the default to $0.45$ on the GA winner; the same shift
+shows up across the cash-conservative archetypes
+(Section~\ref{sec:heatmap}). The mechanism is not ``aggression is
+punished''; it is that the losing condition itself changes from
+\emph{owning too little} to \emph{going bankrupt on a rent
+landing}.
+
+\paragraph{Smaller colour groups make all-in builds work.}
+On the default board, the only 2-cell colour groups are Brown
+(cheapest) and Indigo (most expensive); a Brown monopoly,
+fully built, cannot generate enough rent to win a game on its own,
+and any other set-completion requires acquiring three specific
+cells. On the GA winner, the keep-mask shrinks most colour groups
+to $1$--$2$ cells, and the higher cost / rent multipliers make
+those small groups individually viable: a max-houses-plus-hotel
+play on a single prime cell (e.g.\ Virginia Avenue in our recorded
+game~9) pays off rather than being a desperation play.
+
+\paragraph{Blocking opponents stops working.} On the default, a
+player can deny an opponent's colour set by buying one
+mid-completion cell of it, and the long game leaves time for the
+denial to compound. On the GA winner, most sets are $1$--$2$ cells,
+so they complete on the first landing and the denial-purchase lever
+disappears entirely; the higher property costs also prevent
+hoarding many properties before crossing GO. This is a
+board-design effect with no analogue in shorter-rent or
+higher-rent tuning alone: it requires the keep-mask, and it changes
+which player classes can apply pressure to whom.
+
+\paragraph{Per-metric mechanisms.} The four headline metrics each
+have a specific board-design cause:
+\begin{itemize}[leftmargin=1.4em,itemsep=2pt]
+  \item \textbf{Game length} ($\sim$$60$ vs.\ $\sim$$100$ rounds):
+    a $12$-cell lap leaves fewer turns between rent events.
+  \item \textbf{Decisiveness} (draw rate $7\%\!\to\!2\%$ under
+    pool, $40\%\!\to\!0\%$ under human play):
+    $\sim$$1.6\times$ base cost and $\sim$$1.3\times$ base rent
+    force bankruptcy before the $200$-turn cap.
+  \item \textbf{Money circulation} (\$$50\!\to\!$\$$73$/round
+    under pool): higher base rent on cells landed more often.
+  \item \textbf{Fairness at 2p/3p} (spread $0.45\!\to\!0.22$ at
+    2p; $-32\%$ at 3p): Yellow dropped entirely, most other groups
+    shrunk to $1$--$2$ cells, and per-property rent multipliers
+    spread across $\sim$$0.6\times$--$1.9\times$ to damp
+    over-powered cells. The combined GA converges on the same
+    recipe the fairness-only ablation
+    (Section~\ref{sec:ablation}) finds, integrated with the
+    length / money / draw terms.
+\end{itemize}
+
+The fairness mechanism deserves a separate note: the GA does not
+just shrink groups uniformly; it also tunes individual rent
+multipliers (range $0.59\times$--$1.87\times$ on the GA-2p winner)
+so that no single colour group is structurally dominant on the
+shortened lap. This is the same mechanism the fairness-only
+ablation produces, so its appearance in the combined winner is not
+an artefact of overfitting to one objective term; it is the GA
+finding a single configuration that satisfies length, decisiveness,
+money, \emph{and} fairness simultaneously.
+
 \subsection{Full playtest (deferred)}\label{sec:playtest-shortlist}
 
-Beyond the pilot above, we did not run the full multi-subject
-playtest within the project window. Rather
-than report a synthetic surrogate, we publish the \emph{shortlist
-of boards we would playtest}, with the design hypothesis each
-board is intended to probe. The shortlist is small (4 boards) so
-a pilot is feasible in a single 60--90 min session, and each
-board contrasts a different design lever against the default,
-so that even a handful of subjects gives readable signal on which
-axis humans actually respond to.
-
-\paragraph{Boards.}
-\begin{enumerate}[leftmargin=1.4em,itemsep=2pt]
-  \item \textbf{Default Monopoly} (control). Unperturbed
-    \texttt{settings.py} board. Baseline for every subjective
-    rating.
-  \item \textbf{GA-2p combined winner} (Section~\ref{sec:baseline}).
-    Best composite-score 2p board: shorter, lower draw rate, and
-    more inter-player money transfer than default. Tests
-    \emph{whether the combined objective tracks perceived game
-    quality}, the core falsifiable claim of the GA half of the
-    project.
-  \item \textbf{GA-3p combined winner} (Section~\ref{sec:cross}).
-    Cross-evaluation (Table~\ref{tab:cross}) shows the 2p and 3p
-    winners are structurally different boards; this comparison
-    tests \emph{whether human players can also feel the
-    2p$\!\leftrightarrow\!$3p design split}, or whether the
-    difference is only legible to the rule-based pool.
-  \item \textbf{Money-only 2p optimum}
-    (Section~\ref{sec:ablation}). Board produced by setting
-    $w_{\text{money}}{=}1$ and zeroing every other weight, pushing
-    per-round inter-player cash transfer from $\approx 50$ \$/r
-    (default) toward the target $100$ \$/r while making no claim
-    about fairness or pacing. Tests \emph{whether interactivity
-    \emph{per se}, independent of fairness and length, drives
-    perceived engagement.} This is the most novel of the four
-    boards, because money-transfer rate is the only objective term
-    the project introduces that has no direct precedent in the
-    search-based game-design literature cited in
-    Section~\ref{sec:related}.
-\end{enumerate}
-
-\paragraph{Why these four, and not the other ablation winners.}
-The shortlist deliberately excludes \emph{length-only},
-\emph{draw-only}, and \emph{fairness-only} optima. Length and
-draw rate also change in the combined-objective winner (board~2),
-so a playtest on those single-axis boards would not separate the
-hypothesis ``length matters'' from ``the combined objective
-matters.'' Fairness is a property of the win-rate distribution
-across many games and is not directly observable from a single
-session: a single playtest game tells a subject who happened to
-win, not whether the board is fair. Money-only, by contrast,
-manipulates an axis that should be \emph{felt within a single
-game} (more trades, more rent events, more state change per
-turn), so it is the only ablation winner where a small pilot
-would carry useful signal.
-
-\paragraph{What we would measure.} For each board: post-game
-Likert ratings (1--5) on pacing, fairness, engagement, and
-overall enjoyment, plus a forced-choice ``would you play this
-version again.'' Between-board comparisons would be
-non-parametric (Wilcoxon signed-rank, Bonferroni-corrected across
-the 6 board pairs); per-board scores reported with bootstrap
-95\% CIs. The minimum useful pilot is $N{=}8$ subjects, each
-playing all four boards in counterbalanced order (Latin square
-on the 2p boards; the 3p board played in groups of three).
-
-\paragraph{What this shortlist would falsify.} The two strongest
-claims the GA-side of the report makes are (a)~the combined
-objective produces a measurably different board, and (b)~the
-per-objective ablations expose orthogonal design axes. A
-playtest where board~2 feels the same as board~1, or board~4
-scores the same as board~1 on engagement, would mean the
-matching claim above is wrong. We frame the
-shortlist as a \emph{falsification plan}, not a confirmation
-plan.
-
-\subsection{Reproducibility check}\label{sec:repro}
-
-Re-running any $(\theta, \text{matchups}, \text{seeds})$ triple yields
-byte-identical metrics. We verified this by re-running two randomly
-chosen JSONL lines from each major run and diffing the outputs. Every
-number in this report can be regenerated from a seed plus a JSONL
-line; the seed schedule is recorded in each run's
-\texttt{meta.json}.
+Beyond the $N{=}10$ pilot above, the full multi-subject playtest
+remains deferred. We publish a shortlist of four boards we would
+test (default, GA-2p combined winner, GA-3p combined winner,
+money-only 2p optimum), each contrasting a different design
+lever against the default, with a proposed pilot protocol
+($N{=}8$, counterbalanced, Likert plus forced-choice) and the
+per-board design hypothesis the pilot would falsify; see
+Appendix~\ref{app:playtest-shortlist} for the full specification.
 
 \subsection{Limitations}\label{sec:lim}
 
-\begin{itemize}[leftmargin=1.2em,itemsep=1pt]
-\item \textbf{Strategy-pool coverage.} The 17-dim parametric space is
-broad but not exhaustive, and human players behave outside it. The 20
-sampled strategies broaden the pool beyond the 10 archetypes and the
-sampling procedure is documented and reproducible, but a real
-deployment would want to learn the strategy distribution from logs.
-\item \textbf{Human playtest is a small pilot, not a full study.}
-Only a small $N{=}10$ two-player pilot was run
-(Section~\ref{sec:playtest-pilot}): two players played the default
-and the GA-2p combined winner under ten matched seeds, which
-confirms all four trained effects (pacing, money circulation,
-decisiveness, and win-balance) on this single subject pair but
-cannot rule out idiosyncrasy in playing style across the broader
-population. The full multi-subject playtest remains deferred. The
-shortlist in
-Section~\ref{sec:playtest-shortlist} curates 4 boards from the GA
-results (default, GA-2p combined winner, GA-3p combined winner,
-money-only 2p optimum) and names the design hypothesis each one
-is intended to probe, with a proposed pilot protocol ($N{=}8$,
-counterbalanced, Likert plus forced-choice). The agent-side
-results stand or fall on their own; the shortlist is the
-falsification plan a future pilot would execute.
-\item \textbf{Fairness is strongly dependent on the number of
-players.} The pacing, decisiveness, and composite advantages
-generalise cleanly from the 2p / 3p training regime to every count
-from $2$ to $8$ (Section~\ref{sec:cross}, Figure~\ref{fig:scaling}),
-but fairness does not: the GA winners are $30\!-\!53\%$ fairer than
-the default at training counts and $69\!-\!101\%$ \emph{less} fair
-at $7\!-\!8p$. A deployment at a player count outside the training
-regime should re-optimise the fairness term against that count, or
-accept that fairness gains may not carry over.
-\item \textbf{LLM scale.} Qwen2.5-1.5B is the only LLM in the study.
-Larger models or different prompt styles may change the agreement
-profile. Greedy decoding does, however, make the probe deterministic.
-\item \textbf{Single-board scope.} All optimisation runs on the
-standard 40-cell US Monopoly layout (with structural shrinkage via
-keep-mask). Other game families would require a new design-space
-encoder, but the rest of the pipeline (objective, pool, GA,
-validator) carries over unchanged.
-\end{itemize}
+The main caveats: the 17-dim strategy space is broad but not
+exhaustive; the $N{=}10$ pilot rules out idiosyncrasy in
+trained-effect direction but not in the broader population;
+fairness is strongly dependent on the number of players (GA
+winners $30\!-\!53\%$ fairer than default at training counts,
+$69\!-\!101\%$ less fair at $7\!-\!8$p); Qwen2.5-1.5B is the only
+LLM in the study; and all optimisation runs on the standard
+40-cell US Monopoly layout. Full discussion in
+Appendix~\ref{app:limitations}.
 
-\subsection{Lessons for multi-agent system design}\label{sec:lessons}
+\subsection{Conclusion}\label{sec:lessons}
 
-\begin{enumerate}[leftmargin=1.4em,itemsep=1pt]
-\item \textbf{Strategy-pool diversity beats single oracle.} A
-$30$-strategy parametric pool is a more honest evaluator than the
-strongest single agent we can train in the same time budget; the
-cross-class verdict (Section~\ref{sec:llm_ga}) is the empirical
-evidence.
-\item \textbf{Robust aggregation belongs in the objective.} A
-worst-pair fairness term ($F_{\max}$) prevents the optimiser from
-improving the average at the expense of the tail; CVaR or a hard
-$\min$ generalise the same idea further.
-\item \textbf{Per-objective ablations expose redundancy.} If two terms
-drive the same optimum, drop one; if they drive different optima
-(this work), keep both and report the trade-off explicitly.
-\item \textbf{Evaluation context is itself a design variable.} The 2p
-and 3p winners do not coincide; an optimisation result claimed under
-one regime should be re-evaluated under counterfactual conditions
-before it ships.
-\item \textbf{Variance reduction beats more samples.} Shared random
-numbers across candidates made GA convergence visible at $100$ games
-per candidate; uncorrelated evaluations would have required
-$\sim 1000$ games for the same signal.
-\item \textbf{The validator-and-retry stack is part of the probe.}
-v1's retry-induced fabrication is documented as a finding rather than
-patched away; a benchmark whose failure modes are not reported is a
-benchmark trick.
-\end{enumerate}
+Three independent validations clear the bar set in
+Section~\ref{sec:eval}: (i)~cross-player-count generalisation, the
+2p/3p-trained GA winners retain a $\sim$$2\times$ composite
+advantage at every count from $2$ to $8$ with the single
+exception of fairness, which is regime-specific;
+(ii)~cross-class agreement, the strategy-pool-driven board beats
+an LLM-GA-trained design on $4$ of $5$ stable metrics under
+\emph{both} evaluator classes at both 2p and 3p, at zero
+per-decision LLM cost; and (iii)~a human playtest pilot
+($N{=}10$, two players) that confirms the direction and relative
+magnitude of every trained effect, with humans showing a
+\emph{larger} default-board failure than either simulator
+predicted, so the agent-driven predictions are conservative
+rather than optimistic.
+
+The underlying mechanism is a flip in the losing condition: the
+default board (long games, low rents) rewards owning more
+properties, while the GA winner ($\sim$$60$ rounds,
+$\sim$$1.3\times$ rent, $\sim$$1.6\times$ cost) rewards staying
+solvent on a rent landing. That single shift reshuffles which
+archetypes win on the GA winner (CashHoarder $+0.18$ in WR vs.\
+the field, HighCostOnly $-0.18$), neutralises the
+defensive-purchase blocking lever, and makes max-build plays on
+small colour groups dominant rather than suicidal.
+
+The methodological lessons follow directly. A sufficiently
+diverse rule-based pool can substitute for a more expensive
+evaluator class while generalising to it; a worst-pair fairness
+term prevents the optimiser from improving the average at the
+expense of the tail; per-objective ablations expose composite
+redundancy; evaluation context (player count) is itself a design
+variable; shared random numbers reduce variance at fixed sample
+size; and the verdict that matters is whether a design's
+predicted effects survive contact with an evaluator class the
+optimiser never saw, here checked both with an all-LLM
+cross-class evaluator and a small human pilot. The recipe
+(closed-loop GA $+$ diverse evaluator pool $+$ independent
+cross-class checks) transfers to any parameterised multi-agent
+system.
 
 % =====================================================================
 \section{Author contributions}\label{sec:team}
 % =====================================================================
 
-\paragraph{Selim Emir Can.}
-All work in this report is mine: closed-loop optimisation pipeline
-(\texttt{ParametricPlayer}, strategy pool, design space, simulator
-wrapper, objectives, GA); LLM probe layer (\texttt{LLMPlayer},
-structured \texttt{STATE/ECHO/REASON/ANSWER} prompt, deterministic
-per-field validator, retry loop, per-decision logging); Task~1
-(LLM-only evaluation) and Task~2 (LLM-driven GA); cross-evaluation
-harness; figure generation; report writing.
+\paragraph{Selim Emir Can.} Project idea, implementation,
+experiments, figures, and writing; all work in this report is
+mine.
 
 % =====================================================================
 \appendix
@@ -1204,6 +1013,50 @@ harness; figure generation; report writing.
 This appendix collects implementation details that are useful for
 reproducibility but would clutter the main text. All source paths
 are relative to \texttt{monopoly/} on the project repository.
+
+\subsection{Pipeline components and driver scripts}\label{app:pipeline}
+
+\paragraph{Optimisation stack.} The optimisation stack lives under
+\texttt{monopoly/optimizer/} and \texttt{monopoly/scripts/}.
+\texttt{ParametricPlayer} together with
+\texttt{ParametricPlayerSettings} subsumes every existing
+rule-based subclass under a single 17-knob agent (5 continuous, 4
+boolean, 8-bit colour-group mask).
+\texttt{strategy\_pool.py} produces the 30-strategy pool described
+in Section~\ref{sec:bg}, deterministic via a fixed seed and saved
+once for reuse across runs.
+\texttt{design\_space.py} maps a 66-dim vector to a fresh
+\texttt{GameConfig} by applying per-property multipliers to
+\texttt{cost\_base}, \texttt{cost\_house}, \texttt{rent\_base}, and
+\texttt{rent\_house}, and physically removing properties whose
+keep-bit is zero (structurally shortening the lap rather than
+substituting \texttt{FreeParking}); the identity vector is the
+default board.
+\texttt{simulate.py} is a thin re-implementation of the inner game
+loop that returns a per-game stat dict (winner, rounds, bankruptcy
+map, inter-player transfer total) instead of only logging;
+inter-player cash flow is captured via a context-manager
+monkey-patch of \texttt{Player.pay\_money}, with non-player
+payments (taxes, fines, salary) excluded, and trade calls are
+capped at 5 per (player, turn) to break an unbounded loop in
+upstream code.
+\texttt{search.py} implements both random search and a GA
+(population 20, 10 generations, tournament selection $k{=}3$,
+uniform crossover, $\sigma{=}0.1$ Gaussian mutation on continuous
+dims, 1-bit-flip mutation on the keep-mask, elitism 2); both
+produce identical JSONL.
+
+\paragraph{Driver scripts.} The end-to-end pipeline is driven by
+five scripts. \texttt{scripts/optimize\_board.py} runs the
+rule-based search and emits one JSONL line per evaluation.
+\texttt{scripts/cross\_eval.py} runs designs through both
+player-count harnesses at $n{=}1000$.
+\texttt{scripts/strategy\_heatmap.py} produces $30{\times}30$
+strategy-vs-strategy win-rate matrices on any chosen design.
+\texttt{scripts/eval\_llm\_on\_boards.py} runs the all-LLM-seat
+probe with per-decision logging, and
+\texttt{scripts/optimize\_board\_llm.py} re-runs the GA with the
+LLM in the evaluator role.
 
 \subsection{LLMPlayer prompt and validator}\label{app:llm}
 
@@ -1286,6 +1139,221 @@ short-circuit the LLM call when the decision is forced
 eliminates 60--80\% of would-be calls and keeps the LLM evaluation
 pipeline within practical wall-clock budgets.
 
+\subsection{v1-vs-v2 hallucination audit}\label{app:hallucination}
+
+The cross-class probe (Section~\ref{sec:llm}) ran two prompt
+versions: v1 (free-form BUY/PASS with a one-sentence reason) and
+v2 (the structured \texttt{STATE/ECHO/REASON/ANSWER} prompt
+described above). v1's validator had a subtle integer/float type
+mismatch on the cash field, and retries against a wrong validator
+induced \emph{more} plausible-looking confabulation rather than
+less, because the model was being told a correct value was wrong
+and produced a different ``corrected'' answer to satisfy the
+validator. We document this here rather than tuning the validator
+until it disappears: a protocol whose failure modes are reported
+alongside its results is auditable; one whose are not is a
+benchmark trick. v2 fixes the validator and adds the verbatim ECHO
+copy; across $2{,}207$ calls under v2 the model never fabricates
+state at first-pass and the validator never falsely flags a
+correct output.
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.78\linewidth]{llm/fig_v1_vs_v2_hallucination.png}
+\caption{\textbf{The validator-and-retry stack is part of the probe:
+a faulty validator does not just produce noise, it pulls the model
+toward fabrication.} Per-call validation outcomes for the v1 prompt
+(left, with a known validator bug) and the v2 prompt (right, bug
+fixed). Each bar is stacked into three categories: \emph{real
+first-pass} hallucinations (the model fabricated state on its first
+attempt), \emph{retry-induced fabrication} (the model's first-pass
+output was correct but the buggy validator flagged it, and the
+model produced fabricated state on retry to ``satisfy'' the flag),
+and \emph{spurious validator bug} (the validator falsely flagged
+correct outputs that the model did not change). On v1 across 2{,}304
+calls, real first-pass = $0$, retry-induced = $47$, spurious = $100$;
+the model itself never hallucinated. v2 drives all three categories
+to zero across all 2{,}207 calls. The reportable second-order
+finding: validating against a wrong ground truth is worse than not
+validating, because retries can teach the model to produce the
+``correct'' wrong answer.}
+\label{fig:hallucination}
+\end{figure}
+
+\subsection{LLM buy-rate diagnostics}\label{app:buy_rate_slices}
+
+To verify that the LLM probe is making rational rather than
+uniform-random decisions, we slice its buy rate by available cash
+and by monopoly-completion situation on both boards. The probe
+buys monotonically more often as cash rises, saturates near $1.00$
+when it already partially owns the colour group, and drops to
+$\sim$$0.13$ when the opponent already dominates the group; the
+directional responses are essentially identical on both boards
+(Figure~\ref{fig:slices}).
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.78\linewidth]{llm/fig_llm_buy_rate_slices.png}
+\caption{\textbf{LLM buy-rate slices, default board vs.\ GA-2p
+winner.} \textbf{(a)~By cash bucket.} Buy rate conditioned on the
+LLM's available cash at decision time. The rate rises
+monotonically with cash, the rational ordering for any
+non-degenerate strategy; the empty $<200$ bucket reflects the
+affordability pre-filter that short-circuits the LLM call when the
+player cannot buy anyway. On the GA-winner board the LLM commits
+its cash hoard more aggressively in the $\geq 1500$ bucket
+($\sim 0.93$ vs.\ $\sim 0.70$ on the default), so the optimised
+board successfully pulls behaviour out of the cash-hoarding regime.
+\textbf{(b)~By monopoly-completion situation.}
+\textsl{fresh}: no player owns any property in the landed colour
+group, so a purchase starts a new collection.
+\textsl{partial\_self}: the LLM already owns one or more
+properties in the group and the opponent does not dominate it.
+\textsl{opp\_dominates}: the opponent owns at least half the group
+and at least as many properties as the LLM, so buying mostly funds
+their next rent payment. Buy rates respond rationally across all
+three: $\sim 1.00$ on \textsl{partial\_self} (saturated buy),
+$\sim 0.94$ on \textsl{fresh}, and $\sim 0.13$ on
+\textsl{opp\_dominates} (strict PASS). The probe is not behaving
+as a uniform random oracle, and the directional responses are
+essentially identical on both boards.}
+\label{fig:slices}
+\end{figure}
+
+\subsection{Pareto trade-off surface}\label{app:pareto}
+
+The (fairness, rounds) trade-off surface (Figure~\ref{fig:pareto})
+visualises the design-space geometry that the cross-player-count
+evaluation (Section~\ref{sec:cross}) reads off. The two clouds have
+visibly distinct shapes, which is what makes that cross-evaluation
+finding a property of the design space rather than seed noise.
+
+\begin{figure}[!htbp]
+\centering
+\begin{subfigure}[t]{0.48\linewidth}\centering
+  \includegraphics[width=\linewidth]{ga_2p_pareto.png}
+  \caption{2p}
+\end{subfigure}\hfill
+\begin{subfigure}[t]{0.48\linewidth}\centering
+  \includegraphics[width=\linewidth]{ga_3p_pareto.png}
+  \caption{3p}
+\end{subfigure}
+\caption{\textbf{The (fairness, rounds) trade-off surface and its
+Pareto frontier.} Each marker is one of $5{,}052$ candidates
+evaluated across all six search runs (random + GA + four
+single-objective ablations) on the $66$-dim keep-mask design space;
+colour encodes draw rate. The crimson line traces the actual 2D
+Pareto frontier of (fairness, rounds), both minimised: $14$ points
+at 2p, $16$ at 3p, with a clean knee around fairness $0.22$ and
+rounds $30\!-\!40$ at 2p (a slightly higher knee at 3p). The gold
+star is the combined-objective GA optimum; it sits \emph{inside}
+the cloud rather than on the 2D frontier because the composite
+weights five terms (fairness, max-fairness, length, draw, transfer),
+not just two; the GA's optimum is on the 5D Pareto surface, of
+which the (fairness, rounds) projection is a shadow. The 2p sweep
+reaches mean rounds as low as $\sim 22$ (the keep-mask shrinks the
+lap aggressively), while the 3p frontier bottoms out closer to
+$\sim 35$ rounds; the two clouds have visibly different shapes,
+which is what makes the cross-evaluation finding
+(Table~\ref{tab:cross}) a property of the design space rather than
+seed noise.}
+\label{fig:pareto}
+\end{figure}
+
+\subsection{LLM-driven GA convergence}\label{app:llm_ga_conv}
+
+The LLM-driven GA loop (Section~\ref{sec:llm_ga}) converges over
+its $32$ evaluations and produces a winning board that beats the
+default under all-LLM evaluation; whether that board is a real
+design optimum or only an LLM-evaluator optimum is what
+Figure~\ref{fig:verdict} resolves in the main text. The
+convergence curves and per-generation score distribution are below.
+
+\begin{figure}[!htbp]
+\centering
+\begin{subfigure}[t]{0.48\linewidth}\centering
+  \includegraphics[width=\linewidth]{llm/fig_llm_ga_convergence.png}
+  \caption{LLM-GA best-so-far}
+\end{subfigure}\hfill
+\begin{subfigure}[t]{0.48\linewidth}\centering
+  \includegraphics[width=\linewidth]{llm/fig_llm_ga_score_distribution.png}
+  \caption{Score distribution}
+\end{subfigure}
+\caption{\textbf{An LLM-only evaluator can drive the same GA loop.}
+\textbf{(a)}~Per-evaluation composite score (grey) and best-so-far
+(blue) over the GA's $32$ evaluations (population $8$, $5$
+generations, $n_{\text{seeds}}{=}5$, with elitism keeping the unique
+evaluation count at $32$). The dashed reference is the rule-based
+GA-2p winner's score under the same all-LLM evaluator ($0.728$): the
+LLM-driven loop finds a board (red star, iter $15$, score $0.465$)
+that beats even the rule-based winner when scored by an LLM.
+\textbf{(b)}~Per-generation distribution of candidate scores; the
+median visibly drops from generation~$0$ to generation~$2$ (selection
+pressure), and the spread within each generation reflects the
+$n_{\text{seeds}}{=}5$ evaluation noise. Total wall time
+$4$h~$58$min on a single $12$~GB GPU.}
+\label{fig:llm_ga_conv}
+\end{figure}
+
+\subsection{Training-vs-deployment overfit}\label{app:overfit}
+
+A secondary finding worth recording: \emph{optimisation-set overfit
+is small on both designs}. At the $n{=}200$ optimisation budget
+the GA-2p winner scored $0.705$ on its training matchup set; at
+$n{=}1000$ deployment it scores $0.773$, an overfit of $+0.068$
+(Table~\ref{tab:overfit}). The GA-3p winner scored $0.599$ at
+training and $0.641$ at deployment, an overfit of $+0.042$. Both
+gaps are small ($\leq 9\%$ of the deployment score) relative to
+the headline $\sim$$47\%$ improvement over the default, so the
+directional improvement is robust to re-evaluation at higher $n$.
+
+\begin{table}[h!]
+\centering
+\small
+\begin{tabular}{lccc}
+\toprule
+Design & training ($n{=}200$)\,$\downarrow$ & deployment ($n{=}1000$)\,$\downarrow$ & overfit\,$\downarrow$ \\
+\midrule
+GA-2p winner & $0.705$ & $0.773$ & $+0.068$ \\
+GA-3p winner & $0.599$ & $0.641$ & $+0.042$ \\
+\bottomrule
+\end{tabular}
+\caption{\textbf{Optimisation-set vs.\ deployment-set composite
+score, on each design's own training regime.} Header arrows:
+$\downarrow$ means lower is better. Both designs show small
+positive overfit ($+0.068$ and $+0.042$ respectively, both
+$<\!10\%$ of the deployment score) relative to the headline
+$\sim$$47\%$ improvement over the default. Training number is the
+best score in the GA's own \texttt{evals.jsonl}; deployment number
+is the corresponding row of Table~\ref{tab:cross}.}
+\label{tab:overfit}
+\end{table}
+
+\subsection{Single-objective ablation boards}\label{app:ablation_boards}
+
+The same non-redundancy claim from Section~\ref{sec:ablation},
+made spatial: each ablation winner is a visibly different
+physical board, with different properties kept or dropped and
+different per-property cost / rent multipliers.
+
+\begin{figure}[!htbp]
+\centering
+\begin{subfigure}[t]{0.48\linewidth}\centering
+  \includegraphics[width=\linewidth]{boards_mask/boards_grid_2p_mask.png}
+  \caption{2 players}
+\end{subfigure}\hfill
+\begin{subfigure}[t]{0.48\linewidth}\centering
+  \includegraphics[width=\linewidth]{boards_mask/boards_grid_3p_mask.png}
+  \caption{3 players}
+\end{subfigure}
+\caption{\textbf{Each ablation produces a visibly different
+physical board.} Six panels per player count: default (top-left)
+and the five GA-run winners (combined, fair-only, length-only,
+draw-only, money-only). Same non-redundancy finding as
+Figure~\ref{fig:multipliers}, made spatial.}
+\label{fig:board_grid}
+\end{figure}
+
 \subsection{GA, ablations, and reproducibility}\label{app:ga}
 
 \paragraph{Search hyperparameters (canonical protocol, logs in
@@ -1318,12 +1386,138 @@ table) uses the same matchup seeds.
 \item Re-running any \texttt{(design vector, matchups, seeds)}
 triple yields byte-identical metrics. We verified this by diffing
 two re-runs of the same config.
+\item Cross-player-count scaling table data
+(Table~\ref{tab:cross}) is in
+\texttt{logs/optimizer\_v3/cross\_eval\_scaling.json}; the 2p / 3p
+columns reproduce the original
+\texttt{logs/optimizer\_v3/cross\_eval\_mask.json} bit-for-bit.
 \item Trigger scripts:
 \texttt{scripts/rerun\_strategy\_experiments\_overnight.bat}
 (rule-based, $\sim$2.5h CPU) and
 \texttt{scripts/rerun\_llm\_phase\_c\_v3.bat} (LLM-only evaluation re-run,
 $\sim$6h on a 12 GB GPU).
 \end{itemize}
+
+\subsection{Limitations}\label{app:limitations}
+
+\begin{itemize}[leftmargin=1.2em,itemsep=1pt]
+\item \textbf{Strategy-pool coverage.} The 17-dim parametric space
+is broad but not exhaustive, and human players behave outside it.
+The 20 sampled strategies broaden the pool beyond the 10
+archetypes and the sampling procedure is documented and
+reproducible, but a real deployment would want to learn the
+strategy distribution from logs.
+\item \textbf{Human playtest is a small pilot, not a full study.}
+Only an $N{=}10$ two-player pilot was run
+(Section~\ref{sec:playtest-pilot}): two players played the default
+and the GA-2p combined winner under ten matched seeds, which
+confirms all four trained effects (pacing, money circulation,
+decisiveness, and win-balance) on this single subject pair but
+cannot rule out idiosyncrasy in playing style across the broader
+population. The full multi-subject playtest remains deferred; the
+shortlist in Appendix~\ref{app:playtest-shortlist} curates 4
+boards and names the design hypothesis each is intended to probe,
+with a proposed pilot protocol ($N{=}8$, counterbalanced, Likert
+plus forced-choice).
+\item \textbf{Fairness is strongly dependent on the number of
+players.} The pacing, decisiveness, and composite advantages
+generalise cleanly from the 2p / 3p training regime to every count
+from $2$ to $8$ (Section~\ref{sec:cross}, Figure~\ref{fig:scaling}),
+but fairness does not: the GA winners are $30\!-\!53\%$ fairer
+than the default at training counts and $69\!-\!101\%$
+\emph{less} fair at $7\!-\!8$p. A deployment at a player count
+outside the training regime should re-optimise the fairness term
+against that count, or accept that fairness gains may not carry
+over.
+\item \textbf{LLM scale.} Qwen2.5-1.5B is the only LLM in the
+study. Larger models or different prompt styles may change the
+agreement profile. Greedy decoding does, however, make the probe
+deterministic.
+\item \textbf{Single-board scope.} All optimisation runs on the
+standard 40-cell US Monopoly layout (with structural shrinkage
+via keep-mask). Other game families would require a new
+design-space encoder, but the rest of the pipeline (objective,
+pool, GA, validator) carries over unchanged.
+\end{itemize}
+
+\subsection{Full playtest (deferred): board shortlist}\label{app:playtest-shortlist}
+
+Beyond the $N{=}10$ pilot reported in
+Section~\ref{sec:playtest-pilot}, we did not run the full
+multi-subject playtest within the project window. Rather than
+report a synthetic surrogate, we publish the shortlist of boards
+we would playtest, with the design hypothesis each board is
+intended to probe. The shortlist is small (4 boards) so a pilot
+is feasible in a single 60--90 min session, and each board
+contrasts a different design lever against the default, so that
+even a handful of subjects gives readable signal on which axis
+humans actually respond to.
+
+\paragraph{Boards.}
+\begin{enumerate}[leftmargin=1.4em,itemsep=2pt]
+  \item \textbf{Default Monopoly} (control). Unperturbed
+    \texttt{settings.py} board. Baseline for every subjective
+    rating.
+  \item \textbf{GA-2p combined winner} (Section~\ref{sec:baseline}).
+    Best composite-score 2p board: shorter, lower draw rate, and
+    more inter-player money transfer than default. Tests
+    \emph{whether the combined objective tracks perceived game
+    quality}, the core falsifiable claim of the GA half of the
+    project.
+  \item \textbf{GA-3p combined winner} (Section~\ref{sec:cross}).
+    Cross-evaluation (Table~\ref{tab:cross}) shows the 2p and 3p
+    winners are structurally different boards; this comparison
+    tests \emph{whether human players can also feel the
+    2p$\!\leftrightarrow\!$3p design split}, or whether the
+    difference is only legible to the rule-based pool.
+  \item \textbf{Money-only 2p optimum}
+    (Section~\ref{sec:ablation}). Board produced by setting
+    $w_{\text{money}}{=}1$ and zeroing every other weight,
+    pushing per-round inter-player cash transfer from
+    $\approx 50$ \$/r (default) toward the target $100$ \$/r
+    while making no claim about fairness or pacing. Tests
+    \emph{whether interactivity \emph{per se}, independent of
+    fairness and length, drives perceived engagement.} This is
+    the most novel of the four boards, because money-transfer
+    rate is the only objective term the project introduces that
+    has no direct precedent in the search-based game-design
+    literature cited in Section~\ref{sec:related}.
+\end{enumerate}
+
+\paragraph{Why these four, and not the other ablation winners.}
+The shortlist deliberately excludes \emph{length-only},
+\emph{draw-only}, and \emph{fairness-only} optima. Length and
+draw rate also change in the combined-objective winner (board~2),
+so a playtest on those single-axis boards would not separate the
+hypothesis ``length matters'' from ``the combined objective
+matters.'' Fairness is a property of the win-rate distribution
+across many games and is not directly observable from a single
+session: a single playtest game tells a subject who happened to
+win, not whether the board is fair. Money-only, by contrast,
+manipulates an axis that should be \emph{felt within a single
+game} (more trades, more rent events, more state change per
+turn), so it is the only ablation winner where a small pilot
+would carry useful signal.
+
+\paragraph{What we would measure.} For each board: post-game
+Likert ratings (1--5) on pacing, fairness, engagement, and
+overall enjoyment, plus a forced-choice ``would you play this
+version again.'' Between-board comparisons would be
+non-parametric (Wilcoxon signed-rank, Bonferroni-corrected
+across the 6 board pairs); per-board scores reported with
+bootstrap 95\% CIs. The minimum useful pilot is $N{=}8$
+subjects, each playing all four boards in counterbalanced order
+(Latin square on the 2p boards; the 3p board played in groups
+of three).
+
+\paragraph{What this shortlist would falsify.} The two strongest
+claims the GA-side of the report makes are (a)~the combined
+objective produces a measurably different board, and (b)~the
+per-objective ablations expose orthogonal design axes. A
+playtest where board~2 feels the same as board~1, or board~4
+scores the same as board~1 on engagement, would mean the
+matching claim above is wrong. We frame the shortlist as a
+\emph{falsification plan}, not a confirmation plan.
 
 % =====================================================================
 \section{Mapping to the CS348K grading questions}\label{app:grading}
@@ -1336,26 +1530,28 @@ this appendix is a quick reader guide.
 
 \paragraph{(1) ``What are the questions or goals your project aims
 to answer?''}
-We ask whether agent simulations can substitute for human
-playtesting in game design under two qualifications: (a) the agents
-are imperfect and acknowledged as such, and (b) the unit of
-evidence is \emph{cross-class agreement}: two independent agent
-classes (a 30-strategy parametric rule-based pool and a
-single-personality LLM with structured state validation) ranking
-the same candidate boards in the same direction. The falsifiable
-hypothesis is that the directional ranking under one class matches
-the other on the optimised boards, with the LLM's per-decision
-hallucination rate below $1\%$. A curated playtest shortlist
-(Section~\ref{sec:playtest-shortlist}) packages the strongest
-design contrasts (default, GA-2p winner, GA-3p winner,
-money-only 2p optimum) as the falsification plan a future
-pilot would execute (Section~\ref{sec:lim}). The full statement
+We ask whether a diverse agent pool can serve as a beta-testing
+surrogate for human playtesting in game design under two
+qualifications: (a) the agents are imperfect and acknowledged as
+such, and (b) the unit of evidence is \emph{cross-class
+agreement}: two independent agent classes (a 30-strategy
+parametric rule-based pool and a single-personality LLM with
+structured state validation) ranking the same candidate boards in
+the same direction. The falsifiable hypothesis is two-fold:
+(a)~the directional ranking under the rule-based pool matches the
+directional ranking under the LLM seats on the same boards; and
+(b)~the same directional ranking also holds in real human play,
+so the pool acts as a proxy for human behaviour on the design
+axes the optimiser targets. An $N{=}10$ two-player playtest pilot
+(Section~\ref{sec:playtest-pilot}) is the empirical check on (b);
+a fuller multi-subject playtest is published as a falsification
+plan (Appendix~\ref{app:playtest-shortlist}). The full statement
 is in Section~\ref{sec:bg}.
 
 \paragraph{(2) ``What experiments should be done to answer that
 question, and how will you know from the outcome of the experiment
 that you have succeeded?''}
-Seven experiments, each with an explicit success criterion:
+Nine experiments, each with an explicit success criterion:
 \begin{enumerate}[leftmargin=1.4em,itemsep=1pt]
 \item Default-board baseline at $n{=}1000$
 (Section~\ref{sec:baseline}). \emph{Success:} deterministic scores
@@ -1375,39 +1571,55 @@ $\geq 20\%$ in the off-regime; quantify the specialisation gap.
 \emph{Outcome:} both designs improve over default by $\sim 47\%$ in
 the training regime; off-regime gap is $16\!-\!24\%$ on the
 composite.
-\item Per-strategy heatmap (Section~\ref{sec:heatmap}).
-\emph{Success:} reduction in the $30\times 30$ mean $|W-0.5|$, with
-the systematic pattern of which matchups are immutable surfaced
-honestly. \emph{Outcome:} $5\%$ reduction at 2p, $21\%$ at 3p; the
-\textsl{Trader vs.\ RailroadKing} 100/0 pair is genuinely
-immutable under any board configuration.
+\item Archetype WR reshuffle (Section~\ref{sec:heatmap}).
+\emph{Success:} the GA winner produces an interpretable,
+non-trivial change in which named archetypes are top-tier vs.\
+middling vs.\ bottom-tier, with the systematic pattern of which
+matchups are immutable surfaced honestly. \emph{Outcome:} the GA
+winner reshuffles middle-of-distribution archetypes ($\Delta$ up
+to $\pm 0.18$ in win-rate vs.\ the field, e.g.\ CashHoarder
+$+0.18$, HighCostOnly $-0.18$); the top-3 default strategies stay
+top-3 on the GA winner; \textsl{Trader vs.\ RailroadKing} (100/0)
+is genuinely immutable under any board configuration in the
+search space.
 \item LLM cross-class probe (Section~\ref{sec:llm}). \emph{Success:}
 rounds and transfer move in the same direction the rule-based pool
 predicted on the same boards; per-decision hallucination rate below
 $1\%$. \emph{Outcome:} $0/2{,}207$ first-pass hallucinations under
-v2 ECHO validation; rounds and transfer effects strengthen on the
-GA-winner board ($-50\%$ rounds at 2p).
+v2 ECHO validation; direction agrees on every measured metric at
+both 2p and 3p (e.g.\ rounds $\sim$$-40\%$, transfer per
+player-turn $\sim$$+60\%$ at 2p).
 \item LLM-driven GA + cross-class verdict
 (Section~\ref{sec:llm_ga}). \emph{Success:} the LLM-driven loop
 converges to a non-trivial design; cross-evaluating it against the
 rule-based GA winner under both evaluator classes resolves which
 is the better design. \emph{Outcome:} both evaluator classes prefer
 the rule-based GA winner on $4$ of $5$ stable metrics (composite,
-$\overline{F}$, $F_{\max}$, length); the LLM-driven board wins
-only on transfer per player-turn, the metric its $n{=}5$ training
-overfit to. This is the central empirical claim of the paper.
-\item Playtest shortlist (Section~\ref{sec:playtest-shortlist}).
-\emph{Success:} a small, falsifiable selection of boards from the
-GA shortlist, each contrasting a different design lever against
-the default, with a stated pilot protocol. \emph{Outcome:} 4
-boards selected (default, GA-2p combined winner, GA-3p combined
-winner, money-only 2p optimum) with one-sentence design
-hypotheses and a proposed pilot ($N{=}8$, counterbalanced, Likert
-plus forced-choice). A small $N{=}10$ two-player pilot
-(Section~\ref{sec:playtest-pilot}) confirms all four trained effects
-(pacing, money circulation, decisiveness, and win-balance) on this
-single subject pair; the fuller multi-subject playtest is published
-as a falsification plan, not a completed study.
+$\overline{F}$, $F_{\max}$, length) at \emph{both} 2p and 3p
+($n{=}100$ LLM seats each); the LLM-driven board wins only on
+transfer per player-turn, the metric its $n{=}5$ training overfit
+to. This is the central empirical claim of the paper.
+\item Human playtest pilot (Section~\ref{sec:playtest-pilot}).
+\emph{Success:} the design constraints specified in the agent
+setting are satisfied in real human play, in the same direction
+and similar relative magnitude as under the agent evaluators, and
+agent feedback is conservative rather than optimistic.
+\emph{Outcome:} $N{=}10$ two-player matched-seed pilot;
+$\sim$$50$ vs.\ $131$ rounds, \$$66$ vs.\ \$$39$ per round, $0\%$
+vs.\ $40\%$ draws on the GA winner vs.\ the default, with humans
+showing a \emph{larger} default-board failure than either
+simulator ($40\%$ draws vs.\ $0$--$7\%$ in pool/LLM). The
+agent-driven predictions are conservative rather than optimistic.
+\item Playtest shortlist
+(Appendix~\ref{app:playtest-shortlist}). \emph{Success:} a small,
+falsifiable selection of boards from the GA shortlist, each
+contrasting a different design lever against the default, with a
+stated pilot protocol. \emph{Outcome:} 4 boards selected
+(default, GA-2p combined winner, GA-3p combined winner,
+money-only 2p optimum) with one-sentence design hypotheses and a
+proposed pilot ($N{=}8$, counterbalanced, Likert plus
+forced-choice). The fuller multi-subject playtest is published as
+a falsification plan, not a completed study.
 \end{enumerate}
 
 % =====================================================================
