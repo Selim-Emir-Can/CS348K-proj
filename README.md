@@ -1,6 +1,6 @@
 # Beta-Testing Monopoly: Closed-Loop Game-Design Optimisation
 
-_Selim Emir Can (emirc) and Alaz Cig · CS348K project · 2026_
+_Selim Emir Can (selimcan@stanford.edu) · CS348K project · 2026_
 
 > **Final report:**
 > [`monopoly/report/report_with_playtest_shortlist.pdf`](monopoly/report/report_with_playtest_shortlist.pdf)
@@ -250,7 +250,7 @@ validated with two independent checks beyond the rule-based pool:
 If you use this codebase, please cite:
 
 ```
-Selim Emir Can and Alaz Cig. "Beta-Testing Monopoly: Closed-Loop
-Game-Design Optimisation over a Diverse Strategy Pool." CS348K project,
-2026. https://github.com/Selim-Emir-Can/CS348K-proj
+Selim Emir Can. "Beta-Testing Monopoly: Closed-Loop Game-Design
+Optimisation over a Diverse Strategy Pool." CS348K project, 2026.
+https://github.com/Selim-Emir-Can/CS348K-proj
 ```
