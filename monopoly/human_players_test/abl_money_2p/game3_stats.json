@@ -1,0 +1,40 @@
+{
+  "board": "abl_money_2p",
+  "seed": 7,
+  "n_players": 2,
+  "winner": "Player 2",
+  "truncated": false,
+  "terminated_by": "bankruptcy",
+  "rounds": 39,
+  "total_turn_blocks": 90,
+  "doubles_go_again": {
+    "Player 1": 7,
+    "Player 2": 4
+  },
+  "transfer_total": 2585.2,
+  "transfer_rate_per_round": 66.29,
+  "transfer_breakdown": {
+    "Player 1->Player 2": 2335.2,
+    "Player 2->Player 1": 250.0
+  },
+  "properties_bought": {
+    "Player 1": 6,
+    "Player 2": 7
+  },
+  "houses_built": {
+    "Player 2": 14,
+    "Player 1": 12
+  },
+  "hotels_built": {
+    "Player 1": 2,
+    "Player 2": 3
+  },
+  "jail_entries": {
+    "Player 2": 2,
+    "Player 1": 3
+  },
+  "players": [
+    "Player 1",
+    "Player 2"
+  ]
+}
