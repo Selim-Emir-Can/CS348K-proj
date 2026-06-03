@@ -51,13 +51,6 @@ Noor Shaker, Julian Togelius, and Mark~J. Nelson.
 \newblock {\em Procedural Content Generation in Games}.
 \newblock Computational Synthesis and Creative Systems. Springer, 2016.
 
-\bibitem{pettingzoo}
-J.~K. Terry, Benjamin Black, Nathaniel Grammel, Mario Jayakumar, Ananth Hari,
-  Ryan Sullivan, Luis~S. Santos, Clemens Dieffendahl, Caroline Horsch, Rodrigo
-  Perez-Vicente, Niall Williams, Yashas Lokesh, and Praveen Ravi.
-\newblock Pettingzoo: Gym for multi-agent reinforcement learning.
-\newblock {\em Advances in Neural Information Processing Systems}, 34, 2021.
-
 \bibitem{alphastar}
 Oriol Vinyals, Igor Babuschkin, Wojciech~M. Czarnecki, Micha\"{e}l Mathieu,
   Andrew Dudzik, Junyoung Chung, David~H.\ Choi, Richard Powell, Timo Ewalds,

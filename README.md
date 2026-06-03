@@ -2,12 +2,11 @@
 
 _Selim Emir Can (emirc) and Alaz Cig · CS348K project · 2026_
 
-> **CS348K Checkpoint 1** (due 2026-05-08): see
-> [`monopoly/CHECKPOINT_1.md`](monopoly/CHECKPOINT_1.md) for the
-> project's questions, evaluation plan, and current status, with
-> explicit pointers to the code and results for each experiment.
-> Canonical numbers are in [`monopoly/RESULTS.md`](monopoly/RESULTS.md);
-> project context is in [`monopoly/context.md`](monopoly/context.md).
+> **Final report:**
+> [`monopoly/report/report_with_playtest_shortlist.pdf`](monopoly/report/report_with_playtest_shortlist.pdf)
+> (source `report_with_playtest_shortlist.tex`). Canonical numbers are in
+> [`monopoly/RESULTS.md`](monopoly/RESULTS.md); project context is in
+> [`monopoly/context.md`](monopoly/context.md).
 
 This repository automates the beta-testing loop that game and system designers
 usually run by hand. We treat Monopoly as a parameterised multi-agent system
@@ -15,14 +14,17 @@ and build a closed-loop optimiser: a diverse rule-based agent pool plays on
 candidate boards while a genetic algorithm searches a parameterised
 environment space to minimise a composite of fairness, game length,
 decisiveness, and inter-agent interactivity. Applied to Monopoly, the
-optimiser cuts the combined score ~40% below the default board and surfaces
-transferable principles for automating beta-testing of any multi-agent system.
+optimiser cuts the combined score ~47% below the default board, and we
+validate the winners with an independent LLM agent class and a human
+playtest pilot, surfacing transferable principles for automating
+beta-testing of any multi-agent system.
 
 **The full write-up** (with convergence curves, ablation matrices,
-cross-evaluation at _n_=1000, per-strategy heatmaps, and qualitative board
-renders) is in [`monopoly/report/report_cs348k.tex`](monopoly/report/report_cs348k.tex)
-(submission draft); the older CVPR-style draft is at
-[`monopoly/report/report.tex`](monopoly/report/report.tex).
+cross-evaluation at _n_=1000, per-archetype win-rate shifts, the LLM
+cross-class verdict, and the human playtest pilot) is in
+[`monopoly/report/report_with_playtest_shortlist.tex`](monopoly/report/report_with_playtest_shortlist.tex)
+(compiled PDF:
+[`report_with_playtest_shortlist.pdf`](monopoly/report/report_with_playtest_shortlist.pdf)).
 
 ---
 
@@ -146,27 +148,29 @@ args so any reported number can be reproduced from a single meta file.
 
 ## What the optimiser actually finds
 
-At _n_=1000 games per cell (Wilson 95% CI of ±3pp on individual win rates):
+At _n_=1000 games per cell (cross-count-comparable composite, lower = better;
+transfer/turn = $/round ÷ players, target 50):
 
-| Design            | 2p score | 3p score | Mean fairness (2p) | Rounds (2p) | Draws (2p) | Transfer/round (2p) |
-|-------------------|---------:|---------:|-------------------:|------------:|-----------:|---------------------:|
-| Default Monopoly  |    1.463 |    1.230 |              0.454 |       103.9 |      7.4 % |                 $50 |
-| GA-2p winner      |    **0.82** |    0.72 |              0.24  |        62.5 |      1.3 % |                 $75 |
-| GA-3p winner      |    0.92  |    **0.79** |              0.25  |        63.8 |      0.4 % |                 $66 |
+| Design            | 2p score | 3p score | Fairness F̄ (2p) | Rounds (2p) | Draws (2p) | Transfer/turn (2p) |
+|-------------------|---------:|---------:|-----------------:|------------:|-----------:|-------------------:|
+| Default Monopoly  |    1.463 |    1.329 |            0.454 |       103.9 |      7.4 % |               24.8 |
+| GA-2p winner      | **0.774** |    0.729 |            0.215 |        62.2 |      1.7 % |               36.7 |
+| GA-3p winner      |    0.897 | **0.602** |            0.287 |        56.2 |      0.5 % |               34.7 |
 
-> **Pending human validation.** All numbers above are internal to the
-> agent loop. Whether these designs play the way the agents predict for
-> real human players is the subject of an ongoing validation effort
-> (simplified-board sanity check + human playtest + LLM-agent
-> cross-check). See `monopoly/notes/kayvon_meeting_2026-04-24.md` for
-> the validation plan and `monopoly/report/report_cs348k.tex` §7 for
-> the formal write-up.
+> **Validated across agent classes and humans.** The agent-internal
+> winners were re-checked with an independent LLM agent class
+> (Qwen2.5-1.5B, cross-class agreement on every metric) and an _N_=10
+> two-player human playtest pilot, where all four trained effects held in
+> the same direction and magnitude and humans showed an even larger
+> default-board failure than the simulators predicted. The full
+> multi-subject playtest remains deferred (shortlist in the report
+> appendix).
 
-The composite score drops ~40% below the default in both regimes. Games
-end in ~62 rounds instead of ~104. Draw rate falls by 80%+. Per-strategy
-structural asymmetry (mean `|W-0.5|` over the 30×30 matchup matrix) also
-drops from 0.21 to 0.17 on 2p and 0.26 to 0.21 on 3p — notable because
-environment tweaks usually can't shift strategy-level skill asymmetry.
+The composite score drops ~47% below the default in both regimes. Games
+end in ~62 rounds instead of ~104. Draw rate falls by 80%+. The board
+change also reshuffles which archetypes win: slow, cash-conserving
+strategies move from middling to top-tier, notable because environment
+tweaks usually can't shift strategy-level skill asymmetry.
 
 Single-objective ablations confirm each term of the composite is doing
 useful work: every one drives its own metric to (or near) its bound,
@@ -222,26 +226,24 @@ dataclass in `player_settings.py` (17 configurable knobs) which powers the
 
 ---
 
-## Roadmap
+## Validation
 
-The current codebase covers the agent-internal optimisation loop. The
-project's central claim (agent feedback is _directionally_ predictive of
-real human play, even when not literally accurate) is being validated in
-three phases. See `monopoly/notes/kayvon_meeting_2026-04-24.md` and §7
-of the report for full detail.
+The project's central claim, that agent feedback is _directionally_
+predictive of real human play even when not literally accurate, was
+validated with two independent checks beyond the rule-based pool:
 
-- **Phase A: simplified-board sanity check.** A 4×4 (16-cell) variant
-  of Monopoly with 8 colour-group properties across 4 groups lives at
-  `monopoly/configs/mini/`; see `monopoly/optimizer/simulate.py` for
-  usage. Pre-declared knobs to validate on this board: salary level,
-  removing one colour group, doubling rent on one expensive group.
-- **Phase B: human playtest.** 3-5 testers playing 5-10 games per
-  board. Default vs. GA-optimised winner. Falsification criterion
-  pre-declared in `monopoly/report/report_cs348k.tex` §7.2.
-- **Phase C: LLM-agent cross-check.** `agents.LLMPlayer` calls a local
-  Qwen2.5-0.5B-Instruct (or any OpenAI-compatible endpoint) for each
-  buy decision. Used as a third independent signal alongside rule-based
-  agents and humans.
+- **LLM cross-class check (done).** `agents.LLMPlayer` runs a local
+  Qwen2.5-1.5B-Instruct with a structured, echo-validated prompt for each
+  buy decision. Both the rule-based pool and all-LLM seats agree on the
+  direction of every metric, and the pool-driven board beats an
+  LLM-driven board on 4 of 5 metrics under both evaluator classes, at
+  zero per-decision LLM cost.
+- **Human playtest (done).** An _N_=10 two-player pilot (default vs.
+  GA-2p winner, matched seeds) confirmed all four trained effects in the
+  same direction and magnitude; humans showed an even larger
+  default-board failure than the simulators predicted. The full
+  multi-subject study is specified as a falsification plan in the report
+  appendix and remains deferred.
 
 ## Citation
 

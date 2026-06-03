@@ -799,6 +799,12 @@ experiments, figures, and writing; all work in this report is
 mine.
 
 % =====================================================================
+% References
+% =====================================================================
+\bibliographystyle{plain}
+\bibliography{refs}
+
+% =====================================================================
 \appendix
 % =====================================================================
 
@@ -910,16 +916,6 @@ shortlist in Appendix~\ref{app:playtest-shortlist} curates 4
 boards and names the design hypothesis each is intended to probe,
 with a proposed pilot protocol ($N{=}8$, counterbalanced, Likert
 plus forced-choice).
-\item \textbf{Fairness is strongly dependent on the number of
-players.} The pacing, decisiveness, and composite advantages
-generalise cleanly from the 2p / 3p training regime to every count
-from $2$ to $8$ (Section~\ref{sec:cross}, Figure~\ref{fig:scaling}),
-but fairness does not: the GA winners are $30\!-\!53\%$ fairer
-than the default at training counts and $69\!-\!101\%$
-\emph{less} fair at $7\!-\!8$p. A deployment at a player count
-outside the training regime should re-optimise the fairness term
-against that count, or accept that fairness gains may not carry
-over.
 \item \textbf{LLM scale.} Qwen2.5-1.5B is the only LLM in the
 study. Larger models or different prompt styles may change the
 agreement profile. Greedy decoding does, however, make the probe
@@ -997,16 +993,11 @@ which they do not.
 \end{subfigure}
 \caption{\textbf{Each ablation carves a different shape in design
 space (2p).} Per-property cost multiplier (a), rent multiplier (b),
-and keep-mask bit (c) at the optimum of each GA run. Within each
-panel, \emph{rows} are the five ablations (\textit{combined,
-fair-only, length-only, draw-only, money-only}, top to bottom) and
-\emph{columns} are the 22 ownable properties in board order
-(Mediterranean Avenue at left through Boardwalk at right). Cell
-values are the multiplier at the optimum (cost/rent panels, $0.5$
-to $2.0$, with $1.0$ being the default identity) or the keep-bit
-(keep-mask panel: green = kept, black = dropped). If any two
-ablations drove the optimiser to the same board, those rows would
-be near-identical; the visible inter-row variation is the empirical
+and keep-mask bit (c) at each GA run's optimum; \emph{rows} are the
+five ablations (combined, fair-only, length-only, draw-only,
+money-only), \emph{columns} the 22 ownable properties in board order.
+Cost/rent cells range $0.5$--$2.0$ ($1.0$ = default); keep-mask:
+green = kept, black = dropped. The visible inter-row variation is the
 evidence that the composite objective is non-redundant.}
 \label{fig:multipliers}
 \end{figure}
@@ -1037,10 +1028,8 @@ Figure~\ref{fig:multipliers}, made spatial.}
 \subsection{Pareto trade-off surface}\label{app:pareto}
 
 The (fairness, rounds) trade-off surface (Figure~\ref{fig:pareto})
-visualises the design-space geometry that the cross-player-count
-evaluation (Section~\ref{sec:cross}) reads off. The two clouds have
-visibly distinct shapes, which is what makes that cross-evaluation
-finding a property of the design space rather than seed noise.
+shows the design-space geometry behind the cross-player-count finding
+(Section~\ref{sec:cross}).
 
 \begin{figure}[!htbp]
 \centering
@@ -1053,24 +1042,15 @@ finding a property of the design space rather than seed noise.
   \caption{3p}
 \end{subfigure}
 \caption{\textbf{The (fairness, rounds) trade-off surface and its
-Pareto frontier.} Each marker is one of $5{,}052$ candidates
-evaluated across all six search runs (random + GA + four
-single-objective ablations) on the $66$-dim keep-mask design space;
-colour encodes draw rate. The crimson line traces the actual 2D
-Pareto frontier of (fairness, rounds), both minimised: $14$ points
-at 2p, $16$ at 3p, with a clean knee around fairness $0.22$ and
-rounds $30\!-\!40$ at 2p (a slightly higher knee at 3p). The gold
-star is the combined-objective GA optimum; it sits \emph{inside}
-the cloud rather than on the 2D frontier because the composite
-weights five terms (fairness, max-fairness, length, draw, transfer),
-not just two; the GA's optimum is on the 5D Pareto surface, of
-which the (fairness, rounds) projection is a shadow. The 2p sweep
-reaches mean rounds as low as $\sim 22$ (the keep-mask shrinks the
-lap aggressively), while the 3p frontier bottoms out closer to
-$\sim 35$ rounds; the two clouds have visibly different shapes,
-which is what makes the cross-evaluation finding
-(Table~\ref{tab:cross}) a property of the design space rather than
-seed noise.}
+Pareto frontier.} Each marker is one of $5{,}052$ candidates from all
+six search runs (random $+$ GA $+$ four ablations); colour encodes
+draw rate, and the crimson line is the 2D Pareto frontier (both axes
+minimised). The gold star is the combined-objective GA optimum; it
+sits \emph{inside} the cloud because the composite weights five terms,
+not two, so its optimum lies on the 5D Pareto surface of which this is
+a projection. The 2p and 3p clouds have visibly different shapes,
+which is what makes the cross-evaluation finding (Table~\ref{tab:cross})
+a property of the design space, not seed noise.}
 \label{fig:pareto}
 \end{figure}
 
@@ -1209,99 +1189,69 @@ convergence curves and per-generation score distribution are below.
   \caption{Score distribution}
 \end{subfigure}
 \caption{\textbf{An LLM-only evaluator can drive the same GA loop.}
-\textbf{(a)}~Per-evaluation composite score (grey) and best-so-far
-(blue) over the GA's $32$ evaluations (population $8$, $5$
-generations, $n_{\text{seeds}}{=}5$, with elitism keeping the unique
-evaluation count at $32$). The dashed reference is the rule-based
-GA-2p winner's score under the same all-LLM evaluator ($0.728$): the
-LLM-driven loop finds a board (red star, iter $15$, score $0.465$)
-that beats even the rule-based winner when scored by an LLM.
-\textbf{(b)}~Per-generation distribution of candidate scores; the
-median visibly drops from generation~$0$ to generation~$2$ (selection
-pressure), and the spread within each generation reflects the
-$n_{\text{seeds}}{=}5$ evaluation noise. Total wall time
-$4$h~$58$min on a single $12$~GB GPU.}
+\textbf{(a)}~Per-evaluation composite (grey) and best-so-far (blue)
+over the GA's $32$ evaluations (population $8$, $5$ generations, $5$
+seeds). The dashed line is the rule-based GA-2p winner under the same
+all-LLM evaluator ($0.728$); the LLM-driven loop finds a board (red
+star, score $0.465$) that beats it under LLM scoring.
+\textbf{(b)}~Per-generation score distribution; the median drops with
+selection pressure. Total wall time $4$h~$58$min on a single $12$~GB
+GPU.}
 \label{fig:llm_ga_conv}
 \end{figure}
 
 \subsection{LLM buy-rate diagnostics}\label{app:buy_rate_slices}
 
-To verify that the LLM probe is making rational rather than
-uniform-random decisions, we slice its buy rate by available cash
-and by monopoly-completion situation on both boards. The probe
-buys monotonically more often as cash rises, saturates near $1.00$
-when it already partially owns the colour group, and drops to
-$\sim$$0.13$ when the opponent already dominates the group; the
-directional responses are essentially identical on both boards
-(Figure~\ref{fig:slices}).
+To check the probe makes rational rather than uniform-random
+decisions, we slice its buy rate by available cash and by
+monopoly-completion situation (Figure~\ref{fig:slices}): it buys more
+often as cash rises, saturates when it already partly owns the group,
+and mostly passes when the opponent dominates it, near-identically on
+both boards.
 
 \begin{figure}[!htbp]
 \centering
 \includegraphics[width=0.78\linewidth]{llm/fig_llm_buy_rate_slices.png}
-\caption{\textbf{LLM buy-rate slices, default board vs.\ GA-2p
-winner.} \textbf{(a)~By cash bucket.} Buy rate conditioned on the
-LLM's available cash at decision time. The rate rises
-monotonically with cash, the rational ordering for any
-non-degenerate strategy; the empty $<200$ bucket reflects the
-affordability pre-filter that short-circuits the LLM call when the
-player cannot buy anyway. On the GA-winner board the LLM commits
-its cash hoard more aggressively in the $\geq 1500$ bucket
-($\sim 0.93$ vs.\ $\sim 0.70$ on the default), so the optimised
-board successfully pulls behaviour out of the cash-hoarding regime.
-\textbf{(b)~By monopoly-completion situation.}
-\textsl{fresh}: no player owns any property in the landed colour
-group, so a purchase starts a new collection.
-\textsl{partial\_self}: the LLM already owns one or more
-properties in the group and the opponent does not dominate it.
-\textsl{opp\_dominates}: the opponent owns at least half the group
-and at least as many properties as the LLM, so buying mostly funds
-their next rent payment. Buy rates respond rationally across all
-three: $\sim 1.00$ on \textsl{partial\_self} (saturated buy),
-$\sim 0.94$ on \textsl{fresh}, and $\sim 0.13$ on
-\textsl{opp\_dominates} (strict PASS). The probe is not behaving
-as a uniform random oracle, and the directional responses are
-essentially identical on both boards.}
+\caption{\textbf{LLM buy-rate slices, default vs.\ GA-2p winner.}
+\textbf{(a)~By cash bucket:} buy rate rises monotonically with
+available cash (the empty $<200$ bucket reflects the affordability
+pre-filter); on the GA winner the LLM commits its hoard more
+aggressively at $\geq 1500$ ($\sim 0.93$ vs.\ $\sim 0.70$).
+\textbf{(b)~By monopoly situation:} $\sim 1.00$ when it already partly
+owns the group (\textsl{partial\_self}), $\sim 0.94$ on a
+\textsl{fresh} group, and $\sim 0.13$ when the opponent dominates it
+(\textsl{opp\_dominates}). The probe responds rationally, not as a
+uniform-random oracle, and near-identically on both boards.}
 \label{fig:slices}
 \end{figure}
 
 \subsection{v1-vs-v2 hallucination audit}\label{app:hallucination}
 
-The cross-class probe (Section~\ref{sec:llm}) ran two prompt
-versions: v1 (free-form BUY/PASS with a one-sentence reason) and
-v2 (the structured \texttt{STATE/ECHO/REASON/ANSWER} prompt
-described above). v1's validator had a subtle integer/float type
-mismatch on the cash field, and retries against a wrong validator
-induced \emph{more} plausible-looking confabulation rather than
-less, because the model was being told a correct value was wrong
-and produced a different ``corrected'' answer to satisfy the
-validator. We document this here rather than tuning the validator
-until it disappears: a protocol whose failure modes are reported
-alongside its results is auditable; one whose are not is a
-benchmark trick. v2 fixes the validator and adds the verbatim ECHO
-copy; across $2{,}207$ calls under v2 the model never fabricates
-state at first-pass and the validator never falsely flags a
-correct output.
+The cross-class probe (Section~\ref{sec:llm}) ran two prompt versions:
+v1 (free-form BUY/PASS) and v2 (the structured
+\texttt{STATE/ECHO/REASON/ANSWER} prompt). v1's validator had an
+integer/float mismatch on the cash field, and retries against the
+wrong validator induced \emph{more} confabulation, not less, because
+the model was told a correct value was wrong and produced a different
+``corrected'' answer. We report this rather than tuning it away: a
+protocol whose failure modes are documented is auditable. v2 fixes the
+validator and adds the verbatim ECHO copy; across $2{,}207$ v2 calls
+the model never fabricates state at first pass and the validator never
+falsely flags a correct output.
 
 \begin{figure}[!htbp]
 \centering
 \includegraphics[width=0.78\linewidth]{llm/fig_v1_vs_v2_hallucination.png}
-\caption{\textbf{The validator-and-retry stack is part of the probe:
-a faulty validator does not just produce noise, it pulls the model
-toward fabrication.} Per-call validation outcomes for the v1 prompt
-(left, with a known validator bug) and the v2 prompt (right, bug
-fixed). Each bar is stacked into three categories: \emph{real
-first-pass} hallucinations (the model fabricated state on its first
-attempt), \emph{retry-induced fabrication} (the model's first-pass
-output was correct but the buggy validator flagged it, and the
-model produced fabricated state on retry to ``satisfy'' the flag),
-and \emph{spurious validator bug} (the validator falsely flagged
-correct outputs that the model did not change). On v1 across 2{,}304
-calls, real first-pass = $0$, retry-induced = $47$, spurious = $100$;
-the model itself never hallucinated. v2 drives all three categories
-to zero across all 2{,}207 calls. The reportable second-order
-finding: validating against a wrong ground truth is worse than not
-validating, because retries can teach the model to produce the
-``correct'' wrong answer.}
+\caption{\textbf{A faulty validator pulls the model toward
+fabrication.} Per-call validation outcomes for v1 (buggy validator)
+and v2 (fixed). Categories: \emph{real first-pass} fabrication,
+\emph{retry-induced} fabrication (a correct first output that the
+buggy validator flagged, then ``corrected'' to a wrong answer), and
+\emph{spurious} flags (correct outputs falsely flagged). v1 over
+$2{,}304$ calls: $0$ real, $47$ retry-induced, $100$ spurious; v2
+drives all three to zero over $2{,}207$ calls. Second-order lesson:
+validating against a wrong ground truth is worse than not
+validating.}
 \label{fig:hallucination}
 \end{figure}
 
@@ -1344,10 +1294,9 @@ payments (taxes, fines, salary) excluded, and trade calls are
 capped at 5 per (player, turn) to break an unbounded loop in
 upstream code.
 \texttt{search.py} implements both random search and a GA
-(population 20, 10 generations, tournament selection $k{=}3$,
-uniform crossover, $\sigma{=}0.1$ Gaussian mutation on continuous
-dims, 1-bit-flip mutation on the keep-mask, elitism 2); both
-produce identical JSONL.
+(tournament selection, uniform crossover, Gaussian and bit-flip
+mutation, elitism); both produce identical JSONL, and the search
+hyperparameters are in Appendix~\ref{app:ga}.
 
 \paragraph{Driver scripts.} The end-to-end pipeline is driven by
 five scripts. \texttt{scripts/optimize\_board.py} runs the
@@ -1411,11 +1360,5 @@ columns reproduce the original
 \texttt{scripts/rerun\_llm\_phase\_c\_v3.bat} (LLM-only evaluation re-run,
 $\sim$6h on a 12 GB GPU).
 \end{itemize}
-
-% =====================================================================
-% References
-% =====================================================================
-\bibliographystyle{plain}
-\bibliography{refs}
 
 \end{document}
